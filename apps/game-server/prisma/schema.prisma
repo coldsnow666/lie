@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  email        String       @unique
+  nickname     String
+  avatarUrl    String?      @map("avatar_url")
+  passwordHash String       @map("password_hash")
+  lastLoginAt  DateTime?    @map("last_login_at") @db.Timestamptz(6)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  rooms        Room[]       @relation("RoomOwner")
+  matchPlayers MatchPlayer[]
+  stats        PlayerStats?
+
+  @@map("users")
+}
+
+model Room {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  status      String
+  ownerUserId String?  @map("owner_user_id") @db.Uuid
+  owner       User?    @relation("RoomOwner", fields: [ownerUserId], references: [id])
+  maxPlayers  Int      @map("max_players")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  matches     Match[]
+
+  @@map("rooms")
+}
+
+model Match {
+  id             String        @id @default(uuid()) @db.Uuid
+  roomId         String        @map("room_id") @db.Uuid
+  room           Room          @relation(fields: [roomId], references: [id])
+  status         String
+  ruleSet        Json          @map("rule_set")
+  deckSeed       String        @map("deck_seed")
+  startedAt      DateTime?     @map("started_at") @db.Timestamptz(6)
+  endedAt        DateTime?     @map("ended_at") @db.Timestamptz(6)
+  winnerPlayerId String?       @map("winner_player_id")
+  finalSnapshot  Json?         @map("final_snapshot")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  players        MatchPlayer[]
+  events         MatchEvent[]
+
+  @@map("matches")
+}
+
+model MatchPlayer {
+  id         String  @id @default(uuid()) @db.Uuid
+  matchId    String  @map("match_id") @db.Uuid
+  match      Match   @relation(fields: [matchId], references: [id])
+  userId     String? @map("user_id") @db.Uuid
+  user       User?   @relation(fields: [userId], references: [id])
+  playerId   String  @map("player_id")
+  nickname   String
+  seatIndex  Int     @map("seat_index")
+  finalRank  Int?    @map("final_rank")
+  cardsLeft  Int?    @map("cards_left")
+  isWinner   Boolean @default(false) @map("is_winner")
+
+  @@map("match_players")
+}
+
+model MatchEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  matchId       String   @map("match_id") @db.Uuid
+  match         Match    @relation(fields: [matchId], references: [id])
+  seq           Int
+  type          String
+  actorPlayerId String?  @map("actor_player_id")
+  payload       Json
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("match_events")
+}
+
+model PlayerStats {
+  userId            String   @id @map("user_id") @db.Uuid
+  user              User     @relation(fields: [userId], references: [id])
+  gamesPlayed       Int      @default(0) @map("games_played")
+  gamesWon          Int      @default(0) @map("games_won")
+  challengesMade    Int      @default(0) @map("challenges_made")
+  challengesSuccess Int      @default(0) @map("challenges_success")
+  bluffsMade        Int      @default(0) @map("bluffs_made")
+  bluffsCaught      Int      @default(0) @map("bluffs_caught")
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("player_stats")
+}

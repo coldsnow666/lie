@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+coverage
+apps/game-server/src/generated/prisma
+.env
+.env.local
+.env.*.local
+!apps/web/next-env.d.ts
+*.log
+pnpm-debug.log*

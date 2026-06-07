@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lie-postgres
+    environment:
+      POSTGRES_USER: lie
+      POSTGRES_PASSWORD: lie_password
+      POSTGRES_DB: lie
+    ports:
+      - "5432:5432"
+    volumes:
+      - lie-postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: lie-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - lie-redis-data:/data
+
+volumes:
+  lie-postgres-data:
+  lie-redis-data:

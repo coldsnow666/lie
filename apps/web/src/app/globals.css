@@ -1,0 +1,27 @@
+/**
+ * 全局样式：定义 Tailwind 入口、主题色和基础表单字体继承。
+ */
+@import "tailwindcss";
+
+:root {
+  --background: #0b1812;
+  --foreground: #f7f0dc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}

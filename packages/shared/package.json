@@ -1,0 +1,26 @@
+{
+  "name": "@lie/shared",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./cards": "./src/cards.ts",
+    "./rules": "./src/rules.ts",
+    "./schemas": "./src/schemas.ts",
+    "./constants": "./src/constants.ts",
+    "./events": "./src/events.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.0.16"
+  }
+}
