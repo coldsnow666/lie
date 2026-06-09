@@ -4,7 +4,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { LogOut, Plus, PlugZap, Users } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import AppShell from "@/components/layout/AppShell";
@@ -33,24 +33,6 @@ export default function LobbyPage() {
   const [connectionState, setConnectionState] = useState("未连接");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const actions = useMemo(
-    () => (
-      <button
-        type="button"
-        onClick={async () => {
-          await logout();
-          disconnectSocket();
-          router.push("/login");
-        }}
-        className="flex h-10 items-center gap-2 rounded border border-white/15 px-3 text-sm text-[#fff6cf] transition hover:border-[#d7bc72]"
-      >
-        <LogOut size={16} />
-        退出登录
-      </button>
-    ),
-    [router],
-  );
 
   useEffect(() => {
     try {
@@ -110,19 +92,35 @@ export default function LobbyPage() {
     }
   }
 
+  async function handleLogout() {
+    await logout();
+    disconnectSocket();
+    router.push("/login");
+  }
+
   return (
     <AuthGuard onUser={setUser}>
-      <AppShell title="大厅" actions={actions}>
+      <AppShell>
         <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
           <section className="rounded border border-[#d7bc72]/30 bg-[#10271d]/95 p-6">
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
                 <h1 className="text-2xl font-semibold text-[#fff6cf]">欢迎，{user?.nickname ?? "玩家"}</h1>
                 <p className="mt-2 text-sm text-[#c6b889]">创建一桌新游戏，或输入房间码加入朋友的桌子。</p>
               </div>
-              <div className="flex items-center gap-2 rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-[#c6b889]">
-                <PlugZap size={16} />
-                {connectionState}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex h-10 items-center gap-2 rounded border border-white/10 bg-black/20 px-3 text-sm text-[#c6b889]">
+                  <PlugZap size={16} />
+                  {connectionState}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex h-10 items-center gap-2 rounded border border-white/15 px-3 text-sm text-[#fff6cf] transition hover:border-[#d7bc72]"
+                >
+                  <LogOut size={16} />
+                  退出登录
+                </button>
               </div>
             </div>
 

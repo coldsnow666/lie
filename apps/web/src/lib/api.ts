@@ -1,5 +1,5 @@
 /**
- * 前端 REST 请求封装：统一带 token、解析错误并暴露语义化认证方法。
+ * 前端 REST 请求封装：统一带 token，并按后端 code/data 协议解析结果。
  */
 "use client";
 
@@ -7,12 +7,24 @@ import { clearSession, getAccessToken, saveSession, type StoredUser } from "./au
 
 const API_URL = process.env.NEXT_PUBLIC_GAME_SERVER_URL ?? "http://localhost:4000";
 
-type ApiError = {
-  error?: {
-    code: string;
-    message: string;
-  };
+type ApiErrorPayload = {
+  message: string;
 };
+
+type ApiResponse<T> = {
+  code: number;
+  data: T;
+};
+
+export class ApiRequestError extends Error {
+  code: number;
+
+  constructor(code: number, message: string) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.code = code;
+  }
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
@@ -26,13 +38,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
-  const data = (await response.json().catch(() => ({}))) as T & ApiError;
+  const payload = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;
 
-  if (!response.ok) {
-    throw new Error(data.error?.message ?? "请求失败");
+  if (!payload) {
+    throw new Error("请求失败");
   }
 
-  return data;
+  if (payload.code >= 40000 || !response.ok) {
+    const errorData = payload.data as ApiErrorPayload;
+    throw new ApiRequestError(payload.code, errorData.message ?? "请求失败");
+  }
+
+  return payload.data as T;
 }
 
 export type AuthResponse = {
@@ -66,11 +83,13 @@ export async function fetchMe() {
 }
 
 export async function logout() {
-  // 退出接口失败时也要清本地登录态，避免用户被卡在半登录状态。
+  // 登出是本地态优先的操作，服务端 token 已失效或接口暂不可用时也不能阻塞玩家离开。
   try {
-    await request<{ ok: true }>("/auth/logout", {
+    await request<{ success: true }>("/auth/logout", {
       method: "POST",
     });
+  } catch {
+    return;
   } finally {
     clearSession();
   }

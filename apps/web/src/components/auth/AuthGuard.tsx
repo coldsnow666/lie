@@ -42,7 +42,7 @@ export default function AuthGuard({ children, onUser }: AuthGuardProps) {
 
   if (!ready) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#0b1812] text-[#f5e7b0]">
+      <div className="grid min-h-screen place-items-center text-[#f5e7b0]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d7bc72] border-t-transparent" />
       </div>
     );

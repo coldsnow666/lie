@@ -5,6 +5,7 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { authRoutes } from "./auth/auth.routes";
 import { roomRoutes } from "./rooms/room.routes";
+import { sendOk } from "./utils/response";
 
 export async function createApp() {
   const app = Fastify({
@@ -16,10 +17,7 @@ export async function createApp() {
     credentials: true,
   });
 
-  app.get("/health", async () => ({
-    ok: true,
-    service: "lie-game-server",
-  }));
+  app.get("/health", async (_request, reply) => sendOk(reply, { service: "lie-game-server" }));
 
   await app.register(authRoutes);
   await app.register(roomRoutes);

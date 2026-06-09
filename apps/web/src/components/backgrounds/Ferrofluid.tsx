@@ -9,6 +9,8 @@ import { Mesh, Program, Renderer, Triangle } from "ogl";
 export interface FerrofluidProps {
   className?: string;
   dpr?: number;
+  onFallback?: () => void;
+  onReady?: () => void;
   paused?: boolean;
   colors?: string[];
   speed?: number;
@@ -26,6 +28,7 @@ export interface FerrofluidProps {
   mouseRadius?: number;
   mouseDampening?: number;
   mixBlendMode?: string;
+  maxFps?: number;
 }
 
 type RGB = [number, number, number];
@@ -222,6 +225,8 @@ void main() {
 export default function Ferrofluid({
   className,
   dpr,
+  onFallback,
+  onReady,
   paused = false,
   colors = ["#d7bc72", "#2fd08f", "#fff6cf"],
   speed = 0.5,
@@ -239,6 +244,7 @@ export default function Ferrofluid({
   mouseRadius = 0.35,
   mouseDampening = 0.15,
   mixBlendMode,
+  maxFps = 60,
 }: FerrofluidProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -248,6 +254,7 @@ export default function Ferrofluid({
   const rendererRef = useRef<Renderer | null>(null);
   const mouseTargetRef = useRef<[number, number]>([0, 0]);
   const lastTimeRef = useRef(0);
+  const lastRenderTimeRef = useRef(0);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -255,11 +262,21 @@ export default function Ferrofluid({
       return;
     }
 
-    const renderer = new Renderer({
-      dpr: dpr ?? (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1),
-      alpha: true,
-      antialias: true,
-    });
+    const effectiveDpr = dpr ?? (typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 1.5) : 1);
+    let renderer: Renderer;
+
+    try {
+      renderer = new Renderer({
+        dpr: effectiveDpr,
+        alpha: true,
+        antialias: false,
+      });
+    } catch (error) {
+      console.warn("Ferrofluid 背景初始化失败，已切换为 CSS 动态背景。", error);
+      onFallback?.();
+      return;
+    }
+
     rendererRef.current = renderer;
     const gl = renderer.gl;
     const canvas = gl.canvas as HTMLCanvasElement;
@@ -300,12 +317,30 @@ export default function Ferrofluid({
       uMouseRadius: { value: mouseRadius },
     };
 
-    const program = new Program(gl, { vertex, fragment, uniforms });
-    programRef.current = program;
+    let program: Program;
+    let geometry: Triangle;
+    let mesh: Mesh;
 
-    const geometry = new Triangle(gl);
+    try {
+      program = new Program(gl, { vertex, fragment, uniforms });
+      geometry = new Triangle(gl);
+      mesh = new Mesh(gl, { geometry, program });
+    } catch (error) {
+      console.warn("Ferrofluid 背景 shader 编译失败，已切换为 CSS 动态背景。", error);
+      if (canvas.parentElement === container) {
+        container.removeChild(canvas);
+      }
+      const destroy = (rendererRef.current as unknown as { destroy?: () => void } | null)?.destroy;
+      if (typeof destroy === "function") {
+        destroy.call(rendererRef.current);
+      }
+      rendererRef.current = null;
+      onFallback?.();
+      return;
+    }
+
+    programRef.current = program;
     geometryRef.current = geometry;
-    const mesh = new Mesh(gl, { geometry, program });
     meshRef.current = mesh;
 
     const resize = () => {
@@ -335,6 +370,7 @@ export default function Ferrofluid({
     const loop = (time: number) => {
       rafRef.current = requestAnimationFrame(loop);
       uniforms.iTime.value = time * 0.001;
+      const minFrameInterval = maxFps > 0 && maxFps < 60 ? 1000 / maxFps : 0;
 
       if (mouseDampening > 0) {
         if (!lastTimeRef.current) {
@@ -352,12 +388,14 @@ export default function Ferrofluid({
         lastTimeRef.current = time;
       }
 
-      if (!paused && programRef.current && meshRef.current) {
+      if (!paused && programRef.current && meshRef.current && time - lastRenderTimeRef.current >= minFrameInterval) {
         // 背景动画独立渲染，不参与 React 状态更新，避免启动页交互被频繁重渲染拖慢。
         renderer.render({ scene: meshRef.current });
+        lastRenderTimeRef.current = time;
       }
     };
     rafRef.current = requestAnimationFrame(loop);
+    onReady?.();
 
     return () => {
       if (rafRef.current) {
@@ -388,6 +426,8 @@ export default function Ferrofluid({
     };
   }, [
     dpr,
+    onFallback,
+    onReady,
     paused,
     colors,
     speed,
@@ -404,6 +444,7 @@ export default function Ferrofluid({
     mouseStrength,
     mouseRadius,
     mouseDampening,
+    maxFps,
   ]);
 
   return (

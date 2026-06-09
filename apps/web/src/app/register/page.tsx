@@ -5,7 +5,7 @@ import RegisterForm from "@/components/auth/RegisterForm";
 
 export default function RegisterPage() {
   return (
-    <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top,#214d38,#0b1812_55%)] px-4 py-8">
+    <main className="grid min-h-screen place-items-center px-4 py-8">
       <RegisterForm />
     </main>
   );

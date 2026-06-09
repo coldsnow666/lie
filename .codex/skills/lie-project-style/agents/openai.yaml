@@ -1,0 +1,3 @@
+display_name: 唬牌项目风格
+short_description: 统一唬牌项目代码风格、中文注释、接口和页面约定。
+default_prompt: 在当前唬牌项目中开发或重构时，遵循项目内 TypeScript、中文注释、目录结构、请求响应封装、启动页动画和验证流程。

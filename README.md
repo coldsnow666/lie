@@ -1,6 +1,6 @@
 # Lie
 
-实时多人「唬牌 / Cheat / Bullshit / Liar」Web 卡牌游戏。
+实时多人「Liar / Cheat / Bullshit / Liar」Web 卡牌游戏。
 
 本仓库按 `README.zh-CN.md` 的第一版设计落地：
 
@@ -18,6 +18,4 @@ pnpm dev
 
 本地数据库与缓存：
 
-```bash
-docker compose up -d
-```
+请提前准备可连接的 PostgreSQL 和 Redis 服务，可以使用本机安装或远程开发服务。

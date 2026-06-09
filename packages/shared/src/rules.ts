@@ -245,26 +245,33 @@ export function challengeLastPlay(state: PrivateGameState, challengerPlayerId: s
 
 export function toPublicGameState(state: PrivateGameState, viewerPlayerId: string): PublicGameState {
   // 每个玩家只能看到自己的手牌；其他玩家只暴露剩余牌数，避免泄露隐藏信息。
+
+
+  const players = state.players.map((player) => ({
+    ...player,
+    cardCount: state.hands[player.playerId]?.length ?? 0,
+  }))
+
+  const lastPlay = state.lastPlay
+    ? {
+      playerId: state.lastPlay.playerId,
+      declaredRank: state.lastPlay.declaredRank,
+      declaredCount: state.lastPlay.declaredCount,
+      turnSeq: state.lastPlay.turnSeq,
+    }
+    : null
+
+
   return {
     matchId: state.matchId,
     roomId: state.roomId,
     status: state.status,
-    players: state.players.map((player) => ({
-      ...player,
-      cardCount: state.hands[player.playerId]?.length ?? 0,
-    })),
+    players,
     selfHand: state.hands[viewerPlayerId] ?? [],
     discardPileCount: state.discardPile.length,
     currentPlayerId: state.currentPlayerId,
     currentRank: state.currentRank,
-    lastPlay: state.lastPlay
-      ? {
-          playerId: state.lastPlay.playerId,
-          declaredRank: state.lastPlay.declaredRank,
-          declaredCount: state.lastPlay.declaredCount,
-          turnSeq: state.lastPlay.turnSeq,
-        }
-      : null,
+    lastPlay,
     turnSeq: state.turnSeq,
     winnerPlayerId: state.winnerPlayerId,
     createdAt: state.createdAt,

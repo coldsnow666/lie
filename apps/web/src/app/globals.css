@@ -15,6 +15,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -24,4 +37,48 @@ body {
 button,
 input {
   font: inherit;
+}
+
+.lie-fluid-fallback {
+  opacity: 0.46;
+  background:
+    radial-gradient(ellipse at 18% 28%, rgba(47, 208, 143, 0.34), transparent 31%),
+    radial-gradient(ellipse at 82% 18%, rgba(215, 188, 114, 0.28), transparent 28%),
+    radial-gradient(ellipse at 72% 78%, rgba(47, 208, 143, 0.26), transparent 34%),
+    radial-gradient(ellipse at 26% 82%, rgba(255, 246, 207, 0.16), transparent 28%),
+    linear-gradient(135deg, rgba(5, 16, 12, 0.95), rgba(11, 24, 18, 0.85));
+  background-size:
+    120% 120%,
+    130% 130%,
+    125% 125%,
+    115% 115%,
+    100% 100%;
+  animation: none;
+}
+
+.lie-fluid-fallback-active {
+  opacity: 0.78;
+  filter: blur(18px) saturate(1.25);
+  transform: scale(1.08);
+  animation: lie-fluid-fallback-drift 9s ease-in-out infinite alternate;
+}
+
+@keyframes lie-fluid-fallback-drift {
+  0% {
+    background-position:
+      0% 0%,
+      100% 4%,
+      70% 100%,
+      8% 88%,
+      0% 0%;
+  }
+
+  100% {
+    background-position:
+      22% 18%,
+      78% 24%,
+      55% 82%,
+      28% 72%,
+      0% 0%;
+  }
 }

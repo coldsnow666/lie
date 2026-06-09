@@ -14,20 +14,24 @@ import AppShell from "@/components/layout/AppShell";
 import { type StoredUser } from "@/lib/auth";
 import { createSocket, emitWithAck } from "@/lib/socket";
 
+
+type Player = {
+  playerId: string;
+  userId: string;
+  nickname: string;
+  seatIndex: number;
+  connected: boolean;
+  ready: boolean;
+}
+
+
 type PublicRoom = {
   id: string;
   code: string;
   status: "waiting" | "playing" | "finished";
   ownerUserId: string | null;
   maxPlayers: number;
-  players: Array<{
-    playerId: string;
-    userId: string;
-    nickname: string;
-    seatIndex: number;
-    connected: boolean;
-    ready: boolean;
-  }>;
+  players: Array<Player>;
   events: PublicGameEvent[];
 };
 
@@ -202,21 +206,9 @@ export default function RoomPage() {
     }
   }
 
-  const actions = (
-    <button
-      type="button"
-      onClick={leave}
-      disabled={busy}
-      className="flex h-10 items-center gap-2 rounded border border-white/15 px-3 text-sm text-[#fff6cf] transition hover:border-[#d7bc72] disabled:opacity-60"
-    >
-      <DoorOpen size={16} />
-      离开
-    </button>
-  );
-
   return (
     <AuthGuard onUser={setUser}>
-      <AppShell title={`房间 ${roomCode}`} actions={actions}>
+      <AppShell>
         {!roomId ? (
           <div className="rounded border border-red-300/30 bg-red-950/40 p-4 text-red-100">缺少房间 ID，请从大厅重新加入。</div>
         ) : null}
@@ -231,6 +223,7 @@ export default function RoomPage() {
             onToggleCard={toggleCard}
             onPlayCards={playCards}
             onChallenge={challenge}
+            onLeave={leave}
             busy={busy}
           />
         ) : (
@@ -269,6 +262,15 @@ export default function RoomPage() {
                 >
                   {selfPlayer?.ready ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                   {selfPlayer?.ready ? "取消准备" : "准备"}
+                </button>
+                <button
+                  type="button"
+                  onClick={leave}
+                  disabled={busy}
+                  className="flex h-11 items-center justify-center gap-2 rounded border border-white/15 font-semibold text-[#fff6cf] transition hover:border-[#d7bc72] disabled:opacity-50"
+                >
+                  <DoorOpen size={18} />
+                  离开
                 </button>
                 <button
                   type="button"

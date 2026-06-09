@@ -5,16 +5,39 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
 import { LogIn } from "lucide-react";
 import { login } from "@/lib/api";
 
 export default function LoginForm() {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!formRef.current) {
+      return;
+    }
+
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        formRef.current,
+        { y: "-18vh", opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.56,
+          ease: "power3.out",
+        },
+      );
+    }, formRef);
+
+    return () => context.revert();
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,7 +55,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-md rounded border border-[#d7bc72]/30 bg-[#10271d]/95 p-6 shadow-2xl shadow-black/30">
+    <form ref={formRef} onSubmit={handleSubmit} className="mx-auto w-full max-w-md rounded border border-[#d7bc72]/30 bg-[#10271d]/95 p-6 shadow-2xl shadow-black/30">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-[#fff6cf]">登录</h1>
         <p className="mt-2 text-sm text-[#c6b889]">进入大厅，创建或加入一桌唬牌。</p>

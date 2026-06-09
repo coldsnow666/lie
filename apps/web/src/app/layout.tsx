@@ -3,6 +3,7 @@
  */
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import GlobalBackground from "@/components/backgrounds/GlobalBackground";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "唬牌",
+  title: "lie",
   description: "实时多人唬牌 Web 游戏",
 };
 
@@ -27,7 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full bg-[#0f1e17] text-[#f7f0dc]">{children}</body>
+      <body className="min-h-full overflow-x-hidden bg-[#0b1812] text-[#f7f0dc]">
+        <GlobalBackground />
+        <div className="relative z-10 min-h-dvh">{children}</div>
+      </body>
     </html>
   );
 }

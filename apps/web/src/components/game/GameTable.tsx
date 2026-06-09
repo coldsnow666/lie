@@ -3,7 +3,7 @@
  */
 "use client";
 
-import { Swords, ThumbsDown } from "lucide-react";
+import { DoorOpen, Swords, ThumbsDown } from "lucide-react";
 import type { PublicGameEvent, PublicGameState } from "@lie/shared";
 import EventLog from "./EventLog";
 import Hand from "./Hand";
@@ -16,6 +16,7 @@ export default function GameTable({
   onToggleCard,
   onPlayCards,
   onChallenge,
+  onLeave,
   busy,
 }: {
   state: PublicGameState;
@@ -24,6 +25,7 @@ export default function GameTable({
   onToggleCard: (cardId: string) => void;
   onPlayCards: () => void;
   onChallenge: () => void;
+  onLeave: () => void;
   busy: boolean;
 }) {
   const winner = state.players.find((player) => player.playerId === state.winnerPlayerId);
@@ -81,6 +83,15 @@ export default function GameTable({
             >
               <ThumbsDown size={17} />
               质疑
+            </button>
+            <button
+              type="button"
+              onClick={onLeave}
+              disabled={busy}
+              className="flex h-11 items-center gap-2 rounded border border-white/15 px-4 font-semibold text-[#fff6cf] transition hover:border-[#d7bc72] disabled:opacity-50"
+            >
+              <DoorOpen size={17} />
+              离开
             </button>
           </div>
         </div>
