@@ -1,0 +1,50 @@
+/**
+ * 像素风弹窗：提供卡片质感的遮罩弹层、标题区、关闭按钮和入场动画。
+ */
+"use client";
+
+import { useId, type ReactNode } from "react";
+import { X } from "lucide-react";
+import PixelButton from "@/components/ui/PixelButton";
+import PixelPanel from "@/components/ui/PixelPanel";
+
+type PixelModalProps = {
+  children: ReactNode;
+  title: string;
+  icon?: ReactNode;
+  onClose: () => void;
+  className?: string;
+};
+
+export default function PixelModal({ children, title, icon, onClose, className = "" }: PixelModalProps) {
+  const titleId = useId();
+
+  return (
+    <div className="lie-pixel-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/62 px-4 py-6 backdrop-blur-sm" onClick={onClose}>
+      <PixelPanel
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tone="highlight"
+        padding="lg"
+        className={["lie-pixel-modal-panel w-full max-w-[min(28rem,100%)] shadow-2xl shadow-black/60", className]
+          .filter(Boolean)
+          .join(" ")}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-2 text-[#fff6cf]">
+            {icon}
+            <h2 id={titleId} className="text-xl font-black">
+              {title}
+            </h2>
+          </div>
+          <PixelButton onClick={onClose} variant="ghost" size="sm" className="h-9 w-9 shrink-0 px-0" aria-label="关闭弹窗">
+            <X size={16} />
+          </PixelButton>
+        </div>
+        {children}
+      </PixelPanel>
+    </div>
+  );
+}

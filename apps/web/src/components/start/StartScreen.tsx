@@ -14,7 +14,6 @@ import { clearSession, isLoggedIn } from "@/lib/auth";
 export default function StartScreen() {
   const router = useRouter();
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [favorited, setFavorited] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const { cardRegionRef, menuRef, playExit, replayIntro, transitioning } = useStartScreenTransition();
 
@@ -88,12 +87,13 @@ export default function StartScreen() {
             data-start-menu
             tone="forest"
             padding="sm"
-            className="mb-[clamp(0.35rem,2vh,0.85rem)] grid w-full max-w-[min(31rem,100%)] shrink-0 grid-cols-[1.42fr_1fr_1fr_1fr] gap-[clamp(0.28rem,1.2vw,0.5rem)] shadow-2xl shadow-black/45"
+            className="mb-[clamp(0.35rem,2vh,0.85rem)] flex w-full max-w-[min(18rem,100%)] shrink-0 flex-col items-center gap-[clamp(0.28rem,1.2vw,0.5rem)] shadow-2xl shadow-black/45"
           >
             <PixelButton
               onClick={enterGame}
               disabled={transitioning}
               variant="accent"
+              fullWidth
               className="h-[clamp(2.35rem,7.4vh,3rem)] px-1 text-sm sm:text-lg"
             >
               {loggedIn ? "进入大厅" : "登录"}
@@ -103,26 +103,22 @@ export default function StartScreen() {
               onClick={() => setSoundEnabled((value) => !value)}
               disabled={transitioning}
               variant="primary"
+              fullWidth
               className="h-[clamp(2.35rem,7.4vh,3rem)] px-1 text-xs sm:text-base"
             >
-              选项
+              设置
             </PixelButton>
-            <PixelButton
-              onClick={logoutFromStart}
-              disabled={transitioning}
-              variant="danger"
-              className="h-[clamp(2.35rem,7.4vh,3rem)] px-1 text-xs sm:text-base"
-            >
-              退出
-            </PixelButton>
-            <PixelButton
-              onClick={() => setFavorited((value) => !value)}
-              disabled={transitioning}
-              variant="secondary"
-              className="h-[clamp(2.35rem,7.4vh,3rem)] px-1 text-xs sm:text-base"
-            >
-              {favorited ? "已藏" : "收藏"}
-            </PixelButton>
+            {loggedIn ? (
+              <PixelButton
+                onClick={logoutFromStart}
+                disabled={transitioning}
+                variant="danger"
+                fullWidth
+                className="h-[clamp(2.35rem,7.4vh,3rem)] px-1 text-xs sm:text-base"
+              >
+                退出登录
+              </PixelButton>
+            ) : null}
           </PixelPanel>
         </section>
       </div>

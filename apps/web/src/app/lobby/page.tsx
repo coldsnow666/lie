@@ -1,16 +1,17 @@
 /**
- * 大厅页面：左侧展示创建与加入房间面板，右侧展示可加入房间列表。
+ * 大厅页面：左侧展示大厅概览，右侧展示房间列表与房间操作入口。
  */
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import { Crown, House, Plus, RefreshCw, Swords, Users } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import AppShell from "@/components/layout/AppShell";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelInput from "@/components/ui/PixelInput";
 import PixelMessage from "@/components/ui/PixelMessage";
+import PixelModal from "@/components/ui/PixelModal";
 import PixelPanel from "@/components/ui/PixelPanel";
 import { fetchRooms, joinRoom, createRoom, type PublicRoom } from "@/service/modules/game";
 
@@ -20,11 +21,16 @@ const roomStatusLabelMap: Record<PublicRoom["status"], string> = {
   finished: "已结束",
 };
 
-const roomStatusClassMap: Record<PublicRoom["status"], string> = {
-  waiting: "border-[#ffe7a8] bg-[#50330f] text-[#fff6cf]",
-  playing: "border-[#a6ffea] bg-[#123f39] text-[#f2fffb]",
-  finished: "border-[#c9d2d9] bg-[#2b3338] text-[#eef1f3]",
-};
+type LobbyModalKind = "create" | "join";
+
+const roomCardPoseList = [
+  { rotate: -8, y: 0.45 },
+  { rotate: -4, y: 0.1 },
+  { rotate: 0, y: -0.08 },
+  { rotate: 4, y: 0.1 },
+  { rotate: 8, y: 0.45 },
+  { rotate: -5, y: 0.25 },
+];
 
 function sortRooms(rooms: PublicRoom[]) {
   const statusWeight: Record<PublicRoom["status"], number> = {
@@ -55,19 +61,6 @@ function resolveOwnerName(room: PublicRoom) {
   return owner?.nickname ?? room.players[0]?.nickname ?? "未知房主";
 }
 
-function formatUpdatedTime(updatedAt?: number) {
-  if (!updatedAt) {
-    return "刚刚更新";
-  }
-
-  const date = new Date(updatedAt);
-
-  return new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
 export default function LobbyPage() {
   const router = useRouter();
   const [roomCode, setRoomCode] = useState("");
@@ -76,6 +69,7 @@ export default function LobbyPage() {
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [refreshingRooms, setRefreshingRooms] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [activeModal, setActiveModal] = useState<LobbyModalKind | null>(null);
 
   const roomSummary = useMemo(() => {
     return {
@@ -128,6 +122,32 @@ export default function LobbyPage() {
       window.clearInterval(timer);
     };
   }, [refreshRoomList]);
+
+  useEffect(() => {
+    if (!activeModal) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !pendingAction) {
+        setActiveModal(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeModal, pendingAction]);
+
+  function closeModal() {
+    if (pendingAction) {
+      return;
+    }
+
+    setActiveModal(null);
+  }
 
   function validateRoomCode() {
     const trimmedRoomCode = roomCode.trim().toUpperCase();
@@ -185,10 +205,10 @@ export default function LobbyPage() {
 
   return (
     <AuthGuard>
-      <AppShell>
-        <div className="grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)]">
-          <aside className="grid gap-4">
-            <PixelPanel tone="forest" padding="md" className="overflow-hidden">
+      <AppShell fullBleed>
+        <div className="grid min-h-[calc(100dvh-1rem)] gap-[clamp(0.35rem,0.9vw,0.75rem)] xl:grid-cols-[18rem_minmax(0,1fr)]">
+          <aside className="grid content-start gap-3 overflow-hidden bg-[#142523]/92 p-[clamp(0.55rem,1vw,0.85rem)] xl:min-h-[calc(100dvh-1rem)]">
+            <section className="px-1 py-1">
               <div>
                 <h1 className="mt-2 text-2xl font-black text-[#fff6cf]">大厅导航</h1>
                 <p className="mt-3 text-sm leading-6 text-[#c6b889]">回到启动页，或者从这里快速查看当前可开的桌数和大厅热度。</p>
@@ -200,103 +220,64 @@ export default function LobbyPage() {
               </PixelButton>
 
               <div className="mt-4 grid grid-cols-3 gap-3">
-                <PixelPanel className="px-3 py-3" tone="dark" padding="sm">
+                <div className="px-1 py-2">
                   <p className="text-[0.65rem] tracking-[0.16em] text-[#9cb6a7]">开放</p>
                   <p className="mt-2 text-2xl font-black text-[#fff6cf]">{roomSummary.waiting}</p>
-                </PixelPanel>
-                <PixelPanel className="px-3 py-3" tone="dark" padding="sm">
+                </div>
+                <div className="px-1 py-2">
                   <p className="text-[0.65rem] tracking-[0.16em] text-[#9cb6a7]">对局</p>
                   <p className="mt-2 text-2xl font-black text-[#9df7df]">{roomSummary.playing}</p>
-                </PixelPanel>
-                <PixelPanel className="px-3 py-3" tone="dark" padding="sm">
+                </div>
+                <div className="px-1 py-2">
                   <p className="text-[0.65rem] tracking-[0.16em] text-[#9cb6a7]">总数</p>
                   <p className="mt-2 text-2xl font-black text-[#ffdd84]">{rooms.length}</p>
-                </PixelPanel>
+                </div>
               </div>
-            </PixelPanel>
-
-            <PixelPanel tone="highlight" padding="md">
-              <div className="flex items-center gap-2 text-[#fff6cf]">
-                <Plus size={18} />
-                <h2 className="text-lg font-black">创建房间</h2>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[#d6cba6]">系统会自动生成一组六位房间码，建房后直接进入牌桌等待其他玩家。</p>
-              <PixelButton
-                onClick={handleCreateRoom}
-                disabled={Boolean(pendingAction)}
-                variant="primary"
-                size="lg"
-                fullWidth
-                className="mt-5 h-16 text-base"
-              >
-                <Plus size={22} />
-                {pendingAction === "create" ? "正在开桌" : "立即创建"}
-              </PixelButton>
-            </PixelPanel>
-
-            <PixelPanel tone="dark" padding="md">
-              <div className="flex items-center gap-2 text-[#fff6cf]">
-                <Users size={18} />
-                <h2 className="text-lg font-black">加入房间</h2>
-              </div>
-              <form onSubmit={handleJoinRoom} noValidate className="mt-4">
-                <label className="block text-sm text-[#e8ddb7]">
-                  房间码
-                  <PixelInput
-                    value={roomCode}
-                    onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
-                    maxLength={8}
-                    aria-label="房间码"
-                    icon={<Swords size={18} />}
-                    className="mt-2"
-                    inputClassName="text-lg font-bold uppercase tracking-[0.24em]"
-                  />
-                </label>
-                <PixelButton
-                  type="submit"
-                  disabled={Boolean(pendingAction)}
-                  variant="ghost"
-                  fullWidth
-                  className="mt-4 h-12"
-                >
-                  <Users size={17} />
-                  {pendingAction === "manual-join" ? "正在加入" : "输入房间码加入"}
-                </PixelButton>
-              </form>
-            </PixelPanel>
+            </section>
           </aside>
 
-          <section className="min-w-0">
-            <PixelPanel tone="forest" padding="lg" className="min-h-[32rem]">
+          <section className="min-w-0 px-[clamp(0.35rem,1vw,0.85rem)] py-[clamp(0.35rem,1vw,0.85rem)]">
+            <div className="min-h-[calc(100dvh-1rem)]">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <h2 className="mt-2 text-2xl font-black text-[#fff6cf]">房间列表</h2>
                   <p className="mt-2 text-sm text-[#c6b889]">右侧展示当前大厅中的公开房间，点击即可快速加入等待中的桌子。</p>
                 </div>
-                <PixelButton
-                  onClick={() => void refreshRoomList()}
-                  disabled={refreshingRooms}
-                  variant="secondary"
-                  size="sm"
-                >
-                  <RefreshCw size={16} className={refreshingRooms ? "animate-spin" : ""} />
-                  {refreshingRooms ? "刷新中" : "刷新列表"}
-                </PixelButton>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <PixelPanel tone="dark" padding="sm" className="px-4 py-3">
-                  <p className="text-[0.7rem] tracking-[0.16em] text-[#9cb6a7]">总房间数</p>
-                  <p className="mt-2 text-2xl font-black text-[#fff6cf]">{rooms.length}</p>
-                </PixelPanel>
-                <PixelPanel tone="dark" padding="sm" className="px-4 py-3">
-                  <p className="text-[0.7rem] tracking-[0.16em] text-[#9cb6a7]">可加入</p>
-                  <p className="mt-2 text-2xl font-black text-[#ffdd84]">{roomSummary.waiting}</p>
-                </PixelPanel>
-                <PixelPanel tone="dark" padding="sm" className="px-4 py-3">
-                  <p className="text-[0.7rem] tracking-[0.16em] text-[#9cb6a7]">游戏进行中</p>
-                  <p className="mt-2 text-2xl font-black text-[#9df7df]">{roomSummary.playing}</p>
-                </PixelPanel>
+                <div className="flex flex-wrap items-center gap-2">
+                  <PixelButton
+                    onClick={() => {
+                      setMessage("");
+                      setActiveModal("create");
+                    }}
+                    disabled={Boolean(pendingAction)}
+                    variant="primary"
+                    size="sm"
+                  >
+                    <Plus size={16} />
+                    创建房间
+                  </PixelButton>
+                  <PixelButton
+                    onClick={() => {
+                      setMessage("");
+                      setActiveModal("join");
+                    }}
+                    disabled={Boolean(pendingAction)}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    <Users size={16} />
+                    加入房间
+                  </PixelButton>
+                  <PixelButton
+                    onClick={() => void refreshRoomList()}
+                    disabled={refreshingRooms}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    <RefreshCw size={16} className={refreshingRooms ? "animate-spin" : ""} />
+                    {refreshingRooms ? "刷新中" : "刷新列表"}
+                  </PixelButton>
+                </div>
               </div>
 
               {loadingRooms ? (
@@ -316,88 +297,103 @@ export default function LobbyPage() {
                     <Swords size={38} className="text-[#d7bc72]" />
                     <h3 className="mt-4 text-xl font-black text-[#fff6cf]">当前还没有公开房间</h3>
                     <p className="mt-3 max-w-md text-sm leading-6 text-[#c6b889]">
-                      现在开一桌会直接出现在右侧列表里。你也可以把房间码发给朋友，让他们通过左侧面板快速加入。
+                      现在开一桌会直接出现在列表里。你也可以把房间码发给朋友，让他们通过顶部按钮快速加入。
                     </p>
                   </div>
                 </PixelPanel>
               ) : (
-                <div className="mt-5 grid gap-4 xl:grid-cols-2">
-                  {rooms.map((room) => {
+                <div className="lie-room-card-hand mt-6">
+                  {rooms.map((room, index) => {
                     const ownerName = resolveOwnerName(room);
                     const isJoinable = room.status === "waiting" && room.players.length < room.maxPlayers;
                     const actionKey = `join-${room.code}`;
+                    const pose = roomCardPoseList[index % roomCardPoseList.length];
 
                     return (
-                      <PixelPanel
+                      <button
+                        type="button"
                         key={room.id}
-                        tone={room.status === "waiting" ? "highlight" : "dark"}
-                        padding="md"
-                        className="flex h-full min-h-52 flex-col"
+                        onClick={() => void joinRoomWithCode(room.code, actionKey)}
+                        disabled={!isJoinable || Boolean(pendingAction)}
+                        aria-label={`${room.code} 房间，房主 ${ownerName}，${room.players.length}/${room.maxPlayers}`}
+                        className="lie-room-card relative isolate flex shrink-0 cursor-pointer flex-col overflow-hidden rounded border-2 border-[#e8ddb7] bg-[#f7f0dc] p-3 text-left text-[#173b2a] shadow-2xl shadow-black/45 outline-none transition-[filter] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#f0d98d] disabled:cursor-not-allowed disabled:opacity-70"
+                        style={
+                          {
+                            "--room-card-rotate": `${pose.rotate}deg`,
+                            "--room-card-y": `${pose.y}rem`,
+                          } as CSSProperties
+                        }
                       >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <h3 className="mt-2 text-3xl font-black tracking-[0.18em] text-[#fff6cf]">{room.code}</h3>
-                          </div>
-                          <span
-                            className={[
-                              "inline-flex h-8 items-center rounded-[0.55rem] border px-3 text-xs font-black tracking-[0.1em]",
-                              roomStatusClassMap[room.status],
-                            ].join(" ")}
-                          >
-                            {roomStatusLabelMap[room.status]}
+                        <span className="flex h-full w-full flex-col">
+                          <span className="block max-w-full text-[clamp(1.15rem,2.7vw,1.75rem)] font-black leading-none tracking-[0.02em] text-[#173b2a]">
+                            {room.code}
                           </span>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                          <PixelPanel tone="dark" padding="sm" className="px-3 py-3">
-                            <p className="text-[0.66rem] tracking-[0.16em] text-[#9cb6a7]">房主</p>
-                            <div className="mt-2 flex items-center gap-2 text-sm text-[#fff6cf]">
-                              <Crown size={14} />
-                              {ownerName}
-                            </div>
-                          </PixelPanel>
-                          <PixelPanel tone="dark" padding="sm" className="px-3 py-3">
-                            <p className="text-[0.66rem] tracking-[0.16em] text-[#9cb6a7]">人数</p>
-                            <p className="mt-2 text-xl font-black text-[#fff6cf]">
-                              {room.players.length}/{room.maxPlayers}
-                            </p>
-                          </PixelPanel>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {room.players.map((player) => (
-                            <span
-                              key={player.playerId}
-                              className="inline-flex h-8 items-center rounded-[0.5rem] border border-[#506665] bg-black/20 px-3 text-xs text-[#edf6ef]"
-                            >
-                              {player.nickname}
-                            </span>
-                          ))}
-                        </div>
-
-                        <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-                          <div className="text-xs leading-5 text-[#c6b889]">
-                            <p>最近更新</p>
-                            <p className="mt-1 text-sm text-[#fff6cf]">{formatUpdatedTime(room.updatedAt)}</p>
-                          </div>
-                          <PixelButton
-                            onClick={() => void joinRoomWithCode(room.code, actionKey)}
-                            disabled={!isJoinable || Boolean(pendingAction)}
-                            variant={isJoinable ? "primary" : "ghost"}
-                            size="sm"
-                            className="min-w-28"
-                          >
-                            {pendingAction === actionKey ? "加入中" : isJoinable ? "加入房间" : room.status === "playing" ? "进行中" : "已关闭"}
-                          </PixelButton>
-                        </div>
-                      </PixelPanel>
+                          <span className="mt-3 flex items-center gap-1.5 text-[0.68rem] font-black tracking-[0.1em] text-[#52605c]">
+                            <Crown size={13} />
+                            房主
+                          </span>
+                          <span className="mt-1 truncate text-sm font-black text-[#173b2a]">{ownerName}</span>
+                          <span className="grid flex-1 place-items-center py-2 text-[clamp(2.4rem,6vw,4rem)] font-black leading-none text-[#b93131]">
+                            {room.players.length}/{room.maxPlayers}
+                          </span>
+                          <span className="mt-auto text-center text-[0.62rem] font-black tracking-[0.14em] text-[#52605c]">
+                            {pendingAction === actionKey ? "加入中" : isJoinable ? "点击加入" : roomStatusLabelMap[room.status]}
+                          </span>
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
               )}
-            </PixelPanel>
+            </div>
           </section>
         </div>
+
+        {activeModal === "create" ? (
+          <PixelModal title="创建房间" icon={<Plus size={20} />} onClose={closeModal}>
+            <p className="mt-4 text-sm leading-6 text-[#d6cba6]">系统会自动生成一组六位房间码，建房后直接进入牌桌等待其他玩家。</p>
+            <PixelButton
+              onClick={handleCreateRoom}
+              disabled={Boolean(pendingAction)}
+              variant="primary"
+              size="lg"
+              fullWidth
+              className="mt-6 h-16 text-base"
+            >
+              <Plus size={22} />
+              {pendingAction === "create" ? "正在开桌" : "立即创建"}
+            </PixelButton>
+          </PixelModal>
+        ) : null}
+
+        {activeModal === "join" ? (
+          <PixelModal title="加入房间" icon={<Users size={20} />} onClose={closeModal}>
+            <form onSubmit={handleJoinRoom} noValidate className="mt-5">
+              <label className="block text-sm text-[#e8ddb7]">
+                房间码
+                <PixelInput
+                  value={roomCode}
+                  onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
+                  maxLength={8}
+                  aria-label="房间码"
+                  icon={<Swords size={18} />}
+                  className="mt-2"
+                  inputClassName="text-lg font-bold uppercase tracking-[0.24em]"
+                />
+              </label>
+              <PixelButton
+                type="submit"
+                disabled={Boolean(pendingAction)}
+                variant="ghost"
+                fullWidth
+                className="mt-5 h-12"
+              >
+                <Users size={17} />
+                {pendingAction === "manual-join" ? "正在加入" : "输入房间码加入"}
+              </PixelButton>
+            </form>
+          </PixelModal>
+        ) : null}
 
         {message ? <PixelMessage>{message}</PixelMessage> : null}
       </AppShell>

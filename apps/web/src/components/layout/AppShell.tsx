@@ -3,12 +3,20 @@
  */
 import { PropsWithChildren } from "react";
 
-type AppShellProps = PropsWithChildren;
+type AppShellProps = PropsWithChildren<{
+  fullBleed?: boolean;
+}>;
 
-export default function AppShell({ children }: AppShellProps) {
+export default function AppShell({ children, fullBleed = false }: AppShellProps) {
   return (
     <div className="min-h-screen overflow-x-clip">
-      <main className="mx-auto w-full max-w-6xl overflow-x-clip px-4 py-6">
+      <main
+        className={
+          fullBleed
+            ? "w-full overflow-x-clip px-[clamp(0.25rem,0.8vw,0.5rem)] py-[clamp(0.25rem,1vh,0.5rem)]"
+            : "mx-auto w-full max-w-6xl overflow-x-clip px-4 py-6"
+        }
+      >
         {children}
       </main>
     </div>
