@@ -1,12 +1,26 @@
 /**
- * 全站动态背景：统一承载 Ferrofluid 和暗色遮罩，供所有页面共用。
+ * 全站动态背景：统一承载蓝色 Balatro 风格牌桌旋涡和暗色遮罩，供所有页面共用。
  */
 "use client";
 
 import { useCallback, useState } from "react";
-import Ferrofluid from "@/components/backgrounds/Ferrofluid";
+import Balatro from "@/components/backgrounds/Balatro";
 
-const backgroundColors = ["#d7bc72", "#2fd08f", "#fff6cf"];
+const backgroundTheme = {
+  color1: "#71b8ff",
+  color2: "#2b6fff",
+  color3: "#0b1812",
+  spinRotation: -2.4,
+  spinSpeed: 6.9,
+  contrast: 3.18,
+  lighting: 0.38,
+  spinAmount: 0.26,
+  pixelFilter: 900,
+  spinEase: 1.02,
+  fallbackClassName: "lie-balatro-fallback-ocean",
+  fallbackActiveClassName: "lie-balatro-fallback-ocean-active",
+  overlayClassName: "lie-balatro-overlay-ocean",
+};
 
 export default function GlobalBackground() {
   const [fallbackActive, setFallbackActive] = useState(false);
@@ -15,29 +29,38 @@ export default function GlobalBackground() {
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden bg-[#0b1812]" aria-hidden="true">
-      <div className={`lie-fluid-fallback absolute inset-0 ${fallbackActive ? "lie-fluid-fallback-active" : ""}`} />
-      <Ferrofluid
-        dpr={1.05}
-        maxFps={30}
-        mouseInteraction={false}
-        onFallback={handleWebglFallback}
-        onReady={handleWebglReady}
-        colors={backgroundColors}
-        speed={0.38}
-        scale={1.35}
-        turbulence={0.85}
-        fluidity={0.08}
-        rimWidth={0.28}
-        sharpness={2.8}
-        shimmer={1.2}
-        glow={2.6}
-        opacity={0.82}
-        mouseRadius={0.42}
-        mouseStrength={0.85}
-        mixBlendMode="screen"
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(215,188,114,0.16),transparent_28%),linear-gradient(180deg,rgba(5,10,8,0.25),rgba(5,10,8,0.88))]" />
-      <div className="absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,rgba(0,0,0,0.65),transparent)]" />
+      <div className="absolute inset-0">
+        <div
+          className={[
+            "absolute inset-0",
+            backgroundTheme.fallbackClassName,
+            fallbackActive ? backgroundTheme.fallbackActiveClassName : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        />
+        <Balatro
+          dpr={1.05}
+          maxFps={30}
+          mouseInteraction={false}
+          onFallback={handleWebglFallback}
+          onReady={handleWebglReady}
+          color1={backgroundTheme.color1}
+          color2={backgroundTheme.color2}
+          color3={backgroundTheme.color3}
+          spinRotation={backgroundTheme.spinRotation}
+          spinSpeed={backgroundTheme.spinSpeed}
+          contrast={backgroundTheme.contrast}
+          lighting={backgroundTheme.lighting}
+          spinAmount={backgroundTheme.spinAmount}
+          pixelFilter={backgroundTheme.pixelFilter}
+          spinEase={backgroundTheme.spinEase}
+          isRotate={false}
+        />
+        <div className={`absolute inset-0 ${backgroundTheme.overlayClassName}`} />
+      </div>
+      <div className="absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,rgba(0,0,0,0.62),transparent)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,4,8,0.08),rgba(3,5,10,0.18)_38%,rgba(2,3,6,0.52))]" />
     </div>
   );
 }

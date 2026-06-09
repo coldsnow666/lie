@@ -11,6 +11,9 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import GameTable from "@/components/game/GameTable";
 import PlayerSeat from "@/components/game/PlayerSeat";
 import AppShell from "@/components/layout/AppShell";
+import PixelButton from "@/components/ui/PixelButton";
+import PixelMessage from "@/components/ui/PixelMessage";
+import PixelPanel from "@/components/ui/PixelPanel";
 import { type StoredUser } from "@/lib/auth";
 import { createSocket, emitWithAck } from "@/lib/socket";
 
@@ -210,10 +213,16 @@ export default function RoomPage() {
     <AuthGuard onUser={setUser}>
       <AppShell>
         {!roomId ? (
-          <div className="rounded border border-red-300/30 bg-red-950/40 p-4 text-red-100">缺少房间 ID，请从大厅重新加入。</div>
+          <PixelMessage className="mb-4" placement="inline">
+            缺少房间 ID，请从大厅重新加入。
+          </PixelMessage>
         ) : null}
 
-        {message ? <div className="mb-4 rounded border border-red-300/30 bg-red-950/40 px-3 py-2 text-sm text-red-100">{message}</div> : null}
+        {message ? (
+          <PixelMessage className="mb-4" placement="inline">
+            {message}
+          </PixelMessage>
+        ) : null}
 
         {gameState ? (
           <GameTable
@@ -228,20 +237,16 @@ export default function RoomPage() {
           />
         ) : (
           <section className="grid gap-5 lg:grid-cols-[1fr_320px]">
-            <div className="rounded border border-[#d7bc72]/30 bg-[#10271d]/95 p-6">
+            <PixelPanel tone="forest" padding="lg">
               <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="text-sm text-[#c6b889]">房间码</p>
                   <h1 className="mt-1 text-4xl font-black tracking-[0.18em] text-[#fff6cf]">{room?.code ?? roomCode}</h1>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => navigator.clipboard?.writeText(room?.code ?? roomCode)}
-                  className="flex h-10 items-center gap-2 rounded border border-[#d7bc72]/50 px-3 text-sm text-[#fff6cf]"
-                >
+                <PixelButton onClick={() => navigator.clipboard?.writeText(room?.code ?? roomCode)} variant="ghost" size="sm">
                   <Copy size={16} />
                   复制
-                </button>
+                </PixelButton>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -249,41 +254,26 @@ export default function RoomPage() {
                   <PlayerSeat key={player.playerId} player={player} owner={player.userId === room.ownerUserId} />
                 ))}
               </div>
-            </div>
+            </PixelPanel>
 
-            <aside className="rounded border border-white/10 bg-black/20 p-5">
+            <PixelPanel tone="dark" padding="md">
               <h2 className="text-sm font-semibold text-[#fff6cf]">等待开始</h2>
               <div className="mt-4 grid gap-3">
-                <button
-                  type="button"
-                  onClick={ready}
-                  disabled={busy || !selfPlayer}
-                  className="flex h-11 items-center justify-center gap-2 rounded border border-[#d7bc72]/50 font-semibold text-[#fff6cf] transition hover:border-[#f0d98d] disabled:opacity-50"
-                >
+                <PixelButton onClick={ready} disabled={busy || !selfPlayer} variant="ghost">
                   {selfPlayer?.ready ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                   {selfPlayer?.ready ? "取消准备" : "准备"}
-                </button>
-                <button
-                  type="button"
-                  onClick={leave}
-                  disabled={busy}
-                  className="flex h-11 items-center justify-center gap-2 rounded border border-white/15 font-semibold text-[#fff6cf] transition hover:border-[#d7bc72] disabled:opacity-50"
-                >
+                </PixelButton>
+                <PixelButton onClick={leave} disabled={busy} variant="danger">
                   <DoorOpen size={18} />
                   离开
-                </button>
-                <button
-                  type="button"
-                  onClick={startGame}
-                  disabled={busy || !canStart}
-                  className="flex h-11 items-center justify-center gap-2 rounded bg-[#d7bc72] font-semibold text-[#102018] transition hover:bg-[#f0d98d] disabled:opacity-50"
-                >
+                </PixelButton>
+                <PixelButton onClick={startGame} disabled={busy || !canStart} variant="primary">
                   <Play size={18} />
                   开始游戏
-                </button>
+                </PixelButton>
                 <p className="text-sm text-[#c6b889]">房主在 2 到 6 人时可以开始游戏。</p>
               </div>
-            </aside>
+            </PixelPanel>
           </section>
         )}
       </AppShell>

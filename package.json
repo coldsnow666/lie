@@ -2,13 +2,13 @@
   "name": "lie",
   "private": true,
   "scripts": {
-    "dev": "pnpm --parallel --filter @lie/web --filter @lie/game-server dev",
+    "dev": "pnpm --parallel --filter @lie/web --filter @lie/server dev",
     "dev:web": "pnpm --filter @lie/web dev",
-    "dev:server": "pnpm --filter @lie/game-server dev",
+    "dev:server": "pnpm --filter @lie/server dev",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "prisma:generate": "pnpm --filter @lie/game-server prisma generate"
+    "prisma:generate": "pnpm --filter @lie/server prisma generate"
   },
   "devDependencies": {
     "typescript": "^6.0.3",

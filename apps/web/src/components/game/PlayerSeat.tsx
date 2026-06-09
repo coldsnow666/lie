@@ -2,6 +2,7 @@
  * 玩家座位组件：展示昵称、座位、连接状态、准备状态或剩余牌数。
  */
 import { Crown, Wifi, WifiOff } from "lucide-react";
+import PixelPanel from "@/components/ui/PixelPanel";
 
 export type SeatPlayer = {
   playerId: string;
@@ -23,7 +24,7 @@ export default function PlayerSeat({
   owner?: boolean;
 }) {
   return (
-    <div className={`rounded border p-3 ${active ? "border-[#d7bc72] bg-[#d7bc72]/15" : "border-white/10 bg-black/20"}`}>
+    <PixelPanel tone={active ? "highlight" : "dark"} padding="sm">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold text-[#fff6cf]">
@@ -38,6 +39,6 @@ export default function PlayerSeat({
         <span>{typeof player.cardCount === "number" ? `${player.cardCount} 张` : player.ready ? "已准备" : "等待中"}</span>
         {active ? <span className="text-[#f2df9e]">行动中</span> : null}
       </div>
-    </div>
+    </PixelPanel>
   );
 }

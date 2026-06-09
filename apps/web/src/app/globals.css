@@ -2,6 +2,7 @@
  * 全局样式：定义 Tailwind 入口、主题色和基础表单字体继承。
  */
 @import "tailwindcss";
+@import "@fontsource/fusion-pixel-12px-proportional-sc";
 
 :root {
   --background: #0b1812;
@@ -11,8 +12,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Fusion Pixel 12px Proportional SC";
+  --font-mono: "Fusion Pixel 12px Proportional SC";
 }
 
 *,
@@ -31,7 +32,8 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Fusion Pixel 12px Proportional SC", monospace;
+  text-rendering: optimizeSpeed;
 }
 
 button,
@@ -39,46 +41,807 @@ input {
   font: inherit;
 }
 
-.lie-fluid-fallback {
-  opacity: 0.46;
-  background:
-    radial-gradient(ellipse at 18% 28%, rgba(47, 208, 143, 0.34), transparent 31%),
-    radial-gradient(ellipse at 82% 18%, rgba(215, 188, 114, 0.28), transparent 28%),
-    radial-gradient(ellipse at 72% 78%, rgba(47, 208, 143, 0.26), transparent 34%),
-    radial-gradient(ellipse at 26% 82%, rgba(255, 246, 207, 0.16), transparent 28%),
-    linear-gradient(135deg, rgba(5, 16, 12, 0.95), rgba(11, 24, 18, 0.85));
+.lie-pixel-panel {
+  --px-border-size: calc(var(--px-border, 2) * 1px);
+  --px-radius-lt-size: calc(var(--px-border-radius-lt, var(--px-border-radius, 10)) * 1px);
+  --px-radius-rt-size: calc(var(--px-border-radius-rt, var(--px-border-radius, 10)) * 1px);
+  --px-radius-lb-size: calc(var(--px-border-radius-lb, var(--px-border-radius, 10)) * 1px);
+  --px-radius-rb-size: calc(var(--px-border-radius-rb, var(--px-border-radius, 10)) * 1px);
+  --px-corner-step-1: var(--px-border-size);
+  --px-corner-step-2: calc(var(--px-border-size) * 2);
+  --px-corner-step-3: calc(var(--px-border-size) * 3);
+  background: linear-gradient(180deg, var(--px-bg-top-color, var(--px-bg-color)), var(--px-bg-color) 1rem);
+  box-shadow: 0 10px 0 var(--px-bg-shadow-color);
+  clip-path: polygon(
+    var(--px-radius-lt-size) 0,
+    calc(100% - var(--px-radius-rt-size)) 0,
+    calc(100% - var(--px-radius-rt-size)) var(--px-corner-step-1),
+    calc(100% - var(--px-corner-step-3)) var(--px-corner-step-1),
+    calc(100% - var(--px-corner-step-3)) var(--px-corner-step-2),
+    calc(100% - var(--px-corner-step-2)) var(--px-corner-step-2),
+    calc(100% - var(--px-corner-step-2)) var(--px-corner-step-3),
+    calc(100% - var(--px-corner-step-1)) var(--px-corner-step-3),
+    calc(100% - var(--px-corner-step-1)) var(--px-radius-rt-size),
+    100% var(--px-radius-rt-size),
+    100% calc(100% - var(--px-radius-rb-size)),
+    calc(100% - var(--px-corner-step-1)) calc(100% - var(--px-radius-rb-size)),
+    calc(100% - var(--px-corner-step-1)) calc(100% - var(--px-corner-step-3)),
+    calc(100% - var(--px-corner-step-2)) calc(100% - var(--px-corner-step-3)),
+    calc(100% - var(--px-corner-step-2)) calc(100% - var(--px-corner-step-2)),
+    calc(100% - var(--px-corner-step-3)) calc(100% - var(--px-corner-step-2)),
+    calc(100% - var(--px-corner-step-3)) calc(100% - var(--px-corner-step-1)),
+    calc(100% - var(--px-radius-rb-size)) calc(100% - var(--px-corner-step-1)),
+    calc(100% - var(--px-radius-rb-size)) 100%,
+    var(--px-radius-lb-size) 100%,
+    var(--px-radius-lb-size) calc(100% - var(--px-corner-step-1)),
+    var(--px-corner-step-3) calc(100% - var(--px-corner-step-1)),
+    var(--px-corner-step-3) calc(100% - var(--px-corner-step-2)),
+    var(--px-corner-step-2) calc(100% - var(--px-corner-step-2)),
+    var(--px-corner-step-2) calc(100% - var(--px-corner-step-3)),
+    var(--px-corner-step-1) calc(100% - var(--px-corner-step-3)),
+    var(--px-corner-step-1) calc(100% - var(--px-radius-lb-size)),
+    0 calc(100% - var(--px-radius-lb-size)),
+    0 var(--px-radius-lt-size),
+    var(--px-corner-step-1) var(--px-radius-lt-size),
+    var(--px-corner-step-1) var(--px-corner-step-3),
+    var(--px-corner-step-2) var(--px-corner-step-3),
+    var(--px-corner-step-2) var(--px-corner-step-2),
+    var(--px-corner-step-3) var(--px-corner-step-2),
+    var(--px-corner-step-3) var(--px-corner-step-1),
+    var(--px-radius-lt-size) var(--px-corner-step-1)
+  );
+}
+
+.lie-pixel-panel > :not(.lie-pixel-panel-border) {
+  position: relative;
+  z-index: 1;
+}
+
+.lie-pixel-panel-border {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color)),
+    linear-gradient(var(--px-border-color), var(--px-border-color));
+  background-position:
+    var(--px-radius-lt-size) 0,
+    right 0 top var(--px-radius-rt-size),
+    left var(--px-radius-lb-size) bottom 0,
+    0 var(--px-radius-lt-size),
+    var(--px-radius-lt-size) 0,
+    var(--px-corner-step-3) var(--px-corner-step-1),
+    var(--px-corner-step-3) var(--px-corner-step-1),
+    var(--px-corner-step-2) var(--px-corner-step-2),
+    var(--px-corner-step-2) var(--px-corner-step-2),
+    var(--px-corner-step-1) var(--px-corner-step-3),
+    var(--px-corner-step-1) var(--px-corner-step-3),
+    0 var(--px-radius-lt-size),
+    right var(--px-radius-rt-size) top 0,
+    right var(--px-corner-step-3) top var(--px-corner-step-1),
+    right var(--px-corner-step-3) top var(--px-corner-step-1),
+    right var(--px-corner-step-2) top var(--px-corner-step-2),
+    right var(--px-corner-step-2) top var(--px-corner-step-2),
+    right var(--px-corner-step-1) top var(--px-corner-step-3),
+    right var(--px-corner-step-1) top var(--px-corner-step-3),
+    right 0 top var(--px-radius-rt-size),
+    right 0 bottom var(--px-radius-rb-size),
+    right var(--px-corner-step-1) bottom var(--px-corner-step-3),
+    right var(--px-corner-step-1) bottom var(--px-corner-step-3),
+    right var(--px-corner-step-2) bottom var(--px-corner-step-2),
+    right var(--px-corner-step-2) bottom var(--px-corner-step-2),
+    right var(--px-corner-step-3) bottom var(--px-corner-step-1),
+    right var(--px-corner-step-3) bottom var(--px-corner-step-1),
+    right var(--px-radius-rb-size) bottom 0,
+    left var(--px-radius-lb-size) bottom 0,
+    left var(--px-corner-step-3) bottom var(--px-corner-step-1),
+    left var(--px-corner-step-3) bottom var(--px-corner-step-1),
+    left var(--px-corner-step-2) bottom var(--px-corner-step-2),
+    left var(--px-corner-step-2) bottom var(--px-corner-step-2),
+    left var(--px-corner-step-1) bottom var(--px-corner-step-3),
+    left var(--px-corner-step-1) bottom var(--px-corner-step-3),
+    left 0 bottom var(--px-radius-lb-size);
+  background-repeat: no-repeat;
   background-size:
-    120% 120%,
-    130% 130%,
-    125% 125%,
-    115% 115%,
+    calc(100% - var(--px-radius-lt-size) - var(--px-radius-rt-size)) var(--px-border-size),
+    var(--px-border-size) calc(100% - var(--px-radius-rt-size) - var(--px-radius-rb-size)),
+    calc(100% - var(--px-radius-lb-size) - var(--px-radius-rb-size)) var(--px-border-size),
+    var(--px-border-size) calc(100% - var(--px-radius-lt-size) - var(--px-radius-lb-size)),
+    var(--px-border-size) var(--px-corner-step-1),
+    calc(var(--px-radius-lt-size) - var(--px-corner-step-3)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-corner-step-2) - var(--px-corner-step-1)),
+    calc(var(--px-corner-step-3) - var(--px-corner-step-2)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-corner-step-3) - var(--px-corner-step-2)),
+    calc(var(--px-corner-step-2) - var(--px-corner-step-1)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-radius-lt-size) - var(--px-corner-step-3)),
+    var(--px-corner-step-1) var(--px-border-size),
+    var(--px-border-size) var(--px-corner-step-1),
+    calc(var(--px-radius-rt-size) - var(--px-corner-step-3)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-corner-step-2) - var(--px-corner-step-1)),
+    calc(var(--px-corner-step-3) - var(--px-corner-step-2)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-corner-step-3) - var(--px-corner-step-2)),
+    calc(var(--px-corner-step-2) - var(--px-corner-step-1)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-radius-rt-size) - var(--px-corner-step-3)),
+    var(--px-corner-step-1) var(--px-border-size),
+    var(--px-corner-step-1) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-radius-rb-size) - var(--px-corner-step-3)),
+    calc(var(--px-corner-step-2) - var(--px-corner-step-1)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-corner-step-3) - var(--px-corner-step-2)),
+    calc(var(--px-corner-step-3) - var(--px-corner-step-2)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-corner-step-2) - var(--px-corner-step-1)),
+    calc(var(--px-radius-rb-size) - var(--px-corner-step-3)) var(--px-border-size),
+    var(--px-border-size) var(--px-corner-step-1),
+    var(--px-border-size) var(--px-corner-step-1),
+    calc(var(--px-radius-lb-size) - var(--px-corner-step-3)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-corner-step-2) - var(--px-corner-step-1)),
+    calc(var(--px-corner-step-3) - var(--px-corner-step-2)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-corner-step-3) - var(--px-corner-step-2)),
+    calc(var(--px-corner-step-2) - var(--px-corner-step-1)) var(--px-border-size),
+    var(--px-border-size) calc(var(--px-radius-lb-size) - var(--px-corner-step-3)),
+    var(--px-corner-step-1) var(--px-border-size);
+}
+
+.lie-pixel-button {
+  --px-button-border-size: 2px;
+  --px-button-radius: 6px;
+  --px-button-step-1: 2px;
+  --px-button-step-2: 3px;
+  --px-button-step-3: 4px;
+  background: transparent;
+}
+
+.lie-pixel-button::before,
+.lie-pixel-button::after {
+  position: absolute;
+  pointer-events: none;
+  content: "";
+  clip-path: polygon(
+    var(--px-button-radius) 0,
+    calc(100% - var(--px-button-radius)) 0,
+    calc(100% - var(--px-button-radius)) var(--px-button-step-1),
+    calc(100% - var(--px-button-step-3)) var(--px-button-step-1),
+    calc(100% - var(--px-button-step-3)) var(--px-button-step-2),
+    calc(100% - var(--px-button-step-2)) var(--px-button-step-2),
+    calc(100% - var(--px-button-step-2)) var(--px-button-step-3),
+    calc(100% - var(--px-button-step-1)) var(--px-button-step-3),
+    calc(100% - var(--px-button-step-1)) var(--px-button-radius),
+    100% var(--px-button-radius),
+    100% calc(100% - var(--px-button-radius)),
+    calc(100% - var(--px-button-step-1)) calc(100% - var(--px-button-radius)),
+    calc(100% - var(--px-button-step-1)) calc(100% - var(--px-button-step-3)),
+    calc(100% - var(--px-button-step-2)) calc(100% - var(--px-button-step-3)),
+    calc(100% - var(--px-button-step-2)) calc(100% - var(--px-button-step-2)),
+    calc(100% - var(--px-button-step-3)) calc(100% - var(--px-button-step-2)),
+    calc(100% - var(--px-button-step-3)) calc(100% - var(--px-button-step-1)),
+    calc(100% - var(--px-button-radius)) calc(100% - var(--px-button-step-1)),
+    calc(100% - var(--px-button-radius)) 100%,
+    var(--px-button-radius) 100%,
+    var(--px-button-radius) calc(100% - var(--px-button-step-1)),
+    var(--px-button-step-3) calc(100% - var(--px-button-step-1)),
+    var(--px-button-step-3) calc(100% - var(--px-button-step-2)),
+    var(--px-button-step-2) calc(100% - var(--px-button-step-2)),
+    var(--px-button-step-2) calc(100% - var(--px-button-step-3)),
+    var(--px-button-step-1) calc(100% - var(--px-button-step-3)),
+    var(--px-button-step-1) calc(100% - var(--px-button-radius)),
+    0 calc(100% - var(--px-button-radius)),
+    0 var(--px-button-radius),
+    var(--px-button-step-1) var(--px-button-radius),
+    var(--px-button-step-1) var(--px-button-step-3),
+    var(--px-button-step-2) var(--px-button-step-3),
+    var(--px-button-step-2) var(--px-button-step-2),
+    var(--px-button-step-3) var(--px-button-step-2),
+    var(--px-button-step-3) var(--px-button-step-1),
+    var(--px-button-radius) var(--px-button-step-1)
+  );
+}
+
+.lie-pixel-button::before {
+  z-index: 0;
+  inset: 0;
+  background: var(--px-button-shadow-color);
+  transform: translateY(4px);
+  transition: transform 150ms;
+}
+
+.lie-pixel-button::after {
+  inset: 0;
+  z-index: 1;
+  background-color: var(--px-button-bg-color);
+  background-image:
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color)),
+    linear-gradient(var(--px-button-border-color), var(--px-button-border-color));
+  background-position:
+    var(--px-button-radius) 0,
+    right 0 top var(--px-button-radius),
+    left var(--px-button-radius) bottom 0,
+    0 var(--px-button-radius),
+    var(--px-button-radius) 0,
+    var(--px-button-step-3) var(--px-button-step-1),
+    var(--px-button-step-3) var(--px-button-step-1),
+    var(--px-button-step-2) var(--px-button-step-2),
+    var(--px-button-step-2) var(--px-button-step-2),
+    var(--px-button-step-1) var(--px-button-step-3),
+    var(--px-button-step-1) var(--px-button-step-3),
+    0 var(--px-button-radius),
+    right var(--px-button-radius) top 0,
+    right var(--px-button-step-3) top var(--px-button-step-1),
+    right var(--px-button-step-3) top var(--px-button-step-1),
+    right var(--px-button-step-2) top var(--px-button-step-2),
+    right var(--px-button-step-2) top var(--px-button-step-2),
+    right var(--px-button-step-1) top var(--px-button-step-3),
+    right var(--px-button-step-1) top var(--px-button-step-3),
+    right 0 top var(--px-button-radius),
+    right 0 bottom var(--px-button-radius),
+    right var(--px-button-step-1) bottom var(--px-button-step-3),
+    right var(--px-button-step-1) bottom var(--px-button-step-3),
+    right var(--px-button-step-2) bottom var(--px-button-step-2),
+    right var(--px-button-step-2) bottom var(--px-button-step-2),
+    right var(--px-button-step-3) bottom var(--px-button-step-1),
+    right var(--px-button-step-3) bottom var(--px-button-step-1),
+    right var(--px-button-radius) bottom 0,
+    left var(--px-button-radius) bottom 0,
+    left var(--px-button-step-3) bottom var(--px-button-step-1),
+    left var(--px-button-step-3) bottom var(--px-button-step-1),
+    left var(--px-button-step-2) bottom var(--px-button-step-2),
+    left var(--px-button-step-2) bottom var(--px-button-step-2),
+    left var(--px-button-step-1) bottom var(--px-button-step-3),
+    left var(--px-button-step-1) bottom var(--px-button-step-3),
+    left 0 bottom var(--px-button-radius);
+  background-repeat: no-repeat;
+  background-size:
+    calc(100% - var(--px-button-radius) - var(--px-button-radius)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(100% - var(--px-button-radius) - var(--px-button-radius)),
+    calc(100% - var(--px-button-radius) - var(--px-button-radius)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(100% - var(--px-button-radius) - var(--px-button-radius)),
+    var(--px-button-border-size) var(--px-button-step-1),
+    calc(var(--px-button-radius) - var(--px-button-step-3)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-step-2) - var(--px-button-step-1)),
+    calc(var(--px-button-step-3) - var(--px-button-step-2)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-step-3) - var(--px-button-step-2)),
+    calc(var(--px-button-step-2) - var(--px-button-step-1)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-radius) - var(--px-button-step-3)),
+    var(--px-button-step-1) var(--px-button-border-size),
+    var(--px-button-border-size) var(--px-button-step-1),
+    calc(var(--px-button-radius) - var(--px-button-step-3)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-step-2) - var(--px-button-step-1)),
+    calc(var(--px-button-step-3) - var(--px-button-step-2)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-step-3) - var(--px-button-step-2)),
+    calc(var(--px-button-step-2) - var(--px-button-step-1)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-radius) - var(--px-button-step-3)),
+    var(--px-button-step-1) var(--px-button-border-size),
+    var(--px-button-step-1) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-radius) - var(--px-button-step-3)),
+    calc(var(--px-button-step-2) - var(--px-button-step-1)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-step-3) - var(--px-button-step-2)),
+    calc(var(--px-button-step-3) - var(--px-button-step-2)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-step-2) - var(--px-button-step-1)),
+    calc(var(--px-button-radius) - var(--px-button-step-3)) var(--px-button-border-size),
+    var(--px-button-border-size) var(--px-button-step-1),
+    var(--px-button-border-size) var(--px-button-step-1),
+    calc(var(--px-button-radius) - var(--px-button-step-3)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-step-2) - var(--px-button-step-1)),
+    calc(var(--px-button-step-3) - var(--px-button-step-2)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-step-3) - var(--px-button-step-2)),
+    calc(var(--px-button-step-2) - var(--px-button-step-1)) var(--px-button-border-size),
+    var(--px-button-border-size) calc(var(--px-button-radius) - var(--px-button-step-3)),
+    var(--px-button-step-1) var(--px-button-border-size);
+  transition: background-color 150ms;
+}
+
+.lie-pixel-button:hover::after {
+  background-color: var(--px-button-hover-bg-color);
+}
+
+.lie-pixel-button:active:not(:disabled)::before {
+  transform: translateY(1px);
+}
+
+.lie-pixel-button:disabled::before {
+  transform: translateY(4px);
+}
+
+.lie-pixel-button-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.lie-pixel-input {
+  --px-input-border-color: #5f7b75;
+  --px-input-focus-border-color: #d7bc72;
+  --px-input-active-border-color: var(--px-input-border-color);
+  --px-input-border-size: 2px;
+  --px-input-bg-color: #17282b;
+  --px-input-radius: 6px;
+  --px-input-step-1: 2px;
+  --px-input-step-2: 3px;
+  --px-input-step-3: 4px;
+  background: transparent;
+  overflow: hidden;
+  clip-path: polygon(
+    var(--px-input-radius) 0,
+    calc(100% - var(--px-input-radius)) 0,
+    calc(100% - var(--px-input-radius)) var(--px-input-step-1),
+    calc(100% - var(--px-input-step-3)) var(--px-input-step-1),
+    calc(100% - var(--px-input-step-3)) var(--px-input-step-2),
+    calc(100% - var(--px-input-step-2)) var(--px-input-step-2),
+    calc(100% - var(--px-input-step-2)) var(--px-input-step-3),
+    calc(100% - var(--px-input-step-1)) var(--px-input-step-3),
+    calc(100% - var(--px-input-step-1)) var(--px-input-radius),
+    100% var(--px-input-radius),
+    100% calc(100% - var(--px-input-radius)),
+    calc(100% - var(--px-input-step-1)) calc(100% - var(--px-input-radius)),
+    calc(100% - var(--px-input-step-1)) calc(100% - var(--px-input-step-3)),
+    calc(100% - var(--px-input-step-2)) calc(100% - var(--px-input-step-3)),
+    calc(100% - var(--px-input-step-2)) calc(100% - var(--px-input-step-2)),
+    calc(100% - var(--px-input-step-3)) calc(100% - var(--px-input-step-2)),
+    calc(100% - var(--px-input-step-3)) calc(100% - var(--px-input-step-1)),
+    calc(100% - var(--px-input-radius)) calc(100% - var(--px-input-step-1)),
+    calc(100% - var(--px-input-radius)) 100%,
+    var(--px-input-radius) 100%,
+    var(--px-input-radius) calc(100% - var(--px-input-step-1)),
+    var(--px-input-step-3) calc(100% - var(--px-input-step-1)),
+    var(--px-input-step-3) calc(100% - var(--px-input-step-2)),
+    var(--px-input-step-2) calc(100% - var(--px-input-step-2)),
+    var(--px-input-step-2) calc(100% - var(--px-input-step-3)),
+    var(--px-input-step-1) calc(100% - var(--px-input-step-3)),
+    var(--px-input-step-1) calc(100% - var(--px-input-radius)),
+    0 calc(100% - var(--px-input-radius)),
+    0 var(--px-input-radius),
+    var(--px-input-step-1) var(--px-input-radius),
+    var(--px-input-step-1) var(--px-input-step-3),
+    var(--px-input-step-2) var(--px-input-step-3),
+    var(--px-input-step-2) var(--px-input-step-2),
+    var(--px-input-step-3) var(--px-input-step-2),
+    var(--px-input-step-3) var(--px-input-step-1),
+    var(--px-input-radius) var(--px-input-step-1)
+  );
+}
+
+.lie-pixel-input::before,
+.lie-pixel-input::after {
+  position: absolute;
+  pointer-events: none;
+  content: "";
+  clip-path: polygon(
+    var(--px-input-radius) 0,
+    calc(100% - var(--px-input-radius)) 0,
+    calc(100% - var(--px-input-radius)) var(--px-input-step-1),
+    calc(100% - var(--px-input-step-3)) var(--px-input-step-1),
+    calc(100% - var(--px-input-step-3)) var(--px-input-step-2),
+    calc(100% - var(--px-input-step-2)) var(--px-input-step-2),
+    calc(100% - var(--px-input-step-2)) var(--px-input-step-3),
+    calc(100% - var(--px-input-step-1)) var(--px-input-step-3),
+    calc(100% - var(--px-input-step-1)) var(--px-input-radius),
+    100% var(--px-input-radius),
+    100% calc(100% - var(--px-input-radius)),
+    calc(100% - var(--px-input-step-1)) calc(100% - var(--px-input-radius)),
+    calc(100% - var(--px-input-step-1)) calc(100% - var(--px-input-step-3)),
+    calc(100% - var(--px-input-step-2)) calc(100% - var(--px-input-step-3)),
+    calc(100% - var(--px-input-step-2)) calc(100% - var(--px-input-step-2)),
+    calc(100% - var(--px-input-step-3)) calc(100% - var(--px-input-step-2)),
+    calc(100% - var(--px-input-step-3)) calc(100% - var(--px-input-step-1)),
+    calc(100% - var(--px-input-radius)) calc(100% - var(--px-input-step-1)),
+    calc(100% - var(--px-input-radius)) 100%,
+    var(--px-input-radius) 100%,
+    var(--px-input-radius) calc(100% - var(--px-input-step-1)),
+    var(--px-input-step-3) calc(100% - var(--px-input-step-1)),
+    var(--px-input-step-3) calc(100% - var(--px-input-step-2)),
+    var(--px-input-step-2) calc(100% - var(--px-input-step-2)),
+    var(--px-input-step-2) calc(100% - var(--px-input-step-3)),
+    var(--px-input-step-1) calc(100% - var(--px-input-step-3)),
+    var(--px-input-step-1) calc(100% - var(--px-input-radius)),
+    0 calc(100% - var(--px-input-radius)),
+    0 var(--px-input-radius),
+    var(--px-input-step-1) var(--px-input-radius),
+    var(--px-input-step-1) var(--px-input-step-3),
+    var(--px-input-step-2) var(--px-input-step-3),
+    var(--px-input-step-2) var(--px-input-step-2),
+    var(--px-input-step-3) var(--px-input-step-2),
+    var(--px-input-step-3) var(--px-input-step-1),
+    var(--px-input-radius) var(--px-input-step-1)
+  );
+}
+
+.lie-pixel-input::before {
+  inset: 0;
+  z-index: 0;
+  background: var(--px-input-bg-color);
+}
+
+.lie-pixel-input::after {
+  inset: 0;
+  z-index: 1;
+  background-image:
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
+    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color));
+  background-position:
+    var(--px-input-radius) 0,
+    right 0 top var(--px-input-radius),
+    left var(--px-input-radius) bottom 0,
+    0 var(--px-input-radius),
+    var(--px-input-radius) 0,
+    var(--px-input-step-3) var(--px-input-step-1),
+    var(--px-input-step-3) var(--px-input-step-1),
+    var(--px-input-step-2) var(--px-input-step-2),
+    var(--px-input-step-2) var(--px-input-step-2),
+    var(--px-input-step-1) var(--px-input-step-3),
+    var(--px-input-step-1) var(--px-input-step-3),
+    0 var(--px-input-radius),
+    right var(--px-input-radius) top 0,
+    right var(--px-input-step-3) top var(--px-input-step-1),
+    right var(--px-input-step-3) top var(--px-input-step-1),
+    right var(--px-input-step-2) top var(--px-input-step-2),
+    right var(--px-input-step-2) top var(--px-input-step-2),
+    right var(--px-input-step-1) top var(--px-input-step-3),
+    right var(--px-input-step-1) top var(--px-input-step-3),
+    right 0 top var(--px-input-radius),
+    right 0 bottom var(--px-input-radius),
+    right var(--px-input-step-1) bottom var(--px-input-step-3),
+    right var(--px-input-step-1) bottom var(--px-input-step-3),
+    right var(--px-input-step-2) bottom var(--px-input-step-2),
+    right var(--px-input-step-2) bottom var(--px-input-step-2),
+    right var(--px-input-step-3) bottom var(--px-input-step-1),
+    right var(--px-input-step-3) bottom var(--px-input-step-1),
+    right var(--px-input-radius) bottom 0,
+    left var(--px-input-radius) bottom 0,
+    left var(--px-input-step-3) bottom var(--px-input-step-1),
+    left var(--px-input-step-3) bottom var(--px-input-step-1),
+    left var(--px-input-step-2) bottom var(--px-input-step-2),
+    left var(--px-input-step-2) bottom var(--px-input-step-2),
+    left var(--px-input-step-1) bottom var(--px-input-step-3),
+    left var(--px-input-step-1) bottom var(--px-input-step-3),
+    left 0 bottom var(--px-input-radius);
+  background-repeat: no-repeat;
+  background-size:
+    calc(100% - var(--px-input-radius) - var(--px-input-radius)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(100% - var(--px-input-radius) - var(--px-input-radius)),
+    calc(100% - var(--px-input-radius) - var(--px-input-radius)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(100% - var(--px-input-radius) - var(--px-input-radius)),
+    var(--px-input-border-size) var(--px-input-step-1),
+    calc(var(--px-input-radius) - var(--px-input-step-3)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-step-2) - var(--px-input-step-1)),
+    calc(var(--px-input-step-3) - var(--px-input-step-2)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-step-3) - var(--px-input-step-2)),
+    calc(var(--px-input-step-2) - var(--px-input-step-1)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-radius) - var(--px-input-step-3)),
+    var(--px-input-step-1) var(--px-input-border-size),
+    var(--px-input-border-size) var(--px-input-step-1),
+    calc(var(--px-input-radius) - var(--px-input-step-3)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-step-2) - var(--px-input-step-1)),
+    calc(var(--px-input-step-3) - var(--px-input-step-2)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-step-3) - var(--px-input-step-2)),
+    calc(var(--px-input-step-2) - var(--px-input-step-1)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-radius) - var(--px-input-step-3)),
+    var(--px-input-step-1) var(--px-input-border-size),
+    var(--px-input-step-1) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-radius) - var(--px-input-step-3)),
+    calc(var(--px-input-step-2) - var(--px-input-step-1)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-step-3) - var(--px-input-step-2)),
+    calc(var(--px-input-step-3) - var(--px-input-step-2)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-step-2) - var(--px-input-step-1)),
+    calc(var(--px-input-radius) - var(--px-input-step-3)) var(--px-input-border-size),
+    var(--px-input-border-size) var(--px-input-step-1),
+    var(--px-input-border-size) var(--px-input-step-1),
+    calc(var(--px-input-radius) - var(--px-input-step-3)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-step-2) - var(--px-input-step-1)),
+    calc(var(--px-input-step-3) - var(--px-input-step-2)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-step-3) - var(--px-input-step-2)),
+    calc(var(--px-input-step-2) - var(--px-input-step-1)) var(--px-input-border-size),
+    var(--px-input-border-size) calc(var(--px-input-radius) - var(--px-input-step-3)),
+    var(--px-input-step-1) var(--px-input-border-size);
+  transition: filter 150ms;
+}
+
+.lie-pixel-input:focus-within {
+  --px-input-active-border-color: var(--px-input-focus-border-color);
+}
+
+.lie-pixel-input::before {
+  background: var(--px-input-active-border-color);
+  transition: background-color 150ms;
+}
+
+.lie-pixel-input::after {
+  --px-input-radius: 4px;
+  --px-input-step-1: 2px;
+  --px-input-step-2: 3px;
+  --px-input-step-3: 4px;
+  inset: var(--px-input-border-size);
+  background: var(--px-input-bg-color);
+}
+
+.lie-pixel-input[data-disabled="true"] {
+  opacity: 0.56;
+}
+
+.lie-pixel-input-icon {
+  position: relative;
+  z-index: 2;
+}
+
+.lie-pixel-input-control {
+  appearance: none;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.lie-pixel-input-control:-webkit-autofill,
+.lie-pixel-input-control:-webkit-autofill:hover,
+.lie-pixel-input-control:-webkit-autofill:focus,
+.lie-pixel-input-control:-webkit-autofill:active {
+  -webkit-background-clip: text !important;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: #fff6cf !important;
+  background-clip: text !important;
+  caret-color: #fff6cf !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  transition: background-color 999999s ease-in-out 0s, color 999999s ease-in-out 0s;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text !important;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: #fff6cf !important;
+  background-clip: text !important;
+  caret-color: #fff6cf !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  transition: background-color 999999s ease-in-out 0s, color 999999s ease-in-out 0s;
+}
+
+.lie-balatro-fallback-forest {
+  opacity: 0.52;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(215, 188, 114, 0.26), transparent 18%),
+    radial-gradient(circle at 82% 20%, rgba(47, 208, 143, 0.28), transparent 20%),
+    radial-gradient(circle at 52% 58%, rgba(255, 246, 207, 0.08), transparent 24%),
+    radial-gradient(circle at 28% 82%, rgba(47, 208, 143, 0.2), transparent 22%),
+    radial-gradient(circle at 76% 74%, rgba(215, 188, 114, 0.18), transparent 18%),
+    linear-gradient(135deg, rgba(4, 11, 9, 0.96), rgba(11, 24, 18, 0.88));
+  background-size:
+    110% 110%,
+    122% 122%,
+    118% 118%,
+    126% 126%,
+    112% 112%,
     100% 100%;
   animation: none;
 }
 
-.lie-fluid-fallback-active {
-  opacity: 0.78;
-  filter: blur(18px) saturate(1.25);
-  transform: scale(1.08);
-  animation: lie-fluid-fallback-drift 9s ease-in-out infinite alternate;
+.lie-balatro-fallback-ocean {
+  opacity: 0.56;
+  background:
+    radial-gradient(circle at 16% 22%, rgba(113, 184, 255, 0.34), transparent 18%),
+    radial-gradient(circle at 84% 18%, rgba(43, 111, 255, 0.3), transparent 20%),
+    radial-gradient(circle at 54% 56%, rgba(195, 229, 255, 0.1), transparent 26%),
+    radial-gradient(circle at 26% 80%, rgba(56, 147, 255, 0.22), transparent 22%),
+    radial-gradient(circle at 78% 72%, rgba(113, 184, 255, 0.2), transparent 18%),
+    linear-gradient(135deg, rgba(5, 11, 22, 0.98), rgba(10, 22, 48, 0.88));
+  background-size:
+    110% 110%,
+    124% 124%,
+    118% 118%,
+    128% 128%,
+    114% 114%,
+    100% 100%;
+  animation: none;
 }
 
-@keyframes lie-fluid-fallback-drift {
+.lie-balatro-fallback-forest-active {
+  opacity: 0.82;
+  filter: blur(22px) saturate(1.18);
+  transform: scale(1.06);
+  animation: lie-balatro-fallback-drift 10s ease-in-out infinite alternate;
+}
+
+.lie-balatro-fallback-ocean-active {
+  opacity: 0.88;
+  filter: blur(24px) saturate(1.24);
+  transform: scale(1.07);
+  animation: lie-balatro-login-drift 11s ease-in-out infinite alternate;
+}
+
+.lie-balatro-overlay-forest {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(215, 188, 114, 0.14), transparent 24%),
+    radial-gradient(circle at 50% 58%, rgba(47, 208, 143, 0.09), transparent 36%),
+    linear-gradient(180deg, rgba(5, 10, 8, 0.08), rgba(5, 10, 8, 0.84));
+}
+
+.lie-balatro-overlay-ocean {
+  background:
+    radial-gradient(circle at 18% 24%, rgba(113, 184, 255, 0.2), transparent 22%),
+    radial-gradient(circle at 76% 18%, rgba(43, 111, 255, 0.16), transparent 26%),
+    radial-gradient(circle at 52% 62%, rgba(164, 214, 255, 0.08), transparent 32%),
+    linear-gradient(180deg, rgba(6, 12, 28, 0.16), rgba(5, 10, 20, 0.84));
+  background-size:
+    124% 124%,
+    132% 132%,
+    118% 118%,
+    100% 100%;
+  animation: lie-login-balatro-overlay-shift 14s ease-in-out infinite alternate;
+}
+
+@keyframes lie-balatro-fallback-drift {
   0% {
     background-position:
-      0% 0%,
-      100% 4%,
-      70% 100%,
-      8% 88%,
+      10% 14%,
+      88% 16%,
+      48% 52%,
+      22% 82%,
+      76% 74%,
       0% 0%;
   }
 
   100% {
     background-position:
-      22% 18%,
-      78% 24%,
-      55% 82%,
-      28% 72%,
+      18% 24%,
+      78% 28%,
+      55% 62%,
+      30% 76%,
+      70% 68%,
       0% 0%;
+  }
+}
+
+@keyframes lie-balatro-login-drift {
+  0% {
+    background-position:
+      12% 16%,
+      86% 14%,
+      48% 52%,
+      24% 80%,
+      76% 72%,
+      0% 0%;
+  }
+
+  100% {
+    background-position:
+      20% 24%,
+      76% 24%,
+      56% 62%,
+      30% 74%,
+      68% 66%,
+      0% 0%;
+  }
+}
+
+@keyframes lie-login-balatro-overlay-shift {
+  0% {
+    background-position:
+      18% 22%,
+      78% 18%,
+      50% 58%,
+      0% 0%;
+  }
+
+  100% {
+    background-position:
+      24% 30%,
+      72% 24%,
+      54% 66%,
+      0% 0%;
+  }
+}
+
+@keyframes lie-pixel-message-drop {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -1.1rem, 0) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }

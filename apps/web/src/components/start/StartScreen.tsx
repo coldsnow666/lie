@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import BounceCards from "@/components/start/BounceCards";
 import { useStartScreenTransition } from "@/components/start/useStartScreenTransition";
+import PixelButton from "@/components/ui/PixelButton";
+import PixelPanel from "@/components/ui/PixelPanel";
 import { clearSession, isLoggedIn } from "@/lib/auth";
 
 export default function StartScreen() {
@@ -14,7 +16,7 @@ export default function StartScreen() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [favorited, setFavorited] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const { cardRegionRef, menuRef, playExit, transitioning } = useStartScreenTransition();
+  const { cardRegionRef, menuRef, playExit, replayIntro, transitioning } = useStartScreenTransition();
 
   useEffect(() => {
     const htmlOverflow = document.documentElement.style.overflow;
@@ -27,13 +29,34 @@ export default function StartScreen() {
     document.body.style.overflow = "hidden";
     document.body.style.height = "100dvh";
 
+    const syncLoginState = () => {
+      setLoggedIn(isLoggedIn());
+    };
+
+    const handlePageShow = () => {
+      syncLoginState();
+      // 浏览器返回命中 bfcache 时，页面会复用上次退出后的 DOM 状态，这里强制重播入场动画。
+      window.setTimeout(() => replayIntro(), 0);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncLoginState();
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       window.clearTimeout(loginStateTimer);
+      window.removeEventListener("pageshow", handlePageShow);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.documentElement.style.overflow = htmlOverflow;
       document.body.style.overflow = bodyOverflow;
       document.body.style.height = bodyHeight;
     };
-  }, []);
+  }, [replayIntro]);
 
   function enterGame() {
     if (transitioning) {
@@ -56,45 +79,51 @@ export default function StartScreen() {
         <section className="flex min-h-0 flex-1 flex-col items-center text-center">
           <div className="flex min-h-0 w-full flex-1 items-center justify-center pb-[clamp(0.75rem,3vh,1.5rem)]">
             <div ref={cardRegionRef} data-start-card-region className="relative h-[clamp(10rem,43dvh,21rem)] w-full max-w-[min(35rem,100%)] shrink-0 overflow-visible">
-              <BounceCards playIntro={false} />
+              <BounceCards playIntro={false} managedShellMotion />
             </div>
           </div>
 
-          <div ref={menuRef} data-start-menu className="mb-[clamp(0.35rem,2vh,0.85rem)] grid w-full max-w-[min(31rem,100%)] shrink-0 grid-cols-[1.42fr_1fr_1fr_1fr] gap-[clamp(0.28rem,1.2vw,0.5rem)] rounded bg-[#17372b]/85 p-[clamp(0.28rem,1.2vw,0.38rem)] shadow-2xl shadow-black/45 ring-1 ring-[#f0d98d]/25">
-            <button
-              type="button"
+          <PixelPanel
+            ref={menuRef}
+            data-start-menu
+            tone="forest"
+            padding="sm"
+            className="mb-[clamp(0.35rem,2vh,0.85rem)] grid w-full max-w-[min(31rem,100%)] shrink-0 grid-cols-[1.42fr_1fr_1fr_1fr] gap-[clamp(0.28rem,1.2vw,0.5rem)] shadow-2xl shadow-black/45"
+          >
+            <PixelButton
               onClick={enterGame}
               disabled={transitioning}
-              className="h-[clamp(2.35rem,7.4vh,3rem)] rounded bg-[#208de8] px-1 text-sm font-black text-white shadow-[inset_0_-3px_0_rgba(0,0,0,0.22),0_2px_7px_rgba(0,0,0,0.35)] transition hover:bg-[#33a7ff] sm:text-lg"
+              variant="accent"
+              className="h-[clamp(2.35rem,7.4vh,3rem)] px-1 text-sm sm:text-lg"
             >
-              {loggedIn ? "进入游戏" : "登录"}
-            </button>
-            <button
-              type="button"
+              {loggedIn ? "进入大厅" : "登录"}
+            </PixelButton>
+            <PixelButton
               title={soundEnabled ? "关闭音效" : "开启音效"}
               onClick={() => setSoundEnabled((value) => !value)}
               disabled={transitioning}
-              className="h-[clamp(2.35rem,7.4vh,3rem)] rounded bg-[#f39a22] px-1 text-xs font-black text-white shadow-[inset_0_-3px_0_rgba(0,0,0,0.2),0_2px_7px_rgba(0,0,0,0.3)] transition hover:bg-[#ffad33] sm:text-base"
+              variant="primary"
+              className="h-[clamp(2.35rem,7.4vh,3rem)] px-1 text-xs sm:text-base"
             >
               选项
-            </button>
-            <button
-              type="button"
+            </PixelButton>
+            <PixelButton
               onClick={logoutFromStart}
               disabled={transitioning}
-              className="h-[clamp(2.35rem,7.4vh,3rem)] rounded bg-[#f04b3f] px-1 text-xs font-black text-white shadow-[inset_0_-3px_0_rgba(0,0,0,0.2),0_2px_7px_rgba(0,0,0,0.3)] transition hover:bg-[#ff6154] sm:text-base"
+              variant="danger"
+              className="h-[clamp(2.35rem,7.4vh,3rem)] px-1 text-xs sm:text-base"
             >
               退出
-            </button>
-            <button
-              type="button"
+            </PixelButton>
+            <PixelButton
               onClick={() => setFavorited((value) => !value)}
               disabled={transitioning}
-              className="h-[clamp(2.35rem,7.4vh,3rem)] rounded bg-[#62b79b] px-1 text-xs font-black text-white shadow-[inset_0_-3px_0_rgba(0,0,0,0.2),0_2px_7px_rgba(0,0,0,0.3)] transition hover:bg-[#75caaa] sm:text-base"
+              variant="secondary"
+              className="h-[clamp(2.35rem,7.4vh,3rem)] px-1 text-xs sm:text-base"
             >
               {favorited ? "已藏" : "收藏"}
-            </button>
-          </div>
+            </PixelButton>
+          </PixelPanel>
         </section>
       </div>
     </main>

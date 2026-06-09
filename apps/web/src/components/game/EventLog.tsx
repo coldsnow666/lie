@@ -2,6 +2,7 @@
  * 事件日志组件：把公开游戏事件转换成玩家可读的中文文本。
  */
 import type { PublicGameEvent } from "@lie/shared";
+import PixelPanel from "@/components/ui/PixelPanel";
 
 function describeEvent(event: PublicGameEvent) {
   if (event.type === "cards_played") {
@@ -17,7 +18,7 @@ function describeEvent(event: PublicGameEvent) {
 
 export default function EventLog({ events }: { events: PublicGameEvent[] }) {
   return (
-    <section className="rounded border border-white/10 bg-black/20 p-4">
+    <PixelPanel tone="dark" padding="md">
       <h2 className="mb-3 text-sm font-semibold text-[#fff6cf]">事件日志</h2>
       <div className="grid max-h-44 gap-2 overflow-y-auto text-sm text-[#c6b889]">
         {events.length ? (
@@ -25,14 +26,14 @@ export default function EventLog({ events }: { events: PublicGameEvent[] }) {
             .slice()
             .reverse()
             .map((event, index) => (
-              <div key={`${event.type}-${index}`} className="rounded bg-white/5 px-3 py-2">
+              <div key={`${event.type}-${index}`} className="border-2 border-[#32493d] bg-white/5 px-3 py-2">
                 {describeEvent(event)}
               </div>
             ))
         ) : (
-          <div className="rounded bg-white/5 px-3 py-2">等待第一手牌。</div>
+          <div className="border-2 border-[#32493d] bg-white/5 px-3 py-2">等待第一手牌。</div>
         )}
       </div>
-    </section>
+    </PixelPanel>
   );
 }

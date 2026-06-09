@@ -5,13 +5,7 @@
 
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
-
-type Suit = "S" | "H" | "D" | "C";
-
-type BounceCard = {
-  rank: string;
-  suit: Suit;
-};
+import { cardTransform, cornerFlights, defaultCards, resolveViewportCornerFlights, type BounceCard, type Suit } from "./cardScene";
 
 type BounceCardsProps = {
   className?: string;
@@ -20,21 +14,10 @@ type BounceCardsProps = {
   animationStagger?: number;
   enableHover?: boolean;
   playIntro?: boolean;
+  introVariant?: "pop" | "corner-return";
+  introFlightMode?: "shared" | "viewport";
+  managedShellMotion?: boolean;
 };
-
-const defaultCards: BounceCard[] = [
-  { rank: "L", suit: "S" },
-  { rank: "I", suit: "H" },
-  { rank: "A", suit: "D" },
-  { rank: "R", suit: "C" },
-];
-
-const defaultTransformStates = [
-  { rotate: -18, x: -48, y: 2 },
-  { rotate: -6, x: -16, y: -6 },
-  { rotate: 6, x: 16, y: -6 },
-  { rotate: 18, x: 48, y: 2 },
-];
 
 const suitMap = {
   S: { symbol: "♠", color: "#173b2a" },
@@ -43,15 +26,6 @@ const suitMap = {
   C: { symbol: "♣", color: "#173b2a" },
 };
 
-function cardTransform(index: number, options: { straighten?: boolean; push?: number } = {}) {
-  const state = defaultTransformStates[index] ?? { rotate: 0, x: 0, y: 0 };
-  const x = Math.max(-100, Math.min(100, state.x + (options.push ?? 0)));
-  const y = options.straighten ? state.y - 18 : state.y;
-  const rotate = options.straighten ? state.rotate * 0.35 : state.rotate;
-
-  return `translateX(${x}%) translateY(${y}%) rotate(${rotate}deg)`;
-}
-
 export default function BounceCards({
   className = "",
   cards = defaultCards,
@@ -59,11 +33,18 @@ export default function BounceCards({
   animationStagger = 0.055,
   enableHover = true,
   playIntro = true,
+  introVariant = "pop",
+  introFlightMode = "shared",
+  managedShellMotion = false,
 }: BounceCardsProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const context = gsap.context(() => {
+      const select = gsap.utils.selector(containerRef);
+      const cardShells = select(".lie-bounce-card-flight-shell");
+      const cardNodes = select(".lie-bounce-card");
+
       const startFloat = () => {
         gsap.to(".lie-bounce-card-face", {
           y: (index) => [-7, -4, -8, -5, -6][index] ?? -6,
@@ -77,8 +58,52 @@ export default function BounceCards({
       };
 
       if (!playIntro) {
-        gsap.set(".lie-bounce-card", { scale: 1, y: 0, opacity: 1 });
+        if (!managedShellMotion) {
+          gsap.set(cardShells, { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 });
+        }
+        gsap.set(cardNodes, { scale: 1, y: 0, opacity: 1 });
         startFloat();
+        return;
+      }
+
+      gsap.set(cardShells, {
+        force3D: true,
+        willChange: "transform, opacity",
+      });
+
+      if (introVariant === "corner-return") {
+        const flightPlan =
+          introFlightMode === "viewport"
+            ? resolveViewportCornerFlights(cardShells.filter((shell): shell is HTMLElement => shell instanceof HTMLElement))
+            : cornerFlights;
+        const intro = gsap.timeline({
+          delay: animationDelay,
+        });
+
+        cardShells.forEach((shell, index) => {
+          intro.fromTo(
+            shell,
+            {
+              x: flightPlan[index]?.x ?? 0,
+              y: flightPlan[index]?.y ?? 0,
+              rotate: flightPlan[index]?.rotate ?? 0,
+              scale: 0.92,
+              opacity: 0,
+            },
+            {
+              x: 0,
+              y: 0,
+              rotate: 0,
+              scale: 1,
+              opacity: 1,
+              duration: 0.84,
+              ease: "power3.out",
+            },
+            index * animationStagger,
+          );
+        });
+
+        intro.then(startFloat);
         return;
       }
 
@@ -98,7 +123,7 @@ export default function BounceCards({
     }, containerRef);
 
     return () => context.revert();
-  }, [animationDelay, animationStagger, playIntro]);
+  }, [animationDelay, animationStagger, introFlightMode, introVariant, managedShellMotion, playIntro]);
 
   function pushSiblings(hoveredIndex: number) {
     if (!enableHover || !containerRef.current) {
@@ -150,7 +175,7 @@ export default function BounceCards({
             key={`${card.rank}-${card.suit}-${index}`}
             className="absolute left-1/2 top-1/2 h-[clamp(7.5rem,24vw,14.5rem)] w-[clamp(5.25rem,16.5vw,9.9rem)] -translate-x-1/2 -translate-y-1/2"
           >
-            <div data-bounce-card-flight={card.rank} className="h-full w-full">
+            <div data-bounce-card-flight={card.rank} className="lie-bounce-card-flight-shell h-full w-full">
               <button
                 type="button"
                 aria-label={`${card.rank}${suit.symbol}`}

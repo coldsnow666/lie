@@ -5,6 +5,8 @@
 
 import { DoorOpen, Swords, ThumbsDown } from "lucide-react";
 import type { PublicGameEvent, PublicGameState } from "@lie/shared";
+import PixelButton from "@/components/ui/PixelButton";
+import PixelPanel from "@/components/ui/PixelPanel";
 import EventLog from "./EventLog";
 import Hand from "./Hand";
 import PlayerSeat from "./PlayerSeat";
@@ -38,9 +40,9 @@ export default function GameTable({
         ))}
       </section>
 
-      <section className="rounded border border-[#d7bc72]/30 bg-[#133121] p-5 shadow-xl shadow-black/25">
+      <PixelPanel tone="highlight" padding="md" className="shadow-xl shadow-black/25">
         <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-          <div className="flex min-h-64 flex-col items-center justify-center rounded border border-white/10 bg-[radial-gradient(circle_at_center,#1f5d3d,#10271d_65%)] p-6 text-center">
+          <div className="flex min-h-64 flex-col items-center justify-center border-2 border-[#4e6e5c] bg-[radial-gradient(circle_at_center,#1f5d3d,#10271d_65%)] p-6 text-center">
             <div className="text-sm text-[#c6b889]">当前目标牌点</div>
             <div className="mt-2 text-7xl font-black text-[#fff6cf]">{state.currentRank}</div>
             <div className="mt-6 grid gap-2 text-sm text-[#f2df9e]">
@@ -54,45 +56,38 @@ export default function GameTable({
               )}
             </div>
             {winner ? (
-              <div className="mt-6 rounded bg-[#d7bc72] px-4 py-2 font-bold text-[#102018]">胜者：{winner.nickname}</div>
+              <div className="mt-6 border-2 border-[#f6df8f] bg-[#d7bc72] px-4 py-2 font-bold text-[#102018]">胜者：{winner.nickname}</div>
             ) : null}
           </div>
 
           <EventLog events={events} />
         </div>
-      </section>
+      </PixelPanel>
 
       <section className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-[#fff6cf]">你的手牌</h2>
           <div className="flex gap-2">
-            <button
-              type="button"
+            <PixelButton
               onClick={onPlayCards}
               disabled={busy || selectedCardIds.length < 1 || selectedCardIds.length > 4 || state.status === "finished"}
-              className="flex h-11 items-center gap-2 rounded bg-[#d7bc72] px-4 font-semibold text-[#102018] transition hover:bg-[#f0d98d] disabled:opacity-50"
+              variant="primary"
             >
               <Swords size={17} />
               打出所选
-            </button>
-            <button
-              type="button"
+            </PixelButton>
+            <PixelButton
               onClick={onChallenge}
               disabled={busy || !state.lastPlay || state.status === "finished"}
-              className="flex h-11 items-center gap-2 rounded border border-[#d7bc72]/50 px-4 font-semibold text-[#fff6cf] transition hover:border-[#f0d98d] disabled:opacity-50"
+              variant="ghost"
             >
               <ThumbsDown size={17} />
               质疑
-            </button>
-            <button
-              type="button"
-              onClick={onLeave}
-              disabled={busy}
-              className="flex h-11 items-center gap-2 rounded border border-white/15 px-4 font-semibold text-[#fff6cf] transition hover:border-[#d7bc72] disabled:opacity-50"
-            >
+            </PixelButton>
+            <PixelButton onClick={onLeave} disabled={busy} variant="danger">
               <DoorOpen size={17} />
               离开
-            </button>
+            </PixelButton>
           </div>
         </div>
         <Hand cards={state.selfHand} selectedCardIds={selectedCardIds} onToggleCard={onToggleCard} />

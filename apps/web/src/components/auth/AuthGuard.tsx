@@ -5,8 +5,8 @@
 
 import { useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useState } from "react";
-import { fetchMe } from "@/lib/api";
 import { clearSession, getAccessToken, getStoredUser, type StoredUser } from "@/lib/auth";
+import { fetchMe } from "@/service/modules/user";
 
 type AuthGuardProps = PropsWithChildren<{
   onUser?: (user: StoredUser) => void;

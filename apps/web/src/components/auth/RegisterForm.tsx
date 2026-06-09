@@ -5,12 +5,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
-import { UserPlus } from "lucide-react";
-import { register } from "@/lib/api";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { ArrowLeft, Lock, Mail, User, UserPlus } from "lucide-react";
+import { useAuthTransition } from "@/components/auth/AuthTransitionContext";
+import { register } from "@/service/modules/user";
+import PixelButton from "@/components/ui/PixelButton";
+import PixelInput from "@/components/ui/PixelInput";
+import PixelMessage from "@/components/ui/PixelMessage";
+import PixelPanel from "@/components/ui/PixelPanel";
 
 export default function RegisterForm() {
   const router = useRouter();
+  const { navigateHome, transitioning } = useAuthTransition();
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,19 +26,88 @@ export default function RegisterForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  function validateForm() {
+    const trimmedNickname = nickname.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedNickname) {
+      return "请输入昵称。";
+    }
+
+    if (trimmedNickname.length < 2) {
+      return "昵称至少需要 2 个字符。";
+    }
+
+    if (trimmedNickname.length > 16) {
+      return "昵称最多 16 个字符。";
+    }
+
+    if (!trimmedEmail) {
+      return "请输入邮箱。";
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      return "请输入正确的邮箱格式。";
+    }
+
+    if (!password) {
+      return "请输入密码。";
+    }
+
+    if (password.length < 8) {
+      return "密码至少需要 8 位。";
+    }
+
+    if (!confirmPassword) {
+      return "请输入确认密码。";
+    }
+
+    if (confirmPassword.length < 8) {
+      return "确认密码至少需要 8 位。";
+    }
+
+    if (password !== confirmPassword) {
+      return "两次输入的密码不一致";
+    }
+
+    return "";
+  }
+
+  useEffect(() => {
+    if (!formRef.current) {
+      return;
+    }
+
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        formRef.current,
+        { y: "-18vh", opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.56,
+          ease: "power3.out",
+        },
+      );
+    }, formRef);
+
+    return () => context.revert();
+  }, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    const validationError = validateForm();
 
-    if (password !== confirmPassword) {
-      setError("两次输入的密码不一致");
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setLoading(true);
 
     try {
-      await register({ nickname, email, password });
+      await register({ nickname: nickname.trim(), email: email.trim(), password });
       router.push("/lobby");
     } catch (err) {
       setError(err instanceof Error ? err.message : "注册失败");
@@ -40,76 +117,99 @@ export default function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-md rounded border border-[#d7bc72]/30 bg-[#10271d]/95 p-6 shadow-2xl shadow-black/30">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#fff6cf]">注册</h1>
-        <p className="mt-2 text-sm text-[#c6b889]">创建账号后会自动登录并进入大厅。</p>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="relative mx-auto w-full max-w-[31rem]">
+      <div className="absolute left-0 top-0 z-20 -translate-x-1/2 -translate-y-1/2 max-sm:left-3 max-sm:translate-x-0">
+        <PixelButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-label="返回首页"
+          className="h-12 w-12 min-w-12 px-0"
+          onClick={navigateHome}
+          disabled={loading || transitioning}
+        >
+          <ArrowLeft size={18} />
+        </PixelButton>
       </div>
 
-      <label className="mb-4 block text-sm text-[#e8ddb7]">
-        昵称
-        <input
-          value={nickname}
-          onChange={(event) => setNickname(event.target.value)}
-          required
-          minLength={2}
-          maxLength={16}
-          className="mt-2 w-full rounded border border-white/15 bg-black/25 px-3 py-3 text-[#fff6cf] outline-none focus:border-[#d7bc72]"
-        />
-      </label>
-
-      <label className="mb-4 block text-sm text-[#e8ddb7]">
-        邮箱
-        <input
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          type="email"
-          required
-          className="mt-2 w-full rounded border border-white/15 bg-black/25 px-3 py-3 text-[#fff6cf] outline-none focus:border-[#d7bc72]"
-        />
-      </label>
-
-      <label className="mb-4 block text-sm text-[#e8ddb7]">
-        密码
-        <input
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          type="password"
-          required
-          minLength={8}
-          className="mt-2 w-full rounded border border-white/15 bg-black/25 px-3 py-3 text-[#fff6cf] outline-none focus:border-[#d7bc72]"
-        />
-      </label>
-
-      <label className="mb-5 block text-sm text-[#e8ddb7]">
-        确认密码
-        <input
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          type="password"
-          required
-          minLength={8}
-          className="mt-2 w-full rounded border border-white/15 bg-black/25 px-3 py-3 text-[#fff6cf] outline-none focus:border-[#d7bc72]"
-        />
-      </label>
-
-      {error ? <p className="mb-4 rounded border border-red-300/30 bg-red-950/50 px-3 py-2 text-sm text-red-100">{error}</p> : null}
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded bg-[#d7bc72] px-4 font-semibold text-[#102018] transition hover:bg-[#f0d98d] disabled:opacity-60"
+      <PixelPanel
+        tone="highlight"
+        className="relative px-6 py-7 shadow-[0_16px_28px_rgba(0,0,0,0.28)] sm:px-8 sm:py-8"
+        padding="md"
       >
-        <UserPlus size={18} />
-        {loading ? "注册中" : "注册并进入大厅"}
-      </button>
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center gap-3 text-[#f6ebc2]">
+            <span className="h-px w-5 bg-[#b79c53]" />
+            <span className="text-[1.8rem] tracking-[0.22em]">创建账号</span>
+            <span className="h-px w-5 bg-[#b79c53]" />
+          </div>
+        </div>
 
-      <p className="mt-5 text-center text-sm text-[#c6b889]">
-        已有账号？{" "}
-        <Link className="font-medium text-[#fff6cf] underline-offset-4 hover:underline" href="/login">
-          登录
-        </Link>
-      </p>
+        <div className="mb-4">
+          <PixelInput
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
+            aria-label="昵称"
+            icon={<User size={18} />}
+            placeholder="请输入昵称"
+            disabled={loading || transitioning}
+          />
+        </div>
+
+        <div className="mb-4">
+          <PixelInput
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            aria-label="邮箱"
+            icon={<Mail size={18} />}
+            placeholder="请输入邮箱"
+            disabled={loading || transitioning}
+          />
+        </div>
+
+        <div className="mb-4">
+          <PixelInput
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            aria-label="密码"
+            icon={<Lock size={18} />}
+            placeholder="请输入密码"
+            disabled={loading || transitioning}
+          />
+        </div>
+
+        <div className="mb-6">
+          <PixelInput
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            type="password"
+            aria-label="确认密码"
+            icon={<Lock size={18} />}
+            placeholder="请再次输入密码"
+            disabled={loading || transitioning}
+          />
+        </div>
+
+        {error ? <PixelMessage>{error}</PixelMessage> : null}
+
+        <PixelButton type="submit" disabled={loading || transitioning} variant="primary" size="lg" fullWidth className="h-14 text-lg">
+          <UserPlus size={18} />
+          {loading ? "注册中" : "注册并进入大厅"}
+        </PixelButton>
+
+        <div className="mt-7">
+          <div className="flex items-center gap-3 text-sm text-[#a99560]">
+            <span className="h-px flex-1 bg-[#5c6455]" />
+            <span>已经有账号？</span>
+            <span className="h-px flex-1 bg-[#5c6455]" />
+          </div>
+          <PixelButton asChild variant="ghost" size="lg" fullWidth className="mt-5 h-14 text-lg">
+            <Link href="/login">返回登录</Link>
+          </PixelButton>
+        </div>
+      </PixelPanel>
     </form>
   );
 }

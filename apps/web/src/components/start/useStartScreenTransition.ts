@@ -5,22 +5,7 @@
 
 import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { gsap } from "gsap";
-
-type CardRank = "L" | "I" | "A" | "R";
-
-type CornerFlight = {
-  rank: CardRank;
-  x: string;
-  y: string;
-  rotate: number;
-};
-
-const cornerFlights: CornerFlight[] = [
-  { rank: "L", x: "-58vw", y: "-52vh", rotate: -42 },
-  { rank: "I", x: "58vw", y: "-52vh", rotate: 42 },
-  { rank: "A", x: "-58vw", y: "52vh", rotate: -42 },
-  { rank: "R", x: "58vw", y: "52vh", rotate: 42 },
-];
+import { cornerFlights } from "./cardScene";
 
 type TransitionTargets = {
   cards: HTMLElement[];
@@ -51,10 +36,26 @@ function prepareCompositedMotion(targets: TransitionTargets) {
   });
 }
 
+function resetTargets(targets: TransitionTargets) {
+  // 浏览器返回命中缓存时，DOM 可能停留在退出动画结束态，这里先强制复位到启动页静止态。
+  gsap.set(targets.cards, {
+    x: 0,
+    y: 0,
+    rotate: 0,
+    scale: 1,
+    opacity: 1,
+  });
+  gsap.set(targets.menu, {
+    y: 0,
+    opacity: 1,
+  });
+}
+
 export function useStartScreenTransition(): {
   cardRegionRef: RefObject<HTMLDivElement | null>;
   menuRef: RefObject<HTMLDivElement | null>;
   playExit: (onComplete: () => void) => void;
+  replayIntro: () => void;
   transitioning: boolean;
 } {
   const cardRegionRef = useRef<HTMLDivElement | null>(null);
@@ -70,54 +71,73 @@ export function useStartScreenTransition(): {
       return null;
     }
 
+    resetTargets(targets);
     prepareCompositedMotion(targets);
+    const timeline = gsap.timeline({
+      paused: true,
+      defaults: { overwrite: "auto" },
+      onComplete,
+    });
 
-    return gsap
-      .timeline({
-        paused: true,
-        defaults: { overwrite: "auto" },
-        onComplete,
-      })
-      .to(targets.cards, {
-        x: (index) => cornerFlights[index]?.x ?? "0",
-        y: (index) => cornerFlights[index]?.y ?? "-52vh",
-        rotate: (index) => cornerFlights[index]?.rotate ?? 0,
-        scale: 0.92,
-        opacity: 0,
-        duration: 0.68,
-        ease: "power3.in",
-        stagger: 0.032,
-      })
-      .to(
-        targets.menu,
+    targets.cards.forEach((card, index) => {
+      timeline.to(
+        card,
         {
-          y: "18vh",
+          x: cornerFlights[index]?.x ?? "0",
+          y: cornerFlights[index]?.y ?? "-52vh",
+          rotate: cornerFlights[index]?.rotate ?? 0,
+          scale: 0.92,
           opacity: 0,
-          duration: 0.28,
-          ease: "power2.in",
+          duration: 0.68,
+          ease: "power3.in",
         },
-        "-=0.12",
+        index * 0.032,
       );
+    });
+
+    timeline.to(
+      targets.menu,
+      {
+        y: "18vh",
+        opacity: 0,
+        duration: 0.28,
+        ease: "power2.in",
+      },
+      0.68 + (targets.cards.length - 1) * 0.032 - 0.12,
+    );
+
+    return timeline;
   }, []);
 
-  useLayoutEffect(() => {
+  const playIntroMotion = useCallback(() => {
     const timeline = createTimeline();
 
     if (!timeline) {
-      return undefined;
+      return;
     }
 
+    activeTimelineRef.current?.kill();
     activeTimelineRef.current = timeline;
     // 进入启动页时从退出终点反向播放，保持进入/退出使用同一套动效。
     timeline.progress(1).reverse();
+  }, [createTimeline]);
+
+  const replayIntro = useCallback(() => {
+    transitioningRef.current = false;
+    setTransitioning(false);
+    playIntroMotion();
+  }, [playIntroMotion]);
+
+  useLayoutEffect(() => {
+    playIntroMotion();
 
     return () => {
-      timeline.kill();
-      if (activeTimelineRef.current === timeline) {
+      activeTimelineRef.current?.kill();
+      if (activeTimelineRef.current) {
         activeTimelineRef.current = null;
       }
     };
-  }, [createTimeline]);
+  }, [playIntroMotion]);
 
   const playExit = useCallback(
     (onComplete: () => void) => {
@@ -145,6 +165,7 @@ export function useStartScreenTransition(): {
     cardRegionRef,
     menuRef,
     playExit,
+    replayIntro,
     transitioning,
   };
 }

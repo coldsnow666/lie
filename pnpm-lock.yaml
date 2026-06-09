@@ -15,7 +15,7 @@ importers:
         specifier: ^4.0.16
         version: 4.1.8(@types/node@25.9.2)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.4))
 
-  apps/game-server:
+  apps/server:
     dependencies:
       '@fastify/cors':
         specifier: ^11.1.0
@@ -66,6 +66,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@fontsource/dotgothic16':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/fusion-pixel-12px-proportional-sc':
+        specifier: ^5.2.5
+        version: 5.2.5
       '@lie/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -425,6 +431,12 @@ packages:
 
   '@fastify/proxy-addr@5.1.0':
     resolution: {integrity: sha512-INS+6gh91cLUjB+PVHfu1UqcB76Sqtpyp7bnL+FYojhjygvOPA9ctiD/JDKsyD9Xgu4hUhCSJBPig/w7duNajw==}
+
+  '@fontsource/dotgothic16@5.2.8':
+    resolution: {integrity: sha512-kKLp0jtNURDwQwdBBHB7CFs/i5b6MVPNVEOy8EFbdWwKT9xQZbQqYIEjW1nKayqcs0Uh6imBCeUFuIBufEJK4w==}
+
+  '@fontsource/fusion-pixel-12px-proportional-sc@5.2.5':
+    resolution: {integrity: sha512-TMFojLE0JUJUqgoL1pRxohnm11u59BYSkogyN9VbTQp2kh1HkkQ1FSkPboce3GGQXPskNTip9+oRp3ju83U0tw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -3233,6 +3245,10 @@ snapshots:
     dependencies:
       '@fastify/forwarded': 3.0.1
       ipaddr.js: 2.4.0
+
+  '@fontsource/dotgothic16@5.2.8': {}
+
+  '@fontsource/fusion-pixel-12px-proportional-sc@5.2.5': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

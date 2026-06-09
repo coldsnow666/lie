@@ -2,7 +2,7 @@ node_modules
 .next
 dist
 coverage
-apps/game-server/src/generated/prisma
+apps/server/src/generated/prisma
 .env
 .env.local
 .env.*.local
