@@ -535,8 +535,102 @@ select {
 }
 
 .lie-pixel-input-control option {
-  background-color: var(--px-input-bg-color);
-  color: var(--px-input-text-color);
+  background: #17282b;
+  color: #fff6cf;
+  font-family: "Fusion Pixel 12px Proportional SC", monospace;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-shadow: 1px 1px 0 #071113;
+}
+
+.lie-pixel-input-control option:checked,
+.lie-pixel-input-control option:hover,
+.lie-pixel-input-control option:focus {
+  background: linear-gradient(90deg, #d48516, #f39b14);
+  color: #fff9e8;
+}
+
+.lie-pixel-input-control option:disabled {
+  background: #111b1f;
+  color: #8ea19b;
+}
+
+.lie-pixel-select-dropdown {
+  --px-input-border-color: #f5f1df;
+  --px-input-border-size: 2px;
+  --px-input-bg-color: #17282b;
+  --px-input-radius: 6px;
+  --px-input-step-1: 2px;
+  --px-input-step-2: 3px;
+  --px-input-step-3: 4px;
+  --px-input-shape:
+    var(--px-input-radius) 0,
+    calc(100% - var(--px-input-radius)) 0,
+    calc(100% - var(--px-input-radius)) var(--px-input-step-1),
+    calc(100% - var(--px-input-step-3)) var(--px-input-step-1),
+    calc(100% - var(--px-input-step-3)) var(--px-input-step-2),
+    calc(100% - var(--px-input-step-2)) var(--px-input-step-2),
+    calc(100% - var(--px-input-step-2)) var(--px-input-step-3),
+    calc(100% - var(--px-input-step-1)) var(--px-input-step-3),
+    calc(100% - var(--px-input-step-1)) var(--px-input-radius),
+    100% var(--px-input-radius),
+    100% calc(100% - var(--px-input-radius)),
+    calc(100% - var(--px-input-step-1)) calc(100% - var(--px-input-radius)),
+    calc(100% - var(--px-input-step-1)) calc(100% - var(--px-input-step-3)),
+    calc(100% - var(--px-input-step-2)) calc(100% - var(--px-input-step-3)),
+    calc(100% - var(--px-input-step-2)) calc(100% - var(--px-input-step-2)),
+    calc(100% - var(--px-input-step-3)) calc(100% - var(--px-input-step-2)),
+    calc(100% - var(--px-input-step-3)) calc(100% - var(--px-input-step-1)),
+    calc(100% - var(--px-input-radius)) calc(100% - var(--px-input-step-1)),
+    calc(100% - var(--px-input-radius)) 100%,
+    var(--px-input-radius) 100%,
+    var(--px-input-radius) calc(100% - var(--px-input-step-1)),
+    var(--px-input-step-3) calc(100% - var(--px-input-step-1)),
+    var(--px-input-step-3) calc(100% - var(--px-input-step-2)),
+    var(--px-input-step-2) calc(100% - var(--px-input-step-2)),
+    var(--px-input-step-2) calc(100% - var(--px-input-step-3)),
+    var(--px-input-step-1) calc(100% - var(--px-input-step-3)),
+    var(--px-input-step-1) calc(100% - var(--px-input-radius)),
+    0 calc(100% - var(--px-input-radius)),
+    0 var(--px-input-radius),
+    var(--px-input-step-1) var(--px-input-radius),
+    var(--px-input-step-1) var(--px-input-step-3),
+    var(--px-input-step-2) var(--px-input-step-3),
+    var(--px-input-step-2) var(--px-input-step-2),
+    var(--px-input-step-3) var(--px-input-step-2),
+    var(--px-input-step-3) var(--px-input-step-1),
+    var(--px-input-radius) var(--px-input-step-1);
+  background: transparent;
+  clip-path: polygon(var(--px-input-shape));
+}
+
+.lie-pixel-select-dropdown::before,
+.lie-pixel-select-dropdown::after {
+  position: absolute;
+  pointer-events: none;
+  content: "";
+  clip-path: polygon(var(--px-input-shape));
+}
+
+.lie-pixel-select-dropdown::before {
+  inset: 0;
+  z-index: 0;
+  background: var(--px-input-border-color);
+}
+
+.lie-pixel-select-dropdown::after {
+  --px-input-radius: 4px;
+  --px-input-step-1: 2px;
+  --px-input-step-2: 3px;
+  --px-input-step-3: 4px;
+  inset: var(--px-input-border-size);
+  z-index: 0;
+  background: var(--px-input-bg-color);
+}
+
+.lie-pixel-select-dropdown > * {
+  position: relative;
+  z-index: 1;
 }
 
 .lie-pixel-input-control:-webkit-autofill,
@@ -780,6 +874,33 @@ input:-webkit-autofill:active {
   transform: rotateY(180deg);
 }
 
+.lie-lobby-empty-card-stage {
+  position: relative;
+  width: calc(49px * 3.05);
+  height: calc(65px * 3.05);
+  perspective: 680px;
+}
+
+.lie-lobby-empty-card-spin {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: lie-lobby-empty-card-spin 1.9s linear infinite;
+}
+
+.lie-lobby-empty-card-side {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.lie-lobby-empty-card-back {
+  transform: rotateY(180deg);
+}
+
 .lie-route-loading-overlay[data-loading-phase="waiting"] .lie-route-loading-diamond {
   opacity: 1;
   transform: translate3d(-50%, -50%, 0) rotate(-10deg) scale(1.18);
@@ -796,6 +917,56 @@ input:-webkit-autofill:active {
   align-items: flex-start;
   row-gap: 1.9rem;
   padding: 1.6rem 1.1rem 1.2rem 1.8rem;
+}
+
+.lie-game-hand {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+  min-height: calc(65px * var(--pixel-card-scale, 2) + 2.6rem);
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: visible;
+  padding: 1.15rem 0 1.35rem;
+}
+
+.lie-game-hand-card {
+  position: relative;
+  cursor: pointer;
+  transform: translateY(var(--hand-card-y, 0)) rotate(var(--hand-card-rotate, 0deg));
+  transform-origin: 50% 92%;
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.9, 0.24, 1.08),
+    filter 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.lie-game-hand-card:not(:first-child) {
+  margin-left: calc(-1 * var(--hand-card-overlap, 0px));
+}
+
+.lie-game-hand-card::after {
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  bottom: -0.52rem;
+  height: 0.48rem;
+  pointer-events: none;
+  content: "";
+  background: rgba(8, 13, 14, 0.34);
+  filter: blur(2px);
+  transform: rotate(var(--hand-card-rotate, 0deg));
+}
+
+.lie-game-hand-card:not([data-selected="true"]):hover,
+.lie-game-hand-card:not([data-selected="true"]):focus-visible {
+  transform: translateY(calc(var(--hand-card-y, 0) - 0.45rem)) rotate(0deg);
+}
+
+.lie-game-hand-card[data-selected="true"] {
+  filter: drop-shadow(0 14px 0 rgba(215, 188, 114, 0.26));
+  transform: translateY(calc(var(--hand-card-y, 0) - 0.9rem)) rotate(0deg);
 }
 
 .lie-dom-playing-card {
@@ -895,6 +1066,16 @@ input:-webkit-autofill:active {
   }
 }
 
+@keyframes lie-lobby-empty-card-spin {
+  0% {
+    transform: rotateX(8deg) rotateY(0deg) rotateZ(-3deg);
+  }
+
+  100% {
+    transform: rotateX(8deg) rotateY(360deg) rotateZ(-3deg);
+  }
+}
+
 @keyframes lie-pixel-modal-overlay-in {
   0% {
     opacity: 0;
@@ -947,5 +1128,10 @@ input:-webkit-autofill:active {
 
   .lie-room-card {
     transition: none;
+  }
+
+  .lie-lobby-empty-card-spin {
+    animation: none;
+    transform: rotateX(8deg) rotateY(-18deg) rotateZ(-3deg);
   }
 }

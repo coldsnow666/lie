@@ -7,7 +7,7 @@ import { RouteLoadingProvider } from "@/components/loading/RouteLoadingProvider"
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "liar",
+  title: "LIAR",
   description: "",
 };
 

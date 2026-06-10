@@ -30,20 +30,20 @@ function describeEvent(event: PublicGameEvent) {
 
 export default function EventLog({ events }: { events: PublicGameEvent[] }) {
   return (
-    <PixelPanel tone="dark" padding="md">
-      <h2 className="mb-3 text-sm font-semibold text-[#fff6cf]">事件日志</h2>
-      <div className="grid max-h-44 gap-2 overflow-y-auto text-sm text-[#c6b889]">
+    <PixelPanel tone="dark" padding="sm" className="sm:p-4">
+      <h2 className="mb-2 text-sm font-semibold text-[#fff6cf] sm:mb-3">事件日志</h2>
+      <div className="grid max-h-28 gap-2 overflow-y-auto text-xs text-[#c6b889] sm:max-h-44 sm:text-sm">
         {events.length ? (
           events
             .slice()
             .reverse()
             .map((event, index) => (
-              <div key={`${event.type}-${index}`} className="border-2 border-[#32493d] bg-white/5 px-3 py-2">
+              <div key={`${event.type}-${index}`} className="border-2 border-[#32493d] bg-white/5 px-2.5 py-1.5 sm:px-3 sm:py-2">
                 {describeEvent(event)}
               </div>
             ))
         ) : (
-          <div className="border-2 border-[#32493d] bg-white/5 px-3 py-2">等待第一手牌。</div>
+          <div className="border-2 border-[#32493d] bg-white/5 px-2.5 py-1.5 sm:px-3 sm:py-2">等待第一手牌。</div>
         )}
       </div>
     </PixelPanel>

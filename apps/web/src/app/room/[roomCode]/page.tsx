@@ -127,7 +127,7 @@ function WaitingPlayerCard({ ownerUserId, player, slotIndex }: { ownerUserId: st
   const rotateY = ((tiltSeed >> 5) % 9) - 4;
 
   return (
-    <article className="group relative isolate mx-auto w-[9.4rem] [perspective:850px]">
+    <article className="group relative isolate mx-auto w-[6.5rem] [perspective:850px] sm:w-[9.4rem]">
       <div
         className="relative transition-transform duration-300 ease-out [transform-style:preserve-3d] group-hover:-translate-y-2 group-hover:[transform:rotateX(8deg)_rotateY(-10deg)_rotateZ(var(--waiting-card-tilt-hover))]"
         style={
@@ -142,17 +142,17 @@ function WaitingPlayerCard({ ownerUserId, player, slotIndex }: { ownerUserId: st
             card={card}
             displayRank={player.nickname}
             label={`${player.nickname}${isOwner ? " 红心A房主" : ""}`}
-            className="[--pixel-card-scale:2.28] drop-shadow-[0_10px_0_rgba(8,13,14,0.36)] sm:[--pixel-card-scale:3.05] sm:drop-shadow-[0_14px_0_rgba(8,13,14,0.36)]"
+            className="[--pixel-card-scale:2.05] drop-shadow-[0_8px_0_rgba(8,13,14,0.36)] sm:[--pixel-card-scale:3.05] sm:drop-shadow-[0_14px_0_rgba(8,13,14,0.36)]"
           />
         ) : (
           <DomPlayingCard
             joker="black"
             label="等待玩家进入"
             jokerLetters={["等", "待", "玩", "家", "进", "入"]}
-            className="[--pixel-card-scale:2.28] opacity-80 drop-shadow-[0_10px_0_rgba(8,13,14,0.3)] sm:[--pixel-card-scale:3.05] sm:drop-shadow-[0_14px_0_rgba(8,13,14,0.3)]"
+            className="[--pixel-card-scale:2.05] opacity-80 drop-shadow-[0_8px_0_rgba(8,13,14,0.3)] sm:[--pixel-card-scale:3.05] sm:drop-shadow-[0_14px_0_rgba(8,13,14,0.3)]"
           />
         )}
-        <div className="absolute bottom-[9%] left-[8%] z-10 w-[66%] -rotate-6 border-2 border-[#17251f] bg-[#fff6cf]/95 px-1.5 py-1 text-center shadow-[3px_3px_0_#17251f]">
+        <div className="absolute bottom-[9%] left-[8%] z-10 w-[66%] -rotate-6 border-2 border-[#17251f] bg-[#fff6cf]/95 px-1.5 py-0.5 text-center shadow-[3px_3px_0_#17251f] sm:py-1">
           <div className="truncate text-[0.68rem] font-black leading-none text-[#17251f]">{statusText}</div>
           {player ? (
             <div className={player.connected ? "mt-0.5 text-[0.58rem] font-black leading-none text-emerald-700" : "mt-0.5 text-[0.58rem] font-black leading-none text-red-700"}>
@@ -183,20 +183,20 @@ function WaitingRoomActions({
   selfPlayer: Player | null;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+    <div className="grid w-full grid-cols-2 items-center gap-2 lg:flex lg:flex-wrap lg:gap-3">
       {!isOwner ? (
-        <PixelButton onClick={onReady} disabled={busy || !selfPlayer} variant="ghost" size="sm" className="h-9 min-w-0 flex-1 px-2 text-[0.68rem] lg:h-10 lg:px-4 lg:text-xs">
+        <PixelButton onClick={onReady} disabled={busy || !selfPlayer} variant="ghost" size="sm" className="h-9 min-w-0 px-2 text-xs lg:h-10 lg:flex-1 lg:px-4">
           {selfPlayer?.ready ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
           {selfPlayer?.ready ? "取消准备" : "准备"}
         </PixelButton>
       ) : null}
       {isOwner ? (
-        <PixelButton onClick={onStartGame} disabled={busy || !canStart} variant="primary" size="sm" className="h-9 min-w-0 flex-1 px-2 text-[0.68rem] lg:h-10 lg:px-4 lg:text-xs">
+        <PixelButton onClick={onStartGame} disabled={busy || !canStart} variant="primary" size="sm" className="h-9 min-w-0 px-2 text-xs lg:h-10 lg:flex-1 lg:px-4">
           <Play size={18} />
           开始游戏
         </PixelButton>
       ) : null}
-      <PixelButton onClick={onLeave} disabled={busy} variant="danger" size="sm" className="h-9 min-w-0 flex-1 px-2 text-[0.68rem] lg:h-10 lg:px-4 lg:text-xs">
+      <PixelButton onClick={onLeave} disabled={busy} variant="danger" size="sm" className="h-9 min-w-0 px-2 text-xs lg:h-10 lg:flex-1 lg:px-4">
         <DoorOpen size={18} />
         离开
       </PixelButton>
@@ -245,26 +245,26 @@ function WaitingRoomBoard({
   const playerSlots = Array.from({ length: maxPlayers }, (_, index) => sortedPlayers[index] ?? null);
 
   return (
-    <section className="grid h-dvh max-h-dvh min-h-0 grid-rows-[minmax(0,1fr)_minmax(6rem,22dvh)] overflow-hidden lg:grid-cols-[minmax(0,1fr)_21rem] lg:grid-rows-none">
-      <div className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden px-4 py-3 sm:px-6 lg:px-5 lg:py-8">
-        <div className="grid shrink-0 gap-2 rounded border-2 border-[#c4c2d7] bg-[#243036]/78 px-3 py-2 shadow-[-3px_6px_0_#182126] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[-4px_8px_0_#182126] lg:block">
+    <section className="grid h-dvh max-h-dvh min-h-0 grid-rows-[minmax(0,1fr)_minmax(12rem,28dvh)] overflow-hidden lg:grid-cols-[minmax(0,1fr)_21rem] lg:grid-rows-none">
+      <div className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden px-3 py-2 sm:px-6 lg:px-5 lg:py-8">
+        <div className="grid shrink-0 gap-1.5 rounded border-2 border-[#c4c2d7] bg-[#243036]/78 px-3 py-2 shadow-[-3px_6px_0_#182126] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[-4px_8px_0_#182126] lg:block">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <p className="text-xs font-black tracking-[0.08em] text-[#c6b889] sm:text-sm">房间码</p>
-              <h1 className="mt-0.5 text-3xl font-black tracking-[0.12em] text-[#fff6cf] sm:mt-2 sm:text-5xl sm:tracking-[0.16em]">{room?.code ?? roomCode}</h1>
+              <p className="text-[0.68rem] font-black tracking-[0.08em] text-[#c6b889] sm:text-sm">房间码</p>
+              <h1 className="mt-0.5 text-xl font-black tracking-[0.12em] text-[#fff6cf] sm:mt-2 sm:text-5xl sm:tracking-[0.16em]">{room?.code ?? roomCode}</h1>
             </div>
-            <PixelButton onClick={onCopyRoomCode} variant="ghost" size="sm">
+            <PixelButton onClick={onCopyRoomCode} variant="ghost" size="sm" className="h-8 px-3 text-xs sm:h-10 sm:px-4">
               <Copy size={16} />
               复制
             </PixelButton>
           </div>
-          <div className="grid gap-2 lg:hidden">
+          <div className="grid gap-1.5 lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[0.68rem] font-black tracking-[0.16em] text-[#bfc7ff]">等待开始</p>
-                <h2 className="text-xl font-black text-white">{room?.players.length ?? 0}/{room?.maxPlayers ?? 0}</h2>
+                <p className="text-[0.66rem] font-black tracking-[0.16em] text-[#bfc7ff]">等待开始</p>
+                <h2 className="text-lg font-black text-white">{room?.players.length ?? 0}/{room?.maxPlayers ?? 0}</h2>
               </div>
-              <span className="border-2 border-[#9aa4ff] bg-[#1e2476] px-2 py-1 text-xs font-black text-[#fff6cf]">
+              <span className="border-2 border-[#9aa4ff] bg-[#1e2476] px-2 py-0.5 text-xs font-black text-[#fff6cf]">
                 {isOwner ? "房主" : "玩家"}
               </span>
             </div>
@@ -280,14 +280,14 @@ function WaitingRoomBoard({
           </div>
         </div>
 
-        <div className="mx-auto grid min-h-0 w-full max-w-[16rem] grid-cols-2 content-center items-center justify-items-center gap-x-3 gap-y-3 overflow-hidden py-2 sm:max-w-[20.5rem] sm:gap-x-5 sm:gap-y-7 sm:py-6">
+        <div className="mx-auto grid min-h-0 w-full max-w-[14.5rem] grid-cols-2 content-center items-center justify-items-center gap-x-2 gap-y-2 overflow-hidden py-1 sm:max-w-[20.5rem] sm:gap-x-5 sm:gap-y-7 sm:py-6">
           {playerSlots.map((player, index) => (
             <WaitingPlayerCard key={player?.playerId ?? `empty-slot-${index}`} ownerUserId={room?.ownerUserId ?? null} player={player} slotIndex={index} />
           ))}
         </div>
       </div>
 
-      <aside className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)] gap-2 border-2 border-[#8a93ff] bg-[#292f91]/95 p-2 text-[#f5f1ff] shadow-[-4px_7px_0_#151951] lg:sticky lg:top-0 lg:h-dvh lg:max-h-dvh lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-4 lg:border-x-2 lg:border-y-0 lg:p-4 lg:shadow-[-5px_10px_0_#151951]">
+      <aside className="grid min-h-0 grid-rows-[minmax(0,1fr)] gap-2 border-2 border-[#8a93ff] bg-[#292f91]/95 p-2 text-[#f5f1ff] shadow-[-4px_7px_0_#151951] lg:sticky lg:top-0 lg:h-dvh lg:max-h-dvh lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-4 lg:border-x-2 lg:border-y-0 lg:p-4 lg:shadow-[-5px_10px_0_#151951]">
         <div className="hidden shrink-0 lg:block">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -317,7 +317,7 @@ function WaitingRoomBoard({
             <ScrollText size={16} />
             房间日志
           </div>
-          <div className="grid max-h-full gap-2 overflow-y-auto pr-1 text-sm text-[#dfe3ff]">
+          <div className="grid max-h-full gap-1.5 overflow-y-auto pr-1 text-xs text-[#dfe3ff] lg:gap-2 lg:text-sm">
             {roomLogs.length ? (
               roomLogs.map((event, index) => (
                 <div key={`${event.type}-${index}`}>
@@ -356,7 +356,7 @@ export default function RoomPage() {
   const canStart = Boolean(isOwner && room && room.players.length === room.maxPlayers && room.status === "waiting");
 
   const syncRoom = useCallback(async () => {
-    if (!roomId) {
+    if (!roomId || !user) {
       return;
     }
 
@@ -392,10 +392,10 @@ export default function RoomPage() {
 
       setMessage(message);
     }
-  }, [roomCode, roomId]);
+  }, [roomCode, roomId, user]);
 
   useEffect(() => {
-    if (!roomId) {
+    if (!roomId || !user) {
       return;
     }
 
@@ -437,10 +437,10 @@ export default function RoomPage() {
       socket.off("game:event", onGameEvent);
       socket.off("game:challengeResolved", onGameEvent);
     };
-  }, [roomId, syncRoom]);
+  }, [roomId, syncRoom, user]);
 
   useEffect(() => {
-    if (!roomId || gameState) {
+    if (!roomId || !user || gameState) {
       return;
     }
 
@@ -453,10 +453,10 @@ export default function RoomPage() {
     return () => {
       window.clearInterval(syncInterval);
     };
-  }, [gameState, roomId, syncRoom]);
+  }, [gameState, roomId, syncRoom, user]);
 
   useEffect(() => {
-    if (!roomId) {
+    if (!roomId || !user) {
       return;
     }
 
@@ -481,7 +481,7 @@ export default function RoomPage() {
       // React 开发模式会模拟一次卸载/重挂载；延迟执行并允许重挂载取消，避免刚进房就误删房间。
       scheduleRouteExitLeave(activeRoomId, leaveOnExit);
     };
-  }, [roomId]);
+  }, [roomId, user]);
 
   function toggleCard(cardId: string) {
     setSelectedCardIds((current) => {

@@ -25,18 +25,18 @@ export default function PlayerSeat({
   owner?: boolean;
 }) {
   return (
-    <PixelPanel tone={active ? "highlight" : "dark"} padding="sm">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-sm font-semibold text-[#fff6cf]">
+    <PixelPanel tone={active ? "highlight" : "dark"} padding="sm" className="min-w-0">
+      <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-[#fff6cf] sm:gap-2 sm:text-sm">
             {owner ? <Crown size={14} className="text-[#d7bc72]" /> : null}
-            {player.nickname}
+            <span className="truncate">{player.nickname}</span>
           </div>
           <div className="mt-1 text-xs text-[#c6b889]">座位 {player.seatIndex + 1}</div>
         </div>
-        {player.connected ? <Wifi size={16} className="text-emerald-300" /> : <WifiOff size={16} className="text-red-300" />}
+        {player.connected ? <Wifi size={16} className="shrink-0 text-emerald-300" /> : <WifiOff size={16} className="shrink-0 text-red-300" />}
       </div>
-      <div className="mt-3 flex items-center justify-between text-xs text-[#c6b889]">
+      <div className="mt-2 flex items-center justify-between gap-2 text-xs text-[#c6b889] sm:mt-3">
         <span>
           {typeof player.cardCount === "number"
             ? player.pendingWin
@@ -46,7 +46,7 @@ export default function PlayerSeat({
               ? "已准备"
               : "等待中"}
         </span>
-        {active ? <span className="text-[#f2df9e]">行动中</span> : null}
+        {active ? <span className="shrink-0 text-[#f2df9e]">行动中</span> : null}
       </div>
     </PixelPanel>
   );

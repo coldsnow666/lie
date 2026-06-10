@@ -14,7 +14,7 @@ type RouteLoadingContextValue = {
   cancel: () => void;
 };
 
-const LOADING_TRANSITION_DURATION = 1600;
+const LOADING_TRANSITION_DURATION = 1200;
 const OPENING_DURATION = LOADING_TRANSITION_DURATION;
 const CLOSING_DURATION = LOADING_TRANSITION_DURATION;
 const RouteLoadingContext = createContext<RouteLoadingContextValue | null>(null);

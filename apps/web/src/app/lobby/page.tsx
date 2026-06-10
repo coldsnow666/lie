@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, type CSSProperties, useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Crown, Plus, RefreshCw, Swords, Users } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
+import CardBackArt from "@/components/game/CardBackArt";
 import DomPlayingCard from "@/components/game/DomPlayingCard";
 import AppShell from "@/components/layout/AppShell";
 import { useRouteLoading } from "@/components/loading/RouteLoadingProvider";
@@ -137,15 +138,24 @@ function RoomSkeletonList() {
 }
 
 function EmptyRoomCard() {
+  const [backIndex] = useState(() => Math.floor(Math.random() * 4));
+
   return (
     <div className="grid min-h-full place-items-center py-4">
       <div className="flex flex-col items-center gap-5">
-        <div className="rotate-[-4deg]">
-          <DomPlayingCard
-            joker="red"
-            label="当前没有公开房间"
-            className="[--pixel-card-scale:3.05] drop-shadow-[0_14px_0_rgba(8,13,14,0.25)]"
-          />
+        <div className="lie-lobby-empty-card-stage">
+          <div className="lie-lobby-empty-card-spin">
+            <div className="lie-lobby-empty-card-side">
+              <DomPlayingCard joker="red" label="当前没有公开房间" className="[--pixel-card-scale:3.05]" />
+            </div>
+            <div className="lie-lobby-empty-card-side lie-lobby-empty-card-back">
+              <CardBackArt
+                back={backIndex}
+                label={`空房间随机牌背 ${backIndex + 1}`}
+                className="[--card-back-art-height:65px] [--card-back-art-width:49px] [--card-back-scale:3.05]"
+              />
+            </div>
+          </div>
         </div>
         <span className="text-center text-sm font-black tracking-[0.08em] text-[#fff6cf]">
           当前没有公开房间

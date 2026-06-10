@@ -4,7 +4,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import DomPlayingCard from "@/components/game/DomPlayingCard";
 import { cardTransform, cornerFlights, defaultCards, resolveViewportCornerFlights, type BounceCard, type Suit } from "./cardScene";
@@ -28,9 +28,15 @@ const suitMap: Record<Suit, string> = {
   C: "♣",
 };
 
-const startCardScaleStyle = {
-  "--start-card-scale": "calc(clamp(5.25rem, 16.5vw, 9.9rem) / 49px)",
-} as CSSProperties;
+function calculateStartCardScale() {
+  const rootFontSize = Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+  const minWidth = 5.25 * rootFontSize;
+  const preferredWidth = window.innerWidth * 0.165;
+  const maxWidth = 9.9 * rootFontSize;
+  const cardWidth = Math.min(Math.max(preferredWidth, minWidth), maxWidth);
+
+  return cardWidth / 49;
+}
 
 export default function BounceCards({
   className = "",
@@ -44,6 +50,17 @@ export default function BounceCards({
   managedShellMotion = false,
 }: BounceCardsProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [startCardScale, setStartCardScale] = useState(2);
+
+  useEffect(() => {
+    function updateStartCardScale() {
+      setStartCardScale(calculateStartCardScale());
+    }
+
+    updateStartCardScale();
+    window.addEventListener("resize", updateStartCardScale);
+    return () => window.removeEventListener("resize", updateStartCardScale);
+  }, []);
 
   useEffect(() => {
     const context = gsap.context(() => {
@@ -185,7 +202,7 @@ export default function BounceCards({
           <div
             key={`${card.rank}-${card.suit}-${index}`}
             className="absolute left-1/2 top-1/2 aspect-[49/65] w-[clamp(5.25rem,16.5vw,9.9rem)] -translate-x-1/2 -translate-y-1/2"
-            style={startCardScaleStyle}
+            style={{ "--start-card-scale": startCardScale } as CSSProperties}
           >
             <div data-bounce-card-flight={card.rank} className="lie-bounce-card-flight-shell h-full w-full">
               <button
