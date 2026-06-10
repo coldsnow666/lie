@@ -5,8 +5,20 @@ import type { PublicGameEvent } from "@lie/shared";
 import PixelPanel from "@/components/ui/PixelPanel";
 
 function describeEvent(event: PublicGameEvent) {
+  if (event.type === "room_joined") {
+    return `${event.nickname} 进入房间`;
+  }
+
+  if (event.type === "room_left") {
+    return `${event.nickname} 离开房间`;
+  }
+
+  if (event.type === "room_owner_changed") {
+    return `${event.nickname} 成为房主`;
+  }
+
   if (event.type === "cards_played") {
-    return `玩家打出 ${event.declaredCount} 张，声明 ${event.declaredRank}`;
+    return `玩家打出 ${event.cardCount} 张，声明 ${event.declaredRank}`;
   }
 
   if (event.type === "challenge_resolved") {

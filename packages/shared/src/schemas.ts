@@ -1,6 +1,7 @@
 /**
  * 共享 Zod schema：统一前后端 REST 与 Socket payload 的运行时校验。
  */
+import { DECLARABLE_RANKS } from "./constants";
 import { z } from "zod";
 
 export const emailSchema = z.string().trim().toLowerCase().email();
@@ -8,6 +9,8 @@ export const nicknameSchema = z.string().trim().min(2).max(16);
 export const passwordSchema = z.string().min(8);
 export const roomCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z0-9]{4,8}$/);
 export const cardIdSchema = z.string().min(2).max(3);
+export const roomMaxPlayersSchema = z.union([z.literal(2), z.literal(3), z.literal(4)]);
+export const declaredRankSchema = z.enum(DECLARABLE_RANKS);
 
 export const registerSchema = z.object({
   email: emailSchema,
@@ -22,6 +25,7 @@ export const loginSchema = z.object({
 
 export const roomCreateSchema = z.object({
   roomCode: roomCodeSchema.optional(),
+  maxPlayers: roomMaxPlayersSchema,
 });
 
 export const roomJoinSchema = z.object({
@@ -37,7 +41,8 @@ export const roomReadySchema = roomIdSchema.extend({
 });
 
 export const playCardsSchema = roomIdSchema.extend({
-  cardIds: z.array(cardIdSchema).min(1).max(4),
+  cardIds: z.array(cardIdSchema).max(4),
+  declaredRank: declaredRankSchema.optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

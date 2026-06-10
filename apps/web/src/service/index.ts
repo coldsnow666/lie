@@ -12,7 +12,7 @@ import {
 } from "@lie/shared";
 import { getAccessToken } from "@/lib/auth";
 
-const API_URL = process.env.NEXT_PUBLIC_GAME_SERVER_URL ?? "http://localhost:4000";
+export const API_URL = process.env.NEXT_PUBLIC_GAME_SERVER_URL ?? "http://localhost:4000";
 
 export class ApiRequestError extends Error {
   code: ApiResponseCode;
@@ -28,16 +28,25 @@ function createRequestError(message = "请求失败") {
   return new ApiRequestError(API_RESPONSE_CODE.UNKNOWN_ERROR, message);
 }
 
-export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export function authHeader(): Record<string, string> {
   const token = getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  for (const [key, value] of Object.entries(authHeader())) {
+    headers.set(key, value);
+  }
+
   // 所有 REST 请求都从这里补 Authorization，页面组件不要直接拼接 token。
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
+    headers,
   }).catch(() => {
     throw createRequestError("网络连接失败");
   });

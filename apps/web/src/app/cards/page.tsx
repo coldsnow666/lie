@@ -1,11 +1,10 @@
 /**
- * 文件说明：像素扑克牌展示页，用于预览整副 OpenGameArt 牌面雪碧图素材。
+ * 文件说明：像素扑克牌展示页，用于预览当前 DOM 牌面和项目内牌面素材。
  */
 import { createDeck, SUITS } from "@lie/shared";
-import { ExternalLink } from "lucide-react";
 import CardBackArt from "@/components/game/CardBackArt";
 import DomPlayingCard from "@/components/game/DomPlayingCard";
-import { PIXEL_CARD_ASSET_CREDIT, SUIT_LABELS } from "@/lib/card-assets";
+import { SUIT_LABELS } from "@/lib/card-assets";
 
 const deck = createDeck();
 const jokers = [
@@ -23,26 +22,18 @@ export default function CardsPage() {
       <div className="mx-auto grid max-w-7xl gap-6">
         <header className="grid gap-4 lg:grid-cols-[1fr_20rem] lg:items-end">
           <div className="grid gap-3">
-            <p className="text-sm text-[#d7bc72]">OpenGameArt pixel poker cards</p>
+            <p className="text-sm text-[#d7bc72]">DOM pixel poker cards</p>
             <h1 className="text-4xl font-black leading-tight text-[#fff6cf] sm:text-6xl">像素扑克牌</h1>
             <p className="max-w-2xl text-sm leading-7 text-[#c6d0bd]">
-              当前展示的是项目内接入的像素牌面：标准牌来自 OpenGameArt，JQK、大小王和牌背中心样式使用项目内的独立素材。
+              当前展示的是项目内使用的牌面：标准牌由 DOM 绘制，JQK、大小王和牌背使用项目内的独立素材。
             </p>
           </div>
 
+          <div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm text-[#dce7d8]">牌背预览</span>
-              <a
-                href={PIXEL_CARD_ASSET_CREDIT.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-[#fff6cf] underline decoration-[#d7bc72] underline-offset-4"
-              >
-                来源
-                <ExternalLink size={13} />
-              </a>
             </div>
-            <div className="flex gap-3">
+            <div className="mt-3 flex gap-3">
               {[0, 1, 2, 3].map((back) => (
                 <CardBackArt
                   key={back}
@@ -52,6 +43,7 @@ export default function CardsPage() {
                 />
               ))}
             </div>
+          </div>
         </header>
 
         <div className="grid gap-5">

@@ -795,7 +795,7 @@ input:-webkit-autofill:active {
   flex-wrap: wrap;
   align-items: flex-start;
   row-gap: 1.9rem;
-  padding: 0.7rem 0.35rem 1.2rem;
+  padding: 1.6rem 1.1rem 1.2rem 1.8rem;
 }
 
 .lie-dom-playing-card {
@@ -882,7 +882,7 @@ input:-webkit-autofill:active {
   .lie-room-card-hand {
     row-gap: 1.3rem;
     column-gap: 0.35rem;
-    padding-inline: 0;
+    padding: 1.2rem 0.2rem 1rem 0.8rem;
   }
 
   .lie-room-card {

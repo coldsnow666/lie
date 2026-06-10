@@ -1,8 +1,8 @@
 /**
  * 文件说明：用 DOM 绘制扑克牌牌面，仅在人物牌和王中复用雪碧图中心图案。
  */
-import type { CSSProperties } from "react";
-import type { Card as CardType, Rank, Suit } from "@lie/shared";
+import type { CSSProperties, ReactNode } from "react";
+import { isJokerRank, type Card as CardType, type DeclaredRank, type StandardSuit, type Suit } from "@lie/shared";
 import { getCardLabel, RANK_LABELS } from "@/lib/card-assets";
 import CourtCardArt from "./CourtCardArt";
 import JokerCardArt from "./JokerCardArt";
@@ -12,9 +12,10 @@ const SUIT_SYMBOLS: Record<Suit, string> = {
   H: "♥",
   D: "♦",
   C: "♣",
+  JOKER: "★",
 };
 
-const PIP_LAYOUTS: Partial<Record<Rank, string[]>> = {
+const PIP_LAYOUTS: Partial<Record<DeclaredRank, string[]>> = {
   A: ["center"],
   "2": ["top", "bottom"],
   "3": ["top", "center", "bottom"],
@@ -79,13 +80,29 @@ type DomPlayingCardProps = {
   card?: CardType;
   displayRank?: string;
   joker?: "black" | "red";
+  label?: string;
+  jokerLetters?: readonly string[];
+  jokerCenterContent?: ReactNode;
   className?: string;
+};
+
+type StandardCard = CardType & {
+  rank: DeclaredRank;
+  suit: StandardSuit;
 };
 
 const JOKER_LETTERS = ["J", "O", "K", "E", "R"] as const;
 
 function isRedSuit(suit: Suit) {
   return suit === "H" || suit === "D";
+}
+
+function isStandardCard(card?: CardType): card is StandardCard {
+  if (!card) {
+    return false;
+  }
+
+  return !isJokerRank(card.rank);
 }
 
 const pixelCardClipPath = `polygon(
@@ -145,15 +162,27 @@ const pixelCardFaceStyle = {
   clipPath: pixelCardClipPath,
 } as CSSProperties;
 
-export default function DomPlayingCard({ card, displayRank, joker, className = "" }: DomPlayingCardProps) {
-  const red = joker === "red" || (card ? isRedSuit(card.suit) : false);
-  const label = card ? getCardLabel(card) : joker === "red" ? "大王" : "小王";
-  const rank = card ? (displayRank ?? RANK_LABELS[card.rank]) : null;
-  const suit = card ? SUIT_SYMBOLS[card.suit] : null;
+export default function DomPlayingCard({
+  card,
+  displayRank,
+  joker,
+  label: customLabel,
+  jokerLetters,
+  jokerCenterContent,
+  className = "",
+}: DomPlayingCardProps) {
+  const jokerColor = joker ?? (card?.rank === "RED_JOKER" ? "red" : card?.rank === "BLACK_JOKER" ? "black" : null);
+  const playingCard = isStandardCard(card) ? card : null;
+  const red = jokerColor === "red" || (playingCard ? isRedSuit(playingCard.suit) : false);
+  const label = customLabel ?? (card ? getCardLabel(card) : jokerColor === "red" ? "大王" : "小王");
+  const jokerLabelLetters = jokerLetters ?? JOKER_LETTERS;
+  const rank = playingCard ? (displayRank ?? RANK_LABELS[playingCard.rank]) : null;
+  const customRankLetters = displayRank ? Array.from(displayRank) : null;
+  const suit = playingCard ? SUIT_SYMBOLS[playingCard.suit] : null;
   const toneClassName = red ? "text-[#b33332]" : "text-[#17251f]";
-  const pipLayout = card ? PIP_LAYOUTS[card.rank] : undefined;
+  const pipLayout = playingCard ? PIP_LAYOUTS[playingCard.rank] : undefined;
   const pipSizeClassName =
-    card?.rank === "A"
+    playingCard?.rank === "A"
       ? "text-[length:calc(16px*var(--pixel-card-scale,2))]"
       : "text-[length:calc(9px*var(--pixel-card-scale,2))]";
 
@@ -165,18 +194,22 @@ export default function DomPlayingCard({ card, displayRank, joker, className = "
       style={pixelCardStyle}
     >
       <span aria-hidden className="lie-dom-playing-card-face" style={pixelCardFaceStyle} />
-      {card ? (
+      {playingCard ? (
         <>
           <span
             className={`absolute left-[8%] top-[8%] z-[1] grid justify-items-center text-[length:calc(6px*var(--pixel-card-scale,2))] leading-none ${toneClassName}`}
           >
-            <span>{rank}</span>
+            {customRankLetters
+              ? customRankLetters.map((letter, index) => <span key={`top-rank-${letter}-${index}`}>{letter}</span>)
+              : <span>{rank}</span>}
             <span>{suit}</span>
           </span>
           <span
             className={`absolute bottom-[8%] right-[8%] z-[1] grid rotate-180 justify-items-center text-[length:calc(6px*var(--pixel-card-scale,2))] leading-none ${toneClassName}`}
           >
-            <span>{rank}</span>
+            {customRankLetters
+              ? customRankLetters.map((letter, index) => <span key={`bottom-rank-${letter}-${index}`}>{letter}</span>)
+              : <span>{rank}</span>}
             <span>{suit}</span>
           </span>
         </>
@@ -185,14 +218,14 @@ export default function DomPlayingCard({ card, displayRank, joker, className = "
           <span
             className={`absolute left-[8%] top-[7%] z-[1] grid justify-items-center text-[length:calc(4.4px*var(--pixel-card-scale,2))] font-black leading-[0.82] ${toneClassName}`}
           >
-            {JOKER_LETTERS.map((letter) => (
+            {jokerLabelLetters.map((letter) => (
               <span key={`top-${letter}`}>{letter}</span>
             ))}
           </span>
           <span
             className={`absolute bottom-[7%] right-[8%] z-[1] grid rotate-180 justify-items-center text-[length:calc(4.4px*var(--pixel-card-scale,2))] font-black leading-[0.82] ${toneClassName}`}
           >
-            {JOKER_LETTERS.map((letter) => (
+            {jokerLabelLetters.map((letter) => (
               <span key={`bottom-${letter}`}>{letter}</span>
             ))}
           </span>
@@ -210,10 +243,12 @@ export default function DomPlayingCard({ card, displayRank, joker, className = "
         ))
       ) : (
         <span className="absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2">
-          {card ? (
-            <CourtCardArt rank={card.rank} label={`${label}中心图案`} className="[--court-card-art-width:28px]" />
+          {playingCard ? (
+            <CourtCardArt rank={playingCard.rank} label={`${label}中心图案`} className="[--court-card-art-width:28px]" />
+          ) : jokerCenterContent ? (
+            jokerCenterContent
           ) : (
-            <JokerCardArt color={joker ?? "black"} label={`${label}中心图案`} />
+            <JokerCardArt color={jokerColor ?? "black"} label={`${label}中心图案`} />
           )}
         </span>
       )}

@@ -15,7 +15,7 @@ const backgroundTheme = {
   contrast: 3.18,
   lighting: 0.38,
   spinAmount: 0.26,
-  pixelFilter: 900,
+  pixelFilter: 1200,
   spinEase: 1.02,
   fallbackClassName: "lie-balatro-fallback-ocean",
   fallbackActiveClassName: "lie-balatro-fallback-ocean-active",

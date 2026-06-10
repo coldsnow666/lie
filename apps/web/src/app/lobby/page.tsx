@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, type CSSProperties, useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Crown, Plus, RefreshCw, Swords, Users } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
+import DomPlayingCard from "@/components/game/DomPlayingCard";
 import AppShell from "@/components/layout/AppShell";
 import { useRouteLoading } from "@/components/loading/RouteLoadingProvider";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
@@ -15,6 +16,7 @@ import PixelInput from "@/components/ui/PixelInput";
 import PixelMessage from "@/components/ui/PixelMessage";
 import PixelModal from "@/components/ui/PixelModal";
 import PixelPanel from "@/components/ui/PixelPanel";
+import PixelSelect from "@/components/ui/PixelSelect";
 import { fetchRooms, joinRoom, createRoom, type PublicRoom } from "@/service/modules/game";
 
 const roomStatusLabelMap: Record<PublicRoom["status"], string> = {
@@ -136,18 +138,17 @@ function RoomSkeletonList() {
 
 function EmptyRoomCard() {
   return (
-    <div className="grid min-h-full place-items-center">
-      <div className="lie-room-card lie-empty-room-card relative isolate flex flex-col overflow-hidden rounded border-2 border-[#e8ddb7] bg-[#f7f0dc] p-3 text-left text-[#173b2a] shadow-2xl shadow-black/45">
-        <span className="flex h-full w-full flex-col">
-          <span className="block text-[clamp(1.15rem,2.7vw,1.75rem)] font-black leading-none tracking-[0.02em] text-[#173b2a]">
-            LIAR
-          </span>
-          <span className="grid flex-1 place-items-center py-2 text-center text-[clamp(0.7rem,3vw,0.8rem)] font-black leading-none tracking-[0.12em] text-[#b93131]">
-            <span className="inline-flex flex-col items-center gap-2">
-              <Swords size={28} />
-              当前还没有公开房间
-            </span>
-          </span>
+    <div className="grid min-h-full place-items-center py-4">
+      <div className="flex flex-col items-center gap-5">
+        <div className="rotate-[-4deg]">
+          <DomPlayingCard
+            joker="red"
+            label="当前没有公开房间"
+            className="[--pixel-card-scale:3.05] drop-shadow-[0_14px_0_rgba(8,13,14,0.25)]"
+          />
+        </div>
+        <span className="text-center text-sm font-black tracking-[0.08em] text-[#fff6cf]">
+          当前没有公开房间
         </span>
       </div>
     </div>
@@ -188,11 +189,11 @@ function RoomCard({
         <span className="block max-w-full text-[clamp(1.15rem,2.7vw,1.75rem)] font-black leading-none tracking-[0.02em] text-[#173b2a]">
           {room.code}
         </span>
-        <span className="mt-3 flex items-center gap-1.5 text-[0.68rem] font-black tracking-[0.1em] text-[#52605c]">
-          <Crown size={13} />
-          房主
+        <span className="mt-3 flex min-w-0 items-center gap-1.5 text-[0.68rem] font-black tracking-[0.08em] text-[#52605c]">
+          <Crown size={13} className="shrink-0" />
+          <span className="shrink-0">房主</span>
+          <span className="min-w-0 truncate text-sm text-[#173b2a]">{ownerName}</span>
         </span>
-        <span className="mt-1 truncate text-sm font-black text-[#173b2a]">{ownerName}</span>
         <span className="grid flex-1 place-items-center py-2 text-[clamp(2.4rem,6vw,4rem)] font-black leading-none text-[#b93131]">
           {room.players.length}/{room.maxPlayers}
         </span>
@@ -244,6 +245,7 @@ export default function LobbyPage() {
   const [refreshingRooms, setRefreshingRooms] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<LobbyModalKind | null>(null);
+  const [roomMaxPlayers, setRoomMaxPlayers] = useState<2 | 3 | 4>(4);
 
   const enterRoom = useCallback(
     (room: PublicRoom) => {
@@ -358,7 +360,7 @@ export default function LobbyPage() {
     setMessage("");
 
     try {
-      const room = await createRoom();
+      const room = await createRoom({ maxPlayers: roomMaxPlayers });
       enterRoom(room);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "创建房间失败");
@@ -415,6 +417,20 @@ export default function LobbyPage() {
         {activeModal === "create" ? (
           <PixelModal title="创建房间" icon={<Plus size={20} />} onClose={closeModal} closeDisabled={Boolean(pendingAction)}>
             <p className="mt-4 text-sm leading-6 text-[#d6cba6]">系统会自动生成一组六位房间码，建房后直接进入牌桌等待其他玩家。</p>
+            <label className="mt-5 block text-sm text-[#e8ddb7]">
+              房间人数
+              <PixelSelect
+                value={String(roomMaxPlayers)}
+                onChange={(event) => setRoomMaxPlayers(Number(event.target.value) as 2 | 3 | 4)}
+                aria-label="房间人数"
+                className="mt-2"
+                selectClassName="text-base font-bold tracking-[0.12em]"
+              >
+                <option value="2">2 人房</option>
+                <option value="3">3 人房</option>
+                <option value="4">4 人房</option>
+              </PixelSelect>
+            </label>
             <PixelButton
               onClick={handleCreateRoom}
               disabled={Boolean(pendingAction)}

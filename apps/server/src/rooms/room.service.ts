@@ -2,18 +2,32 @@
  * 房间业务服务：管理创建、加入、准备、开局、出牌和质疑。
  */
 import crypto from "node:crypto";
-import { MAX_PLAYERS, MIN_PLAYERS, createInitialGameState, playCards, challengeLastPlay, type Player } from "@lie/shared";
+import {
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  createInitialGameState,
+  playCards,
+  challengeLastPlay,
+  finalizePendingWinner,
+  findPendingWinner,
+  type RoomLifecycleEvent,
+  type DeclaredRank,
+  type Player,
+} from "@lie/shared";
 import { prisma } from "../db/prisma";
 import type { AuthUser } from "../auth/token";
 import { deleteRoom, getRoomByCode, getRoomById, listRooms, saveRoom, type RoomState } from "./room.store";
 
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const STALE_SOCKET_GRACE_MS = 15_000;
+const WAITING_ROOM_WITHOUT_SOCKET_GRACE_MS = 60_000;
+const activeSocketIds = new Set<string>();
 
 function generateRoomCode() {
   return Array.from({ length: 6 }, () => ROOM_CODE_ALPHABET[Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)]).join("");
 }
 
-function createPlayer(user: AuthUser, seatIndex: number, socketId?: string): Player {
+function createPlayer(user: AuthUser, seatIndex: number, socketId?: string, ready = false): Player {
   return {
     playerId: crypto.randomUUID(),
     userId: user.id,
@@ -21,7 +35,8 @@ function createPlayer(user: AuthUser, seatIndex: number, socketId?: string): Pla
     seatIndex,
     socketId,
     connected: true,
-    ready: false,
+    ready,
+    pendingWin: false,
   };
 }
 
@@ -38,7 +53,7 @@ function publicRoom(room: RoomState) {
       nickname,
       seatIndex,
       connected,
-      ready,
+      ready: userId === room.ownerUserId ? true : ready,
     })),
     events: room.events.slice(-30),
     gameStarted: Boolean(room.gameState),
@@ -57,6 +72,34 @@ function nextSeatIndex(players: Player[]) {
 
 function findPlayerByUser(room: RoomState, userId: string) {
   return room.players.find((player) => player.userId === userId) ?? null;
+}
+
+function pushRoomEvent(room: RoomState, event: RoomLifecycleEvent) {
+  room.events = [...room.events, event].slice(-50);
+}
+
+function hasActiveSocket(room: RoomState) {
+  return room.players.some((player) => player.socketId && activeSocketIds.has(player.socketId));
+}
+
+function shouldDeleteAbandonedRoom(room: RoomState, now = Date.now()) {
+  if (room.players.length === 0) {
+    return true;
+  }
+
+  if (room.players.every((player) => !player.connected)) {
+    return true;
+  }
+
+  // Redis 里可能保留了服务重启前的旧 socketId；超过宽限期且当前进程没有任何活跃 socket 时，
+  // 在房间列表查询时顺手清理，避免大厅长期展示僵尸房间。
+  if (room.players.some((player) => player.socketId)) {
+    return now - room.updatedAt > STALE_SOCKET_GRACE_MS && !hasActiveSocket(room);
+  }
+
+  // REST 建房到房间页 Socket 同步之间存在短窗口；如果超过 1 分钟仍没有任何 socket，
+  // 基本可以判定为创建后关闭、回退或导航中断产生的孤儿等待房。
+  return room.status === "waiting" && now - room.updatedAt > WAITING_ROOM_WITHOUT_SOCKET_GRACE_MS;
 }
 
 async function createRoomRecord(room: RoomState) {
@@ -85,13 +128,40 @@ export function serializeRoom(room: RoomState) {
   return publicRoom(room);
 }
 
-export async function listPublicRooms() {
-  const rooms = await listRooms();
-  return rooms.map((room) => publicRoom(room));
+export function registerRoomSocket(socketId: string) {
+  activeSocketIds.add(socketId);
 }
 
-export async function createRoom(user: AuthUser, roomCode?: string, socketId?: string) {
-  const code = roomCode ?? generateRoomCode();
+export function unregisterRoomSocket(socketId: string) {
+  activeSocketIds.delete(socketId);
+}
+
+export async function listPublicRooms() {
+  const rooms = await listRooms();
+  const publicRooms = [];
+  const now = Date.now();
+
+  for (const room of rooms) {
+    if (shouldDeleteAbandonedRoom(room, now)) {
+      await deleteRoom(room);
+      continue;
+    }
+
+    publicRooms.push(publicRoom(room));
+  }
+
+  return publicRooms;
+}
+
+export async function createRoom(
+  user: AuthUser,
+  options: {
+    roomCode?: string;
+    maxPlayers: 2 | 3 | 4;
+  },
+  socketId?: string,
+) {
+  const code = options.roomCode ?? generateRoomCode();
 
   if (await getRoomByCode(code)) {
     throw new Error("ROOM_CODE_EXISTS");
@@ -103,13 +173,18 @@ export async function createRoom(user: AuthUser, roomCode?: string, socketId?: s
     code,
     status: "waiting",
     ownerUserId: user.id,
-    maxPlayers: MAX_PLAYERS,
-    players: [createPlayer(user, 0, socketId)],
+    maxPlayers: options.maxPlayers,
+    players: [createPlayer(user, 0, socketId, true)],
     gameState: null,
     events: [],
     createdAt: now,
     updatedAt: now,
   };
+  pushRoomEvent(room, {
+    type: "room_joined",
+    playerId: room.players[0].playerId,
+    nickname: user.nickname,
+  });
 
   await saveRoom(room);
   await createRoomRecord(room);
@@ -132,6 +207,9 @@ export async function joinRoom(roomCode: string, user: AuthUser, socketId?: stri
   if (existing) {
     existing.connected = true;
     existing.socketId = socketId;
+    if (room.ownerUserId === user.id) {
+      existing.ready = true;
+    }
     room.updatedAt = Date.now();
     return saveRoom(room);
   }
@@ -140,7 +218,13 @@ export async function joinRoom(roomCode: string, user: AuthUser, socketId?: stri
     throw new Error("ROOM_FULL");
   }
 
-  room.players.push(createPlayer(user, nextSeatIndex(room.players), socketId));
+  const player = createPlayer(user, nextSeatIndex(room.players), socketId);
+  room.players.push(player);
+  pushRoomEvent(room, {
+    type: "room_joined",
+    playerId: player.playerId,
+    nickname: player.nickname,
+  });
   room.updatedAt = Date.now();
 
   return saveRoom(room);
@@ -150,14 +234,19 @@ export async function leaveRoom(roomId: string, user: AuthUser) {
   const room = await getRoomById(roomId);
 
   if (!room) {
-    throw new Error("ROOM_NOT_FOUND");
+    return null;
   }
 
   const player = findPlayerByUser(room, user.id);
   if (!player) {
-    throw new Error("PLAYER_NOT_IN_ROOM");
+    return room;
   }
 
+  pushRoomEvent(room, {
+    type: "room_left",
+    playerId: player.playerId,
+    nickname: player.nickname,
+  });
   room.players = room.players.filter((candidate) => candidate.userId !== user.id);
 
   if (room.players.length === 0) {
@@ -167,6 +256,12 @@ export async function leaveRoom(roomId: string, user: AuthUser) {
 
   if (room.ownerUserId === user.id) {
     room.ownerUserId = room.players[0].userId;
+    room.players[0].ready = true;
+    pushRoomEvent(room, {
+      type: "room_owner_changed",
+      playerId: room.players[0].playerId,
+      nickname: room.players[0].nickname,
+    });
   }
 
   room.updatedAt = Date.now();
@@ -185,10 +280,83 @@ export async function setReady(roomId: string, user: AuthUser, ready: boolean) {
     throw new Error("PLAYER_NOT_IN_ROOM");
   }
 
-  player.ready = ready;
+  player.ready = room.ownerUserId === user.id ? true : ready;
   room.updatedAt = Date.now();
 
   return saveRoom(room);
+}
+
+export async function syncRoomPlayer(roomId: string, user: AuthUser, socketId?: string) {
+  const room = await getRoomById(roomId);
+
+  if (!room) {
+    throw new Error("ROOM_NOT_FOUND");
+  }
+
+  const player = findPlayerByUser(room, user.id);
+  if (!player) {
+    throw new Error("PLAYER_NOT_IN_ROOM");
+  }
+
+  player.connected = true;
+  player.socketId = socketId;
+  if (room.ownerUserId === user.id) {
+    player.ready = true;
+  }
+
+  if (room.gameState) {
+    room.gameState.players = room.gameState.players.map((statePlayer) =>
+      statePlayer.playerId === player.playerId
+        ? {
+            ...statePlayer,
+            connected: true,
+            ready: room.ownerUserId === user.id ? true : statePlayer.ready,
+            socketId,
+          }
+        : statePlayer,
+    );
+  }
+
+  room.updatedAt = Date.now();
+  return saveRoom(room);
+}
+
+export async function handleSocketDisconnect(socketId: string) {
+  const rooms = await listRooms();
+  const affectedRooms: RoomState[] = [];
+
+  for (const room of rooms) {
+    const player = room.players.find((candidate) => candidate.socketId === socketId);
+    if (!player) {
+      continue;
+    }
+
+    player.connected = false;
+    player.socketId = null;
+
+    if (room.gameState) {
+      room.gameState.players = room.gameState.players.map((statePlayer) =>
+        statePlayer.playerId === player.playerId
+          ? {
+              ...statePlayer,
+              connected: false,
+              socketId: null,
+            }
+          : statePlayer,
+      );
+    }
+
+    room.updatedAt = Date.now();
+
+    if (room.players.every((candidate) => !candidate.connected)) {
+      await deleteRoom(room);
+      continue;
+    }
+
+    affectedRooms.push(await saveRoom(room));
+  }
+
+  return affectedRooms;
 }
 
 export async function startGame(roomId: string, user: AuthUser) {
@@ -206,7 +374,7 @@ export async function startGame(roomId: string, user: AuthUser) {
     throw new Error("ROOM_NOT_WAITING");
   }
 
-  if (room.players.length < MIN_PLAYERS || room.players.length > MAX_PLAYERS) {
+  if (room.players.length !== room.maxPlayers || room.players.length < MIN_PLAYERS || room.players.length > MAX_PLAYERS) {
     throw new Error("INVALID_PLAYER_COUNT");
   }
 
@@ -230,9 +398,9 @@ export async function startGame(roomId: string, user: AuthUser) {
         roomId: room.id,
         status: "playing",
         ruleSet: {
-          name: "mvp",
+          name: "cheat-classic",
           minPlayers: MIN_PLAYERS,
-          maxPlayers: MAX_PLAYERS,
+          maxPlayers: room.maxPlayers,
         },
         deckSeed,
         startedAt: new Date(),
@@ -253,7 +421,7 @@ export async function startGame(roomId: string, user: AuthUser) {
   return saveRoom(room);
 }
 
-export async function playRoomCards(roomId: string, user: AuthUser, cardIds: string[]) {
+export async function playRoomCards(roomId: string, user: AuthUser, cardIds: string[], declaredRank?: DeclaredRank) {
   const room = await getRoomById(roomId);
 
   if (!room?.gameState) {
@@ -265,7 +433,29 @@ export async function playRoomCards(roomId: string, user: AuthUser, cardIds: str
     throw new Error("PLAYER_NOT_IN_ROOM");
   }
 
-  const result = playCards(room.gameState, player.playerId, cardIds);
+  const pendingWinner = findPendingWinner(room.gameState);
+  const concedingPendingWin =
+    pendingWinner &&
+    room.gameState.lastPlay &&
+    room.gameState.lastPlay.playerId === pendingWinner.playerId &&
+    pendingWinner.playerId !== player.playerId &&
+    cardIds.length === 0;
+
+  if (concedingPendingWin) {
+    room.gameState = finalizePendingWinner(room.gameState);
+    room.status = "finished";
+    room.updatedAt = Date.now();
+
+    await saveRoom(room);
+
+    return { room, event: null };
+  }
+
+  if (!declaredRank) {
+    throw new Error("DECLARED_RANK_REQUIRED");
+  }
+
+  const result = playCards(room.gameState, player.playerId, cardIds, declaredRank);
   room.gameState = result.state;
   room.status = result.state.status === "finished" ? "finished" : "playing";
   room.events.push(result.event);

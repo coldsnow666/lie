@@ -5,8 +5,9 @@ import { roomCreateSchema, roomJoinSchema, roomIdSchema } from "@lie/shared";
 import { API_RESPONSE_CODE } from "@lie/shared";
 import type { FastifyInstance } from "fastify";
 import { requireAuth } from "../auth/auth.middleware";
+import { verifyAccessToken } from "../auth/token";
 import { sendError, sendOk, type ApiErrorPayload } from "../utils/response";
-import { createRoom, joinRoom, listPublicRooms, serializeRoom } from "./room.service";
+import { createRoom, joinRoom, leaveRoom, listPublicRooms, serializeRoom } from "./room.service";
 import { getRoomById } from "./room.store";
 
 function routeError(error: unknown): ApiErrorPayload {
@@ -50,7 +51,7 @@ export async function roomRoutes(app: FastifyInstance) {
     }
 
     try {
-      const room = await createRoom(request.user, parsed.data.roomCode);
+      const room = await createRoom(request.user, parsed.data);
       return sendOk(reply, { room: serializeRoom(room) });
     } catch (error) {
       return sendError(reply, routeError(error));
@@ -67,6 +68,38 @@ export async function roomRoutes(app: FastifyInstance) {
     try {
       const room = await joinRoom(parsed.data.roomCode, request.user);
       return sendOk(reply, { room: serializeRoom(room) });
+    } catch (error) {
+      return sendError(reply, routeError(error));
+    }
+  });
+
+  app.post("/rooms/:roomId/leave", { preHandler: requireAuth }, async (request, reply) => {
+    const parsed = roomIdSchema.safeParse(request.params);
+
+    if (!parsed.success || !request.user) {
+      return sendError(reply, { code: API_RESPONSE_CODE.ROOM_PARAMS_INVALID, message: "房间参数无效" });
+    }
+
+    try {
+      const room = await leaveRoom(parsed.data.roomId, request.user);
+      return sendOk(reply, { room: room ? serializeRoom(room) : null });
+    } catch (error) {
+      return sendError(reply, routeError(error));
+    }
+  });
+
+  app.post("/rooms/:roomId/leave-beacon", async (request, reply) => {
+    const parsed = roomIdSchema.safeParse(request.params);
+    const query = request.query as { token?: unknown };
+    const user = verifyAccessToken(typeof query.token === "string" ? query.token : null);
+
+    if (!parsed.success || !user) {
+      return sendError(reply, { code: API_RESPONSE_CODE.UNAUTHORIZED, message: "请先登录" });
+    }
+
+    try {
+      const room = await leaveRoom(parsed.data.roomId, user);
+      return sendOk(reply, { room: room ? serializeRoom(room) : null });
     } catch (error) {
       return sendError(reply, routeError(error));
     }

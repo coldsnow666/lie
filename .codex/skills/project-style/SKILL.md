@@ -217,7 +217,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
 全局约定：
 
-- `Ferrofluid.tsx` 作为所有页面的全局背景，不要在单个页面重复挂载。
+- `Balatro.tsx` 作为所有页面的全局背景，不要在单个页面重复挂载。
 - 项目里不要出现 header 顶部栏或品牌栏。
 - 不允许任何元素造成 body 横向溢出。
 - 固定格式 UI 要有稳定尺寸和响应式约束，避免 hover、动画、文案变化导致布局跳动。

@@ -1,13 +1,13 @@
 /**
  * 共享事件类型：描述可以安全广播给玩家的公开游戏事件。
  */
-import type { Card, Rank } from "./cards";
+import type { Card, DeclaredRank } from "./cards";
 
 export type CardsPlayedEvent = {
   type: "cards_played";
   actorPlayerId: string;
-  declaredRank: Rank;
-  declaredCount: number;
+  declaredRank: DeclaredRank;
+  cardCount: number;
   turnSeq: number;
 };
 
@@ -26,4 +26,10 @@ export type PlayerConnectionEvent = {
   playerId: string;
 };
 
-export type PublicGameEvent = CardsPlayedEvent | ChallengeResolvedEvent | PlayerConnectionEvent;
+export type RoomLifecycleEvent = {
+  type: "room_joined" | "room_left" | "room_owner_changed";
+  playerId: string;
+  nickname: string;
+};
+
+export type PublicGameEvent = CardsPlayedEvent | ChallengeResolvedEvent | PlayerConnectionEvent | RoomLifecycleEvent;

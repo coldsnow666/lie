@@ -9,12 +9,20 @@ import { getAccessToken } from "./auth";
 const SOCKET_URL = process.env.NEXT_PUBLIC_GAME_SERVER_URL ?? "http://localhost:4000";
 
 let socket: Socket | null = null;
+let socketToken: string | null = null;
 
 export function createSocket() {
   const token = getAccessToken();
 
   if (!token) {
     throw new Error("请先登录");
+  }
+
+  if (socket && socketToken !== token) {
+    // 登录用户切换后必须重建 Socket，否则服务端仍会按旧 token 对应的用户处理房间事件。
+    socket.disconnect();
+    socket = null;
+    socketToken = null;
   }
 
   if (socket?.connected) {
@@ -28,6 +36,7 @@ export function createSocket() {
     },
     autoConnect: true,
   });
+  socketToken = token;
 
   return socket;
 }
@@ -39,6 +48,7 @@ export function getSocket() {
 export function disconnectSocket() {
   socket?.disconnect();
   socket = null;
+  socketToken = null;
 }
 
 export type Ack<T> =

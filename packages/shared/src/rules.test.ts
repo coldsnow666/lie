@@ -6,6 +6,8 @@ import { createDeck } from "./cards";
 import {
   challengeLastPlay,
   createInitialGameState,
+  finalizePendingWinner,
+  isTruthfulPlay,
   playCards,
   toPublicGameState,
   type Player,
@@ -19,6 +21,7 @@ const players: Player[] = [
     seatIndex: 0,
     connected: true,
     ready: true,
+    pendingWin: false,
   },
   {
     playerId: "player-2",
@@ -27,6 +30,7 @@ const players: Player[] = [
     seatIndex: 1,
     connected: true,
     ready: true,
+    pendingWin: false,
   },
 ];
 
@@ -41,12 +45,14 @@ function stateForTests() {
 }
 
 describe("cards", () => {
-  it("creates one standard 52-card deck without jokers", () => {
+  it("creates one 54-card deck with jokers", () => {
     const deck = createDeck();
 
-    expect(deck).toHaveLength(52);
-    expect(new Set(deck.map((card) => card.id))).toHaveLength(52);
+    expect(deck).toHaveLength(54);
+    expect(new Set(deck.map((card) => card.id))).toHaveLength(54);
     expect(deck.some((card) => card.rank === "A" && card.suit === "S")).toBe(true);
+    expect(deck.some((card) => card.rank === "BLACK_JOKER")).toBe(true);
+    expect(deck.some((card) => card.rank === "RED_JOKER")).toBe(true);
   });
 });
 
@@ -54,7 +60,7 @@ describe("game rules", () => {
   it("plays selected cards face down and hides non-viewer hands", () => {
     const state = stateForTests();
     const cardIds = state.hands["player-1"].slice(0, 2).map((card) => card.id);
-    const result = playCards(state, "player-1", cardIds);
+    const result = playCards(state, "player-1", cardIds, "A");
     const publicState = toPublicGameState(result.state, "player-2");
 
     expect(result.event.declaredRank).toBe("A");
@@ -67,7 +73,7 @@ describe("game rules", () => {
     const state = stateForTests();
     const opponentCard = state.hands["player-2"][0].id;
 
-    expect(() => playCards(state, "player-1", [opponentCard])).toThrow("CARD_NOT_IN_HAND");
+    expect(() => playCards(state, "player-1", [opponentCard], "A")).toThrow("CARD_NOT_IN_HAND");
   });
 
   it("makes the bluffer take the pile when a bluff is challenged", () => {
@@ -76,12 +82,40 @@ describe("game rules", () => {
 
     expect(nonAce).toBeDefined();
 
-    const played = playCards(state, "player-1", [nonAce!.id]);
+    const played = playCards(state, "player-1", [nonAce!.id], "A");
     const challenged = challengeLastPlay(played.state, "player-2");
 
     expect(challenged.event.wasTruthful).toBe(false);
     expect(challenged.event.pileTakenByPlayerId).toBe("player-1");
     expect(challenged.state.discardPile).toHaveLength(0);
     expect(challenged.state.currentPlayerId).toBe("player-1");
+  });
+
+  it("treats jokers as wild cards when checking declared rank", () => {
+    expect(
+      isTruthfulPlay(
+        [
+          { id: "QS", rank: "Q", suit: "S" },
+          { id: "BJ", rank: "BLACK_JOKER", suit: "JOKER" },
+          { id: "RJ", rank: "RED_JOKER", suit: "JOKER" },
+        ],
+        "Q",
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps a zero-card player pending until the table lets the play stand", () => {
+    const state = stateForTests();
+    const winningCard = state.hands["player-1"][0];
+    state.hands["player-1"] = [winningCard];
+
+    const played = playCards(state, "player-1", [winningCard.id], winningCard.rank === "BLACK_JOKER" || winningCard.rank === "RED_JOKER" ? "A" : winningCard.rank);
+    expect(played.state.status).toBe("playing");
+    expect(played.state.winnerPlayerId).toBeNull();
+    expect(played.state.players.find((player) => player.playerId === "player-1")?.pendingWin).toBe(true);
+
+    const finished = finalizePendingWinner(played.state);
+    expect(finished.status).toBe("finished");
+    expect(finished.winnerPlayerId).toBe("player-1");
   });
 });

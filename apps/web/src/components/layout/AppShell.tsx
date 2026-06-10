@@ -14,7 +14,7 @@ export default function AppShell({ children, edgeToEdge = false }: AppShellProps
         className={
           edgeToEdge
             ? "w-full overflow-x-clip xl:px-[clamp(0.25rem,0.8vw,0.5rem)]"
-            : "mx-auto w-full max-w-6xl overflow-x-clip px-4 py-6"
+            : "mx-auto w-full max-w-6xl overflow-x-clip px-4"
         }
       >
         {children}

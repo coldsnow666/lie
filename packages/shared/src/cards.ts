@@ -1,9 +1,12 @@
 /**
- * 共享牌面工具：创建标准 52 张牌、按种子洗牌、按玩家发牌。
+ * 共享牌面工具：创建包含大小王的 54 张牌、按种子洗牌、按玩家发牌。
  */
-import { RANKS, SUITS } from "./constants";
+import { DECLARABLE_RANKS, JOKER_RANKS, JOKER_SUIT, RANKS, SUITS } from "./constants";
 
-export type Suit = (typeof SUITS)[number];
+export type StandardSuit = (typeof SUITS)[number];
+export type Suit = StandardSuit | typeof JOKER_SUIT;
+export type DeclaredRank = (typeof DECLARABLE_RANKS)[number];
+export type JokerRank = (typeof JOKER_RANKS)[number];
 export type Rank = (typeof RANKS)[number];
 
 export type Card = {
@@ -13,13 +16,27 @@ export type Card = {
 };
 
 export function createDeck(): Card[] {
-  return RANKS.flatMap((rank) =>
+  const standardCards = DECLARABLE_RANKS.flatMap((rank) =>
     SUITS.map((suit) => ({
       id: `${rank}${suit}`,
       rank,
       suit,
     })),
   );
+
+  return [
+    ...standardCards,
+    {
+      id: "BJ",
+      rank: "BLACK_JOKER",
+      suit: JOKER_SUIT,
+    },
+    {
+      id: "RJ",
+      rank: "RED_JOKER",
+      suit: JOKER_SUIT,
+    },
+  ];
 }
 
 function hashSeed(seed: string) {
@@ -73,6 +90,14 @@ export function dealCards(deck: Card[], playerIds: string[]): Record<string, Car
 
 export function isCardId(value: string) {
   return createDeck().some((card) => card.id === value);
+}
+
+export function isJokerRank(rank: Rank): rank is JokerRank {
+  return rank === "BLACK_JOKER" || rank === "RED_JOKER";
+}
+
+export function isJokerCard(card: Card) {
+  return isJokerRank(card.rank);
 }
 
 function cryptoRandomSeed() {

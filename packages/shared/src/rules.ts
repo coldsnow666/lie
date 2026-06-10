@@ -1,8 +1,8 @@
 /**
  * 共享游戏规则引擎：只包含纯函数，不依赖 Socket、Redis 或数据库。
  */
-import { MAX_PLAY_CARDS, MAX_PLAYERS, MIN_PLAY_CARDS, MIN_PLAYERS, RANKS } from "./constants";
-import { createDeck, dealCards, shuffleDeck, type Card, type Rank } from "./cards";
+import { MAX_PLAY_CARDS, MAX_PLAYERS, MIN_PLAY_CARDS, MIN_PLAYERS } from "./constants";
+import { createDeck, dealCards, isJokerCard, shuffleDeck, type Card, type DeclaredRank } from "./cards";
 import type { CardsPlayedEvent, ChallengeResolvedEvent } from "./events";
 
 export type Player = {
@@ -13,6 +13,7 @@ export type Player = {
   socketId?: string | null;
   connected: boolean;
   ready: boolean;
+  pendingWin: boolean;
 };
 
 export type DiscardEntry = {
@@ -23,10 +24,10 @@ export type DiscardEntry = {
 
 export type LastPlay = {
   playerId: string;
-  declaredRank: Rank;
-  declaredCount: number;
+  declaredRank: DeclaredRank;
+  cardCount: number;
   actualCards: Card[];
-  turnSeq: number;
+  timestamp: number;
 };
 
 export type PrivateGameState = {
@@ -37,7 +38,6 @@ export type PrivateGameState = {
   hands: Record<string, Card[]>;
   discardPile: DiscardEntry[];
   currentPlayerId: string;
-  currentRank: Rank;
   lastPlay: LastPlay | null;
   turnSeq: number;
   winnerPlayerId: string | null;
@@ -62,15 +62,17 @@ export type ChallengeResult = {
   event: ChallengeResolvedEvent;
 };
 
+function updatePlayerPendingWin(players: Player[], pendingPlayerId: string | null) {
+  return players.map((player) => ({
+    ...player,
+    pendingWin: pendingPlayerId ? player.playerId === pendingPlayerId : false,
+  }));
+}
+
 export function assertPlayerCount(players: Player[]) {
   if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
     throw new Error(`PLAYERS_MUST_BE_${MIN_PLAYERS}_TO_${MAX_PLAYERS}`);
   }
-}
-
-export function getNextRank(rank: Rank): Rank {
-  const index = RANKS.indexOf(rank);
-  return RANKS[(index + 1) % RANKS.length];
 }
 
 export function getNextPlayer(players: Player[], currentPlayerId: string): Player {
@@ -82,6 +84,30 @@ export function getNextPlayer(players: Player[], currentPlayerId: string): Playe
   }
 
   return sorted[(index + 1) % sorted.length];
+}
+
+export function isTruthfulPlay(actualCards: Card[], declaredRank: DeclaredRank) {
+  return actualCards.every((card) => card.rank === declaredRank || isJokerCard(card));
+}
+
+export function findPendingWinner(state: PrivateGameState) {
+  return state.players.find((player) => player.pendingWin) ?? null;
+}
+
+export function finalizePendingWinner(state: PrivateGameState): PrivateGameState {
+  const pendingWinner = findPendingWinner(state);
+
+  if (!pendingWinner) {
+    throw new Error("PENDING_WIN_NOT_FOUND");
+  }
+
+  return {
+    ...state,
+    status: "finished",
+    players: updatePlayerPendingWin(state.players, null),
+    winnerPlayerId: pendingWinner.playerId,
+    updatedAt: Date.now(),
+  };
 }
 
 export function createInitialGameState(params: {
@@ -109,7 +135,6 @@ export function createInitialGameState(params: {
     hands,
     discardPile: [],
     currentPlayerId: players[0].playerId,
-    currentRank: "A",
     lastPlay: null,
     turnSeq: 1,
     winnerPlayerId: null,
@@ -118,7 +143,12 @@ export function createInitialGameState(params: {
   };
 }
 
-export function playCards(state: PrivateGameState, actorPlayerId: string, cardIds: string[]): PlayCardsResult {
+export function playCards(
+  state: PrivateGameState,
+  actorPlayerId: string,
+  cardIds: string[],
+  declaredRank: DeclaredRank,
+): PlayCardsResult {
   if (state.status !== "playing") {
     throw new Error("GAME_NOT_PLAYING");
   }
@@ -148,13 +178,12 @@ export function playCards(state: PrivateGameState, actorPlayerId: string, cardId
   const nextHand = hand.filter((card) => !selectedSet.has(card.id));
   const turnSeq = state.turnSeq + 1;
   const nextPlayer = getNextPlayer(state.players, actorPlayerId);
-  // 声明牌点由服务端当前状态决定，客户端只提交真实想打出的 cardIds。
-  const status = nextHand.length === 0 ? "finished" : "playing";
-  const winnerPlayerId = nextHand.length === 0 ? actorPlayerId : null;
+  const pendingPlayerId = nextHand.length === 0 ? actorPlayerId : null;
 
   const nextState: PrivateGameState = {
     ...state,
-    status,
+    status: "playing",
+    players: updatePlayerPendingWin(state.players, pendingPlayerId),
     hands: {
       ...state.hands,
       [actorPlayerId]: nextHand,
@@ -168,16 +197,15 @@ export function playCards(state: PrivateGameState, actorPlayerId: string, cardId
       })),
     ],
     currentPlayerId: nextPlayer.playerId,
-    currentRank: getNextRank(state.currentRank),
     lastPlay: {
       playerId: actorPlayerId,
-      declaredRank: state.currentRank,
-      declaredCount: selectedCards.length,
+      declaredRank,
+      cardCount: selectedCards.length,
       actualCards: selectedCards,
-      turnSeq,
+      timestamp: Date.now(),
     },
     turnSeq,
-    winnerPlayerId,
+    winnerPlayerId: null,
     updatedAt: Date.now(),
   };
 
@@ -186,8 +214,8 @@ export function playCards(state: PrivateGameState, actorPlayerId: string, cardId
     event: {
       type: "cards_played",
       actorPlayerId,
-      declaredRank: state.currentRank,
-      declaredCount: selectedCards.length,
+      declaredRank,
+      cardCount: selectedCards.length,
       turnSeq,
     },
   };
@@ -210,14 +238,21 @@ export function challengeLastPlay(state: PrivateGameState, challengerPlayerId: s
     throw new Error("PLAYER_NOT_IN_GAME");
   }
 
-  const wasTruthful = state.lastPlay.actualCards.every((card) => card.rank === state.lastPlay?.declaredRank);
+  const challengedPlayerId = state.lastPlay.playerId;
+  const challengedPlayerWasPendingWinner = state.players.some(
+    (player) => player.playerId === challengedPlayerId && player.pendingWin,
+  );
+  const wasTruthful = isTruthfulPlay(state.lastPlay.actualCards, state.lastPlay.declaredRank);
   // MVP 规则：质疑失败者拿走整个弃牌堆，并由拿走牌堆的人继续行动。
-  const pileTakenByPlayerId = wasTruthful ? challengerPlayerId : state.lastPlay.playerId;
+  const pileTakenByPlayerId = wasTruthful ? challengerPlayerId : challengedPlayerId;
   const turnSeq = state.turnSeq + 1;
   const pileCards = state.discardPile.map((entry) => entry.card);
+  const challengedPlayerWins = wasTruthful && challengedPlayerWasPendingWinner;
 
   const nextState: PrivateGameState = {
     ...state,
+    status: challengedPlayerWins ? "finished" : "playing",
+    players: updatePlayerPendingWin(state.players, null),
     hands: {
       ...state.hands,
       [pileTakenByPlayerId]: [...(state.hands[pileTakenByPlayerId] ?? []), ...pileCards],
@@ -226,6 +261,7 @@ export function challengeLastPlay(state: PrivateGameState, challengerPlayerId: s
     currentPlayerId: pileTakenByPlayerId,
     lastPlay: null,
     turnSeq,
+    winnerPlayerId: challengedPlayerWins ? challengedPlayerId : null,
     updatedAt: Date.now(),
   };
 
@@ -234,7 +270,7 @@ export function challengeLastPlay(state: PrivateGameState, challengerPlayerId: s
     event: {
       type: "challenge_resolved",
       challengerPlayerId,
-      challengedPlayerId: state.lastPlay.playerId,
+      challengedPlayerId,
       wasTruthful,
       revealedCards: state.lastPlay.actualCards,
       pileTakenByPlayerId,
@@ -256,8 +292,8 @@ export function toPublicGameState(state: PrivateGameState, viewerPlayerId: strin
     ? {
       playerId: state.lastPlay.playerId,
       declaredRank: state.lastPlay.declaredRank,
-      declaredCount: state.lastPlay.declaredCount,
-      turnSeq: state.lastPlay.turnSeq,
+      cardCount: state.lastPlay.cardCount,
+      timestamp: state.lastPlay.timestamp,
     }
     : null
 
@@ -270,7 +306,6 @@ export function toPublicGameState(state: PrivateGameState, viewerPlayerId: strin
     selfHand: state.hands[viewerPlayerId] ?? [],
     discardPileCount: state.discardPile.length,
     currentPlayerId: state.currentPlayerId,
-    currentRank: state.currentRank,
     lastPlay,
     turnSeq: state.turnSeq,
     winnerPlayerId: state.winnerPlayerId,
