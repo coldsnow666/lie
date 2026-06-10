@@ -4,10 +4,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
-import { Crown, House, Plus, RefreshCw, Swords, Users } from "lucide-react";
+import { FormEvent, type CSSProperties, useCallback, useEffect, useState } from "react";
+import { ArrowLeft, Crown, Plus, RefreshCw, Swords, Users } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import AppShell from "@/components/layout/AppShell";
+import { useRouteLoading } from "@/components/loading/RouteLoadingProvider";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelInput from "@/components/ui/PixelInput";
 import PixelMessage from "@/components/ui/PixelMessage";
@@ -61,23 +63,187 @@ function resolveOwnerName(room: PublicRoom) {
   return owner?.nickname ?? room.players[0]?.nickname ?? "未知房主";
 }
 
+function LobbyHeaderActions({
+  onBackHome,
+  onCreateRoom,
+  onJoinRoom,
+  onRefreshRooms,
+  pendingAction,
+  refreshingRooms,
+}: {
+  onBackHome: () => void;
+  onCreateRoom: () => void;
+  onJoinRoom: () => void;
+  onRefreshRooms: () => void;
+  pendingAction: string | null;
+  refreshingRooms: boolean;
+}) {
+  return (
+    <div className="shrink-0 flex flex-wrap items-center justify-between gap-4 xl:items-start">
+      <div className="flex min-w-0 items-start gap-3">
+        <PixelButton
+          onClick={onBackHome}
+          variant="ghost"
+          size="sm"
+          square
+          aria-label="返回主页"
+          className="mt-1 h-9 w-9.5 shrink-0"
+        >
+          <ArrowLeft size={22} />
+        </PixelButton>
+        <div className="min-w-0">
+          <h2 className="mt-2 text-2xl font-black text-[#fff6cf]">房间列表</h2>
+        </div>
+      </div>
+      <div className="flex w-full flex-wrap items-center justify-end gap-2 xl:w-auto">
+        <PixelButton onClick={onCreateRoom} disabled={Boolean(pendingAction)} variant="primary" size="sm">
+          创建房间
+        </PixelButton>
+        <PixelButton onClick={onJoinRoom} disabled={Boolean(pendingAction)} variant="ghost" size="sm">
+          加入房间
+        </PixelButton>
+        <PixelButton
+          onClick={onRefreshRooms}
+          disabled={refreshingRooms}
+          variant="secondary"
+          size="sm"
+          square
+          aria-label={refreshingRooms ? "刷新中" : "刷新列表"}
+          title={refreshingRooms ? "刷新中" : "刷新列表"}
+          className="h-9 w-9.5 shrink-0"
+        >
+          <RefreshCw size={18} className={refreshingRooms ? "animate-spin" : ""} />
+        </PixelButton>
+      </div>
+    </div>
+  );
+}
+
+function RoomSkeletonList() {
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <PixelPanel key={`room-skeleton-${index}`} tone="dark" padding="md" className="min-h-44 animate-pulse">
+          <div className="h-6 w-24 rounded bg-white/8" />
+          <div className="mt-4 h-4 w-36 rounded bg-white/6" />
+          <div className="mt-3 h-4 w-28 rounded bg-white/6" />
+          <div className="mt-8 h-11 w-full rounded bg-white/7" />
+        </PixelPanel>
+      ))}
+    </div>
+  );
+}
+
+function EmptyRoomCard() {
+  return (
+    <div className="grid min-h-full place-items-center">
+      <div className="lie-room-card lie-empty-room-card relative isolate flex flex-col overflow-hidden rounded border-2 border-[#e8ddb7] bg-[#f7f0dc] p-3 text-left text-[#173b2a] shadow-2xl shadow-black/45">
+        <span className="flex h-full w-full flex-col">
+          <span className="block text-[clamp(1.15rem,2.7vw,1.75rem)] font-black leading-none tracking-[0.02em] text-[#173b2a]">
+            LIAR
+          </span>
+          <span className="grid flex-1 place-items-center py-2 text-center text-[clamp(0.7rem,3vw,0.8rem)] font-black leading-none tracking-[0.12em] text-[#b93131]">
+            <span className="inline-flex flex-col items-center gap-2">
+              <Swords size={28} />
+              当前还没有公开房间
+            </span>
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function RoomCard({
+  index,
+  onJoin,
+  pendingAction,
+  room,
+}: {
+  index: number;
+  onJoin: (roomCode: string, actionKey: string) => void;
+  pendingAction: string | null;
+  room: PublicRoom;
+}) {
+  const ownerName = resolveOwnerName(room);
+  const isJoinable = room.status === "waiting" && room.players.length < room.maxPlayers;
+  const actionKey = `join-${room.code}`;
+  const pose = roomCardPoseList[index % roomCardPoseList.length];
+
+  return (
+    <button
+      type="button"
+      onClick={() => onJoin(room.code, actionKey)}
+      disabled={!isJoinable || Boolean(pendingAction)}
+      aria-label={`${room.code} 房间，房主 ${ownerName}，${room.players.length}/${room.maxPlayers}`}
+      className="lie-room-card relative isolate flex shrink-0 cursor-pointer flex-col overflow-hidden rounded border-2 border-[#e8ddb7] bg-[#f7f0dc] p-3 text-left text-[#173b2a] shadow-2xl shadow-black/45 outline-none transition-[filter] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#f0d98d] disabled:cursor-not-allowed disabled:opacity-70"
+      style={
+        {
+          "--room-card-rotate": `${pose.rotate}deg`,
+          "--room-card-y": `${pose.y}rem`,
+        } as CSSProperties
+      }
+    >
+      <span className="flex h-full w-full flex-col">
+        <span className="block max-w-full text-[clamp(1.15rem,2.7vw,1.75rem)] font-black leading-none tracking-[0.02em] text-[#173b2a]">
+          {room.code}
+        </span>
+        <span className="mt-3 flex items-center gap-1.5 text-[0.68rem] font-black tracking-[0.1em] text-[#52605c]">
+          <Crown size={13} />
+          房主
+        </span>
+        <span className="mt-1 truncate text-sm font-black text-[#173b2a]">{ownerName}</span>
+        <span className="grid flex-1 place-items-center py-2 text-[clamp(2.4rem,6vw,4rem)] font-black leading-none text-[#b93131]">
+          {room.players.length}/{room.maxPlayers}
+        </span>
+        <span className="mt-auto text-center text-[0.62rem] font-black tracking-[0.14em] text-[#52605c]">
+          {pendingAction === actionKey ? "加入中" : isJoinable ? "点击加入" : roomStatusLabelMap[room.status]}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function RoomListContent({
+  loadingRooms,
+  onJoinRoom,
+  pendingAction,
+  rooms,
+}: {
+  loadingRooms: boolean;
+  onJoinRoom: (roomCode: string, actionKey: string) => void;
+  pendingAction: string | null;
+  rooms: PublicRoom[];
+}) {
+  if (loadingRooms) {
+    return <RoomSkeletonList />;
+  }
+
+  if (rooms.length === 0) {
+    return <EmptyRoomCard />;
+  }
+
+  return (
+    <div className="lie-room-card-hand">
+      {rooms.map((room, index) => (
+        <RoomCard key={room.id} index={index} room={room} pendingAction={pendingAction} onJoin={onJoinRoom} />
+      ))}
+    </div>
+  );
+}
+
 export default function LobbyPage() {
   const router = useRouter();
+  const routeLoading = useRouteLoading();
   const [roomCode, setRoomCode] = useState("");
   const [message, setMessage] = useState("");
   const [rooms, setRooms] = useState<PublicRoom[]>([]);
+  const [authReady, setAuthReady] = useState(false);
+  const [initialRoomsLoaded, setInitialRoomsLoaded] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [refreshingRooms, setRefreshingRooms] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<LobbyModalKind | null>(null);
-
-  const roomSummary = useMemo(() => {
-    return {
-      waiting: rooms.filter((room) => room.status === "waiting").length,
-      playing: rooms.filter((room) => room.status === "playing").length,
-      finished: rooms.filter((room) => room.status === "finished").length,
-    };
-  }, [rooms]);
 
   const enterRoom = useCallback(
     (room: PublicRoom) => {
@@ -85,6 +251,12 @@ export default function LobbyPage() {
     },
     [router],
   );
+
+  const handleAuthReady = useCallback(() => {
+    setAuthReady(true);
+  }, []);
+
+  useBodyScrollLock();
 
   const refreshRoomList = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
@@ -103,6 +275,9 @@ export default function LobbyPage() {
     } finally {
       setLoadingRooms(false);
       if (!silent) {
+        setInitialRoomsLoaded(true);
+      }
+      if (!silent) {
         setRefreshingRooms(false);
       }
     }
@@ -114,32 +289,33 @@ export default function LobbyPage() {
     }, 0);
 
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
       void refreshRoomList({ silent: true });
     }, 5000);
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void refreshRoomList({ silent: true });
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.clearTimeout(bootstrapTimer);
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [refreshRoomList]);
 
   useEffect(() => {
-    if (!activeModal) {
-      return;
+    if (authReady && initialRoomsLoaded) {
+      routeLoading.complete();
     }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !pendingAction) {
-        setActiveModal(null);
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [activeModal, pendingAction]);
+  }, [authReady, initialRoomsLoaded, routeLoading]);
 
   function closeModal() {
     if (pendingAction) {
@@ -204,153 +380,40 @@ export default function LobbyPage() {
   }
 
   return (
-    <AuthGuard>
-      <AppShell fullBleed>
-        <div className="grid min-h-[calc(100dvh-1rem)] gap-[clamp(0.35rem,0.9vw,0.75rem)] xl:grid-cols-[18rem_minmax(0,1fr)]">
-          <aside className="grid content-start gap-3 overflow-hidden bg-[#142523]/92 p-[clamp(0.55rem,1vw,0.85rem)] xl:min-h-[calc(100dvh-1rem)]">
-            <section className="px-1 py-1">
-              <div>
-                <h1 className="mt-2 text-2xl font-black text-[#fff6cf]">大厅导航</h1>
-                <p className="mt-3 text-sm leading-6 text-[#c6b889]">回到启动页，或者从这里快速查看当前可开的桌数和大厅热度。</p>
+    <AuthGuard onReady={handleAuthReady}>
+      <AppShell edgeToEdge>
+        <div className="flex h-dvh max-h-dvh min-h-0 overflow-hidden">
+          <section className="min-h-0 min-w-0 flex-1 py-[clamp(0.35rem,1vw,0.85rem)] xl:px-[clamp(0.35rem,1vw,0.85rem)]">
+            <div className="flex h-full min-h-0 flex-col px-1 xl:px-0">
+              <LobbyHeaderActions
+                onBackHome={() => router.push("/")}
+                onCreateRoom={() => {
+                  setMessage("");
+                  setActiveModal("create");
+                }}
+                onJoinRoom={() => {
+                  setMessage("");
+                  setActiveModal("join");
+                }}
+                onRefreshRooms={() => void refreshRoomList()}
+                pendingAction={pendingAction}
+                refreshingRooms={refreshingRooms}
+              />
+
+              <div className="mt-5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden xl:pr-1">
+                <RoomListContent
+                  loadingRooms={loadingRooms}
+                  rooms={rooms}
+                  pendingAction={pendingAction}
+                  onJoinRoom={(nextRoomCode, actionKey) => void joinRoomWithCode(nextRoomCode, actionKey)}
+                />
               </div>
-
-              <PixelButton onClick={() => router.push("/")} variant="accent" size="sm" fullWidth className="mt-4 h-11">
-                <House size={16} />
-                返回首页
-              </PixelButton>
-
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <div className="px-1 py-2">
-                  <p className="text-[0.65rem] tracking-[0.16em] text-[#9cb6a7]">开放</p>
-                  <p className="mt-2 text-2xl font-black text-[#fff6cf]">{roomSummary.waiting}</p>
-                </div>
-                <div className="px-1 py-2">
-                  <p className="text-[0.65rem] tracking-[0.16em] text-[#9cb6a7]">对局</p>
-                  <p className="mt-2 text-2xl font-black text-[#9df7df]">{roomSummary.playing}</p>
-                </div>
-                <div className="px-1 py-2">
-                  <p className="text-[0.65rem] tracking-[0.16em] text-[#9cb6a7]">总数</p>
-                  <p className="mt-2 text-2xl font-black text-[#ffdd84]">{rooms.length}</p>
-                </div>
-              </div>
-            </section>
-          </aside>
-
-          <section className="min-w-0 px-[clamp(0.35rem,1vw,0.85rem)] py-[clamp(0.35rem,1vw,0.85rem)]">
-            <div className="min-h-[calc(100dvh-1rem)]">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h2 className="mt-2 text-2xl font-black text-[#fff6cf]">房间列表</h2>
-                  <p className="mt-2 text-sm text-[#c6b889]">右侧展示当前大厅中的公开房间，点击即可快速加入等待中的桌子。</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <PixelButton
-                    onClick={() => {
-                      setMessage("");
-                      setActiveModal("create");
-                    }}
-                    disabled={Boolean(pendingAction)}
-                    variant="primary"
-                    size="sm"
-                  >
-                    <Plus size={16} />
-                    创建房间
-                  </PixelButton>
-                  <PixelButton
-                    onClick={() => {
-                      setMessage("");
-                      setActiveModal("join");
-                    }}
-                    disabled={Boolean(pendingAction)}
-                    variant="ghost"
-                    size="sm"
-                  >
-                    <Users size={16} />
-                    加入房间
-                  </PixelButton>
-                  <PixelButton
-                    onClick={() => void refreshRoomList()}
-                    disabled={refreshingRooms}
-                    variant="secondary"
-                    size="sm"
-                  >
-                    <RefreshCw size={16} className={refreshingRooms ? "animate-spin" : ""} />
-                    {refreshingRooms ? "刷新中" : "刷新列表"}
-                  </PixelButton>
-                </div>
-              </div>
-
-              {loadingRooms ? (
-                <div className="mt-5 grid gap-4 xl:grid-cols-2">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <PixelPanel key={`room-skeleton-${index}`} tone="dark" padding="md" className="min-h-44 animate-pulse">
-                      <div className="h-6 w-24 rounded bg-white/8" />
-                      <div className="mt-4 h-4 w-36 rounded bg-white/6" />
-                      <div className="mt-3 h-4 w-28 rounded bg-white/6" />
-                      <div className="mt-8 h-11 w-full rounded bg-white/7" />
-                    </PixelPanel>
-                  ))}
-                </div>
-              ) : rooms.length === 0 ? (
-                <PixelPanel tone="dark" padding="lg" className="mt-5 min-h-72">
-                  <div className="flex h-full flex-col items-center justify-center text-center">
-                    <Swords size={38} className="text-[#d7bc72]" />
-                    <h3 className="mt-4 text-xl font-black text-[#fff6cf]">当前还没有公开房间</h3>
-                    <p className="mt-3 max-w-md text-sm leading-6 text-[#c6b889]">
-                      现在开一桌会直接出现在列表里。你也可以把房间码发给朋友，让他们通过顶部按钮快速加入。
-                    </p>
-                  </div>
-                </PixelPanel>
-              ) : (
-                <div className="lie-room-card-hand mt-6">
-                  {rooms.map((room, index) => {
-                    const ownerName = resolveOwnerName(room);
-                    const isJoinable = room.status === "waiting" && room.players.length < room.maxPlayers;
-                    const actionKey = `join-${room.code}`;
-                    const pose = roomCardPoseList[index % roomCardPoseList.length];
-
-                    return (
-                      <button
-                        type="button"
-                        key={room.id}
-                        onClick={() => void joinRoomWithCode(room.code, actionKey)}
-                        disabled={!isJoinable || Boolean(pendingAction)}
-                        aria-label={`${room.code} 房间，房主 ${ownerName}，${room.players.length}/${room.maxPlayers}`}
-                        className="lie-room-card relative isolate flex shrink-0 cursor-pointer flex-col overflow-hidden rounded border-2 border-[#e8ddb7] bg-[#f7f0dc] p-3 text-left text-[#173b2a] shadow-2xl shadow-black/45 outline-none transition-[filter] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#f0d98d] disabled:cursor-not-allowed disabled:opacity-70"
-                        style={
-                          {
-                            "--room-card-rotate": `${pose.rotate}deg`,
-                            "--room-card-y": `${pose.y}rem`,
-                          } as CSSProperties
-                        }
-                      >
-                        <span className="flex h-full w-full flex-col">
-                          <span className="block max-w-full text-[clamp(1.15rem,2.7vw,1.75rem)] font-black leading-none tracking-[0.02em] text-[#173b2a]">
-                            {room.code}
-                          </span>
-                          <span className="mt-3 flex items-center gap-1.5 text-[0.68rem] font-black tracking-[0.1em] text-[#52605c]">
-                            <Crown size={13} />
-                            房主
-                          </span>
-                          <span className="mt-1 truncate text-sm font-black text-[#173b2a]">{ownerName}</span>
-                          <span className="grid flex-1 place-items-center py-2 text-[clamp(2.4rem,6vw,4rem)] font-black leading-none text-[#b93131]">
-                            {room.players.length}/{room.maxPlayers}
-                          </span>
-                          <span className="mt-auto text-center text-[0.62rem] font-black tracking-[0.14em] text-[#52605c]">
-                            {pendingAction === actionKey ? "加入中" : isJoinable ? "点击加入" : roomStatusLabelMap[room.status]}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </section>
         </div>
 
         {activeModal === "create" ? (
-          <PixelModal title="创建房间" icon={<Plus size={20} />} onClose={closeModal}>
+          <PixelModal title="创建房间" icon={<Plus size={20} />} onClose={closeModal} closeDisabled={Boolean(pendingAction)}>
             <p className="mt-4 text-sm leading-6 text-[#d6cba6]">系统会自动生成一组六位房间码，建房后直接进入牌桌等待其他玩家。</p>
             <PixelButton
               onClick={handleCreateRoom}
@@ -367,7 +430,7 @@ export default function LobbyPage() {
         ) : null}
 
         {activeModal === "join" ? (
-          <PixelModal title="加入房间" icon={<Users size={20} />} onClose={closeModal}>
+          <PixelModal title="加入房间" icon={<Users size={20} />} onClose={closeModal} closeDisabled={Boolean(pendingAction)}>
             <form onSubmit={handleJoinRoom} noValidate className="mt-5">
               <label className="block text-sm text-[#e8ddb7]">
                 房间码

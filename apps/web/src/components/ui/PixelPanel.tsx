@@ -7,12 +7,12 @@ type PixelPanelTone = "forest" | "dark" | "highlight" | "danger";
 
 const PANEL_BORDER_COLOR = "#c4c2d7";
 const PANEL_BORDER_WIDTH = "2";
+const PANEL_BACKGROUND_COLOR = "#3d474c";
 
 const toneStyleMap: Record<PixelPanelTone, CSSProperties> = {
   forest: {
-    boxShadow: "0 10px 0 #1b252b",
-    "--px-bg-color": "#3a4d56",
-    "--px-bg-top-color": "#47606a",
+    boxShadow: "-4px 10px 0 #1b252b, -8px 18px 18px rgba(0, 0, 0, 0.32)",
+    "--px-bg-color": PANEL_BACKGROUND_COLOR,
     "--px-bg-shadow-color": "#1b252b",
     "--px-border-color": PANEL_BORDER_COLOR,
     "--px-border": PANEL_BORDER_WIDTH,
@@ -24,9 +24,8 @@ const toneStyleMap: Record<PixelPanelTone, CSSProperties> = {
     "--panel-text": "#f7f0dc",
   } as CSSProperties,
   dark: {
-    boxShadow: "0 10px 0 #182126",
-    "--px-bg-color": "#33454d",
-    "--px-bg-top-color": "#415861",
+    boxShadow: "-4px 10px 0 #182126, -8px 18px 18px rgba(0, 0, 0, 0.34)",
+    "--px-bg-color": PANEL_BACKGROUND_COLOR,
     "--px-bg-shadow-color": "#182126",
     "--px-border-color": PANEL_BORDER_COLOR,
     "--px-border": PANEL_BORDER_WIDTH,
@@ -38,9 +37,8 @@ const toneStyleMap: Record<PixelPanelTone, CSSProperties> = {
     "--panel-text": "#f7f0dc",
   } as CSSProperties,
   highlight: {
-    boxShadow: "0 10px 0 #1d272d",
-    "--px-bg-color": "#465d66",
-    "--px-bg-top-color": "#59737d",
+    boxShadow: "-4px 10px 0 #1d272d, -8px 18px 18px rgba(0, 0, 0, 0.36)",
+    "--px-bg-color": PANEL_BACKGROUND_COLOR,
     "--px-bg-shadow-color": "#1d272d",
     "--px-border-color": PANEL_BORDER_COLOR,
     "--px-border": PANEL_BORDER_WIDTH,
@@ -52,9 +50,8 @@ const toneStyleMap: Record<PixelPanelTone, CSSProperties> = {
     "--panel-text": "#fff6cf",
   } as CSSProperties,
   danger: {
-    boxShadow: "0 10px 0 #2a1717",
-    "--px-bg-color": "#7a4e4f",
-    "--px-bg-top-color": "#946769",
+    boxShadow: "-4px 10px 0 #2a1717, -8px 18px 18px rgba(0, 0, 0, 0.36)",
+    "--px-bg-color": PANEL_BACKGROUND_COLOR,
     "--px-bg-shadow-color": "#2a1717",
     "--px-border-color": PANEL_BORDER_COLOR,
     "--px-border": PANEL_BORDER_WIDTH,

@@ -9,10 +9,11 @@ import { clearSession, getAccessToken, getStoredUser, type StoredUser } from "@/
 import { fetchMe } from "@/service/modules/user";
 
 type AuthGuardProps = PropsWithChildren<{
+  onReady?: () => void;
   onUser?: (user: StoredUser) => void;
 }>;
 
-export default function AuthGuard({ children, onUser }: AuthGuardProps) {
+export default function AuthGuard({ children, onReady, onUser }: AuthGuardProps) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
@@ -33,12 +34,13 @@ export default function AuthGuard({ children, onUser }: AuthGuardProps) {
       .then((user) => {
         onUser?.(user);
         setReady(true);
+        onReady?.();
       })
       .catch(() => {
         clearSession();
         router.replace("/login");
       });
-  }, [onUser, router]);
+  }, [onReady, onUser, router]);
 
   if (!ready) {
     return (

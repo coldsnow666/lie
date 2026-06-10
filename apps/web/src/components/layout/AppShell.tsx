@@ -4,16 +4,16 @@
 import { PropsWithChildren } from "react";
 
 type AppShellProps = PropsWithChildren<{
-  fullBleed?: boolean;
+  edgeToEdge?: boolean;
 }>;
 
-export default function AppShell({ children, fullBleed = false }: AppShellProps) {
+export default function AppShell({ children, edgeToEdge = false }: AppShellProps) {
   return (
     <div className="min-h-screen overflow-x-clip">
       <main
         className={
-          fullBleed
-            ? "w-full overflow-x-clip px-[clamp(0.25rem,0.8vw,0.5rem)] py-[clamp(0.25rem,1vh,0.5rem)]"
+          edgeToEdge
+            ? "w-full overflow-x-clip xl:px-[clamp(0.25rem,0.8vw,0.5rem)]"
             : "mx-auto w-full max-w-6xl overflow-x-clip px-4 py-6"
         }
       >

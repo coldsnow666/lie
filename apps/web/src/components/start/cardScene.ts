@@ -18,10 +18,10 @@ export type CornerFlight = {
 };
 
 export const defaultCards: BounceCard[] = [
-  { rank: "L", suit: "S" },
-  { rank: "I", suit: "H" },
-  { rank: "A", suit: "D" },
-  { rank: "R", suit: "C" },
+  { rank: "L", suit: "D" },
+  { rank: "I", suit: "S" },
+  { rank: "A", suit: "C" },
+  { rank: "R", suit: "H" },
 ];
 
 export const defaultTransformStates = [

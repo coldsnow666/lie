@@ -1,10 +1,9 @@
 /**
- * 登录表单组件：提交邮箱和密码，成功后保存会话并进入大厅。
+ * 登录表单组件：提交邮箱和密码，成功后保存会话并返回主页。
  */
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ArrowLeft, Lock, LogIn, Mail } from "lucide-react";
@@ -16,7 +15,6 @@ import PixelMessage from "@/components/ui/PixelMessage";
 import PixelPanel from "@/components/ui/PixelPanel";
 
 export default function LoginForm() {
-  const router = useRouter();
   const { navigateHome, transitioning } = useAuthTransition();
   const formRef = useRef<HTMLFormElement | null>(null);
   const [email, setEmail] = useState("");
@@ -81,10 +79,9 @@ export default function LoginForm() {
 
     try {
       await login({ email: email.trim(), password });
-      router.push("/lobby");
+      navigateHome();
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败");
-    } finally {
       setLoading(false);
     }
   }

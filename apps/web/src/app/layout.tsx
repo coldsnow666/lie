@@ -3,6 +3,7 @@
  */
 import type { Metadata } from "next";
 import GlobalBackground from "@/components/backgrounds/GlobalBackground";
+import { RouteLoadingProvider } from "@/components/loading/RouteLoadingProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,7 +20,9 @@ export default function RootLayout({
     <html lang="zh-CN" className="h-full">
       <body className="min-h-full overflow-x-hidden bg-[#0b1812] text-[#f7f0dc]">
         <GlobalBackground />
-        <div className="relative z-10 min-h-dvh">{children}</div>
+        <RouteLoadingProvider>
+          <div className="relative z-10 min-h-dvh">{children}</div>
+        </RouteLoadingProvider>
       </body>
     </html>
   );

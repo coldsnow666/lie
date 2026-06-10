@@ -37,7 +37,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -50,7 +51,7 @@ input {
   --px-corner-step-1: var(--px-border-size);
   --px-corner-step-2: calc(var(--px-border-size) * 2);
   --px-corner-step-3: calc(var(--px-border-size) * 3);
-  background: linear-gradient(180deg, var(--px-bg-top-color, var(--px-bg-color)), var(--px-bg-color) 1rem);
+  background: var(--px-bg-color);
   box-shadow: 0 10px 0 var(--px-bg-shadow-color);
   clip-path: polygon(
     var(--px-radius-lt-size) 0,
@@ -410,6 +411,16 @@ input {
   transform: translateY(4px);
 }
 
+.lie-pixel-button-square {
+  overflow: hidden;
+}
+
+.lie-pixel-button-square::before,
+.lie-pixel-button-square:disabled::before,
+.lie-pixel-button-square:active:not(:disabled)::before {
+  transform: translateY(0);
+}
+
 .lie-pixel-button-content {
   display: inline-flex;
   align-items: center;
@@ -425,13 +436,13 @@ input {
   --px-input-active-border-color: var(--px-input-border-color);
   --px-input-border-size: 2px;
   --px-input-bg-color: #17282b;
+  --px-input-text-color: #fff6cf;
+  --px-input-placeholder-color: #9eb0a4;
   --px-input-radius: 6px;
   --px-input-step-1: 2px;
   --px-input-step-2: 3px;
   --px-input-step-3: 4px;
-  background: transparent;
-  overflow: hidden;
-  clip-path: polygon(
+  --px-input-shape:
     var(--px-input-radius) 0,
     calc(100% - var(--px-input-radius)) 0,
     calc(100% - var(--px-input-radius)) var(--px-input-step-1),
@@ -467,8 +478,10 @@ input {
     var(--px-input-step-2) var(--px-input-step-2),
     var(--px-input-step-3) var(--px-input-step-2),
     var(--px-input-step-3) var(--px-input-step-1),
-    var(--px-input-radius) var(--px-input-step-1)
-  );
+    var(--px-input-radius) var(--px-input-step-1);
+  background: transparent;
+  overflow: hidden;
+  clip-path: polygon(var(--px-input-shape));
 }
 
 .lie-pixel-input::before,
@@ -476,175 +489,12 @@ input {
   position: absolute;
   pointer-events: none;
   content: "";
-  clip-path: polygon(
-    var(--px-input-radius) 0,
-    calc(100% - var(--px-input-radius)) 0,
-    calc(100% - var(--px-input-radius)) var(--px-input-step-1),
-    calc(100% - var(--px-input-step-3)) var(--px-input-step-1),
-    calc(100% - var(--px-input-step-3)) var(--px-input-step-2),
-    calc(100% - var(--px-input-step-2)) var(--px-input-step-2),
-    calc(100% - var(--px-input-step-2)) var(--px-input-step-3),
-    calc(100% - var(--px-input-step-1)) var(--px-input-step-3),
-    calc(100% - var(--px-input-step-1)) var(--px-input-radius),
-    100% var(--px-input-radius),
-    100% calc(100% - var(--px-input-radius)),
-    calc(100% - var(--px-input-step-1)) calc(100% - var(--px-input-radius)),
-    calc(100% - var(--px-input-step-1)) calc(100% - var(--px-input-step-3)),
-    calc(100% - var(--px-input-step-2)) calc(100% - var(--px-input-step-3)),
-    calc(100% - var(--px-input-step-2)) calc(100% - var(--px-input-step-2)),
-    calc(100% - var(--px-input-step-3)) calc(100% - var(--px-input-step-2)),
-    calc(100% - var(--px-input-step-3)) calc(100% - var(--px-input-step-1)),
-    calc(100% - var(--px-input-radius)) calc(100% - var(--px-input-step-1)),
-    calc(100% - var(--px-input-radius)) 100%,
-    var(--px-input-radius) 100%,
-    var(--px-input-radius) calc(100% - var(--px-input-step-1)),
-    var(--px-input-step-3) calc(100% - var(--px-input-step-1)),
-    var(--px-input-step-3) calc(100% - var(--px-input-step-2)),
-    var(--px-input-step-2) calc(100% - var(--px-input-step-2)),
-    var(--px-input-step-2) calc(100% - var(--px-input-step-3)),
-    var(--px-input-step-1) calc(100% - var(--px-input-step-3)),
-    var(--px-input-step-1) calc(100% - var(--px-input-radius)),
-    0 calc(100% - var(--px-input-radius)),
-    0 var(--px-input-radius),
-    var(--px-input-step-1) var(--px-input-radius),
-    var(--px-input-step-1) var(--px-input-step-3),
-    var(--px-input-step-2) var(--px-input-step-3),
-    var(--px-input-step-2) var(--px-input-step-2),
-    var(--px-input-step-3) var(--px-input-step-2),
-    var(--px-input-step-3) var(--px-input-step-1),
-    var(--px-input-radius) var(--px-input-step-1)
-  );
+  clip-path: polygon(var(--px-input-shape));
 }
 
 .lie-pixel-input::before {
   inset: 0;
   z-index: 0;
-  background: var(--px-input-bg-color);
-}
-
-.lie-pixel-input::after {
-  inset: 0;
-  z-index: 1;
-  background-image:
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color)),
-    linear-gradient(var(--px-input-active-border-color), var(--px-input-active-border-color));
-  background-position:
-    var(--px-input-radius) 0,
-    right 0 top var(--px-input-radius),
-    left var(--px-input-radius) bottom 0,
-    0 var(--px-input-radius),
-    var(--px-input-radius) 0,
-    var(--px-input-step-3) var(--px-input-step-1),
-    var(--px-input-step-3) var(--px-input-step-1),
-    var(--px-input-step-2) var(--px-input-step-2),
-    var(--px-input-step-2) var(--px-input-step-2),
-    var(--px-input-step-1) var(--px-input-step-3),
-    var(--px-input-step-1) var(--px-input-step-3),
-    0 var(--px-input-radius),
-    right var(--px-input-radius) top 0,
-    right var(--px-input-step-3) top var(--px-input-step-1),
-    right var(--px-input-step-3) top var(--px-input-step-1),
-    right var(--px-input-step-2) top var(--px-input-step-2),
-    right var(--px-input-step-2) top var(--px-input-step-2),
-    right var(--px-input-step-1) top var(--px-input-step-3),
-    right var(--px-input-step-1) top var(--px-input-step-3),
-    right 0 top var(--px-input-radius),
-    right 0 bottom var(--px-input-radius),
-    right var(--px-input-step-1) bottom var(--px-input-step-3),
-    right var(--px-input-step-1) bottom var(--px-input-step-3),
-    right var(--px-input-step-2) bottom var(--px-input-step-2),
-    right var(--px-input-step-2) bottom var(--px-input-step-2),
-    right var(--px-input-step-3) bottom var(--px-input-step-1),
-    right var(--px-input-step-3) bottom var(--px-input-step-1),
-    right var(--px-input-radius) bottom 0,
-    left var(--px-input-radius) bottom 0,
-    left var(--px-input-step-3) bottom var(--px-input-step-1),
-    left var(--px-input-step-3) bottom var(--px-input-step-1),
-    left var(--px-input-step-2) bottom var(--px-input-step-2),
-    left var(--px-input-step-2) bottom var(--px-input-step-2),
-    left var(--px-input-step-1) bottom var(--px-input-step-3),
-    left var(--px-input-step-1) bottom var(--px-input-step-3),
-    left 0 bottom var(--px-input-radius);
-  background-repeat: no-repeat;
-  background-size:
-    calc(100% - var(--px-input-radius) - var(--px-input-radius)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(100% - var(--px-input-radius) - var(--px-input-radius)),
-    calc(100% - var(--px-input-radius) - var(--px-input-radius)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(100% - var(--px-input-radius) - var(--px-input-radius)),
-    var(--px-input-border-size) var(--px-input-step-1),
-    calc(var(--px-input-radius) - var(--px-input-step-3)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-step-2) - var(--px-input-step-1)),
-    calc(var(--px-input-step-3) - var(--px-input-step-2)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-step-3) - var(--px-input-step-2)),
-    calc(var(--px-input-step-2) - var(--px-input-step-1)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-radius) - var(--px-input-step-3)),
-    var(--px-input-step-1) var(--px-input-border-size),
-    var(--px-input-border-size) var(--px-input-step-1),
-    calc(var(--px-input-radius) - var(--px-input-step-3)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-step-2) - var(--px-input-step-1)),
-    calc(var(--px-input-step-3) - var(--px-input-step-2)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-step-3) - var(--px-input-step-2)),
-    calc(var(--px-input-step-2) - var(--px-input-step-1)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-radius) - var(--px-input-step-3)),
-    var(--px-input-step-1) var(--px-input-border-size),
-    var(--px-input-step-1) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-radius) - var(--px-input-step-3)),
-    calc(var(--px-input-step-2) - var(--px-input-step-1)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-step-3) - var(--px-input-step-2)),
-    calc(var(--px-input-step-3) - var(--px-input-step-2)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-step-2) - var(--px-input-step-1)),
-    calc(var(--px-input-radius) - var(--px-input-step-3)) var(--px-input-border-size),
-    var(--px-input-border-size) var(--px-input-step-1),
-    var(--px-input-border-size) var(--px-input-step-1),
-    calc(var(--px-input-radius) - var(--px-input-step-3)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-step-2) - var(--px-input-step-1)),
-    calc(var(--px-input-step-3) - var(--px-input-step-2)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-step-3) - var(--px-input-step-2)),
-    calc(var(--px-input-step-2) - var(--px-input-step-1)) var(--px-input-border-size),
-    var(--px-input-border-size) calc(var(--px-input-radius) - var(--px-input-step-3)),
-    var(--px-input-step-1) var(--px-input-border-size);
-  transition: filter 150ms;
-}
-
-.lie-pixel-input:focus-within {
-  --px-input-active-border-color: var(--px-input-focus-border-color);
-}
-
-.lie-pixel-input::before {
   background: var(--px-input-active-border-color);
   transition: background-color 150ms;
 }
@@ -655,7 +505,12 @@ input {
   --px-input-step-2: 3px;
   --px-input-step-3: 4px;
   inset: var(--px-input-border-size);
+  z-index: 1;
   background: var(--px-input-bg-color);
+}
+
+.lie-pixel-input:focus-within {
+  --px-input-active-border-color: var(--px-input-focus-border-color);
 }
 
 .lie-pixel-input[data-disabled="true"] {
@@ -665,12 +520,23 @@ input {
 .lie-pixel-input-icon {
   position: relative;
   z-index: 2;
+  color: var(--px-input-text-color);
 }
 
 .lie-pixel-input-control {
   appearance: none;
   background: transparent !important;
   background-color: transparent !important;
+  color: var(--px-input-text-color) !important;
+}
+
+.lie-pixel-input-control::placeholder {
+  color: var(--px-input-placeholder-color);
+}
+
+.lie-pixel-input-control option {
+  background-color: var(--px-input-bg-color);
+  color: var(--px-input-text-color);
 }
 
 .lie-pixel-input-control:-webkit-autofill,
@@ -679,9 +545,9 @@ input {
 .lie-pixel-input-control:-webkit-autofill:active {
   -webkit-background-clip: text !important;
   -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
-  -webkit-text-fill-color: #fff6cf !important;
+  -webkit-text-fill-color: var(--px-input-text-color) !important;
   background-clip: text !important;
-  caret-color: #fff6cf !important;
+  caret-color: var(--px-input-text-color) !important;
   box-shadow: 0 0 0 1000px transparent inset !important;
   transition: background-color 999999s ease-in-out 0s, color 999999s ease-in-out 0s;
 }
@@ -850,9 +716,78 @@ input:-webkit-autofill:active {
   animation: lie-pixel-modal-overlay-in 140ms ease-out both;
 }
 
+.lie-pixel-modal-overlay[data-modal-state="closing"] {
+  animation: lie-pixel-modal-overlay-out 220ms ease-in both;
+}
+
 .lie-pixel-modal-panel {
   transform-origin: center;
-  animation: lie-pixel-modal-panel-in 180ms cubic-bezier(0.2, 0.9, 0.24, 1.08) both;
+  animation: lie-pixel-modal-panel-in 220ms cubic-bezier(0.18, 0.82, 0.24, 1) both;
+}
+
+.lie-pixel-modal-overlay[data-modal-state="closing"] .lie-pixel-modal-panel {
+  animation: lie-pixel-modal-panel-out 220ms cubic-bezier(0.55, 0, 0.72, 0.2) both;
+}
+
+.lie-route-loading-overlay {
+  background: rgba(4, 12, 11, 0.08);
+  user-select: none;
+}
+
+.lie-route-loading-diamond {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: max(150vw, 150vh);
+  aspect-ratio: 1;
+  background: #141f23;
+  box-shadow: 0 0 56px rgba(0, 0, 0, 0.68);
+  transform-origin: center;
+  transform: translate3d(-50%, -50%, 0) rotate(-10deg) scale(0.085);
+  will-change: transform, opacity;
+}
+
+.lie-route-loading-card-stage {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: calc(49px * 2.35);
+  height: calc(65px * 2.35);
+  perspective: 680px;
+  opacity: 0;
+  transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg);
+  will-change: transform, opacity;
+}
+
+.lie-route-loading-card-spin {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.lie-route-loading-card-side {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.lie-route-loading-back {
+  transform: rotateY(180deg);
+}
+
+.lie-route-loading-overlay[data-loading-phase="waiting"] .lie-route-loading-diamond {
+  opacity: 1;
+  transform: translate3d(-50%, -50%, 0) rotate(-10deg) scale(1.18);
+}
+
+.lie-route-loading-overlay[data-loading-phase="waiting"] .lie-route-loading-card-stage {
+  opacity: 1;
+  transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg);
 }
 
 .lie-room-card-hand {
@@ -861,6 +796,60 @@ input:-webkit-autofill:active {
   align-items: flex-start;
   row-gap: 1.9rem;
   padding: 0.7rem 0.35rem 1.2rem;
+}
+
+.lie-dom-playing-card {
+  --dom-card-border-size: calc(2px * var(--pixel-card-scale, 2));
+  --dom-card-radius: calc(4px * var(--pixel-card-scale, 2));
+  --dom-card-step-1: calc(1px * var(--pixel-card-scale, 2));
+  --dom-card-step-2: calc(2px * var(--pixel-card-scale, 2));
+  --dom-card-step-3: calc(3px * var(--pixel-card-scale, 2));
+  background: #17251f;
+  clip-path: polygon(
+    var(--dom-card-radius) 0,
+    calc(100% - var(--dom-card-radius)) 0,
+    calc(100% - var(--dom-card-radius)) var(--dom-card-step-1),
+    calc(100% - var(--dom-card-step-3)) var(--dom-card-step-1),
+    calc(100% - var(--dom-card-step-3)) var(--dom-card-step-2),
+    calc(100% - var(--dom-card-step-2)) var(--dom-card-step-2),
+    calc(100% - var(--dom-card-step-2)) var(--dom-card-step-3),
+    calc(100% - var(--dom-card-step-1)) var(--dom-card-step-3),
+    calc(100% - var(--dom-card-step-1)) var(--dom-card-radius),
+    100% var(--dom-card-radius),
+    100% calc(100% - var(--dom-card-radius)),
+    calc(100% - var(--dom-card-step-1)) calc(100% - var(--dom-card-radius)),
+    calc(100% - var(--dom-card-step-1)) calc(100% - var(--dom-card-step-3)),
+    calc(100% - var(--dom-card-step-2)) calc(100% - var(--dom-card-step-3)),
+    calc(100% - var(--dom-card-step-2)) calc(100% - var(--dom-card-step-2)),
+    calc(100% - var(--dom-card-step-3)) calc(100% - var(--dom-card-step-2)),
+    calc(100% - var(--dom-card-step-3)) calc(100% - var(--dom-card-step-1)),
+    calc(100% - var(--dom-card-radius)) calc(100% - var(--dom-card-step-1)),
+    calc(100% - var(--dom-card-radius)) 100%,
+    var(--dom-card-radius) 100%,
+    var(--dom-card-radius) calc(100% - var(--dom-card-step-1)),
+    var(--dom-card-step-3) calc(100% - var(--dom-card-step-1)),
+    var(--dom-card-step-3) calc(100% - var(--dom-card-step-2)),
+    var(--dom-card-step-2) calc(100% - var(--dom-card-step-2)),
+    var(--dom-card-step-2) calc(100% - var(--dom-card-step-3)),
+    var(--dom-card-step-1) calc(100% - var(--dom-card-step-3)),
+    var(--dom-card-step-1) calc(100% - var(--dom-card-radius)),
+    0 calc(100% - var(--dom-card-radius)),
+    0 var(--dom-card-radius),
+    var(--dom-card-step-1) var(--dom-card-radius),
+    var(--dom-card-step-1) var(--dom-card-step-3),
+    var(--dom-card-step-2) var(--dom-card-step-3),
+    var(--dom-card-step-2) var(--dom-card-step-2),
+    var(--dom-card-step-3) var(--dom-card-step-2),
+    var(--dom-card-step-3) var(--dom-card-step-1),
+    var(--dom-card-radius) var(--dom-card-step-1)
+  );
+}
+
+.lie-dom-playing-card-face {
+  position: absolute;
+  inset: var(--dom-card-border-size);
+  background: #eef4eb;
+  clip-path: inherit;
 }
 
 .lie-room-card {
@@ -882,6 +871,13 @@ input:-webkit-autofill:active {
   transform: translateY(-0.9rem) rotate(0deg) scale(1.06);
 }
 
+.lie-empty-room-card {
+  width: clamp(7.25rem, 18vw, 9.5rem);
+  margin-right: 0;
+  cursor: default;
+  transform: rotate(-3deg);
+}
+
 @media (max-width: 640px) {
   .lie-room-card-hand {
     row-gap: 1.3rem;
@@ -892,6 +888,10 @@ input:-webkit-autofill:active {
   .lie-room-card {
     width: clamp(5.25rem, 29vw, 7rem);
     margin-right: 0;
+  }
+
+  .lie-empty-room-card {
+    width: clamp(6.8rem, 34vw, 8rem);
   }
 }
 
@@ -905,20 +905,37 @@ input:-webkit-autofill:active {
   }
 }
 
+@keyframes lie-pixel-modal-overlay-out {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes lie-pixel-modal-panel-in {
   0% {
     opacity: 0;
-    transform: translate3d(0, 0.8rem, 0) scale(0.92);
-  }
-
-  58% {
-    opacity: 1;
-    transform: translate3d(0, -0.12rem, 0) scale(1.02);
+    transform: translate3d(0, 2.4rem, 0);
   }
 
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes lie-pixel-modal-panel-out {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 2.4rem, 0);
   }
 }
 

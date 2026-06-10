@@ -24,6 +24,10 @@ export class ApiRequestError extends Error {
   }
 }
 
+function createRequestError(message = "请求失败") {
+  return new ApiRequestError(API_RESPONSE_CODE.UNKNOWN_ERROR, message);
+}
+
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
   // 所有 REST 请求都从这里补 Authorization，页面组件不要直接拼接 token。
@@ -34,18 +38,20 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
+  }).catch(() => {
+    throw createRequestError("网络连接失败");
   });
 
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<unknown> | null;
 
   if (!payload) {
-    throw new Error("请求失败");
+    throw createRequestError(response.ok ? "请求失败" : `请求失败（${response.status}）`);
   }
 
   if (isErrorResponseCode(payload.code) || !response.ok) {
-    const errorData = payload.data as ApiErrorData;
+    const errorData = payload.data as Partial<ApiErrorData> | null;
     const errorCode = response.ok ? payload.code : (payload.code ?? API_RESPONSE_CODE.UNKNOWN_ERROR);
-    throw new ApiRequestError(errorCode, errorData.message ?? "请求失败");
+    throw new ApiRequestError(errorCode, errorData?.message ?? "请求失败");
   }
 
   return payload.data as T;

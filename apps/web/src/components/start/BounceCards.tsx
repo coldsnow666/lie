@@ -3,8 +3,10 @@
  */
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
+import DomPlayingCard from "@/components/game/DomPlayingCard";
 import { cardTransform, cornerFlights, defaultCards, resolveViewportCornerFlights, type BounceCard, type Suit } from "./cardScene";
 
 type BounceCardsProps = {
@@ -19,12 +21,16 @@ type BounceCardsProps = {
   managedShellMotion?: boolean;
 };
 
-const suitMap = {
-  S: { symbol: "♠", color: "#173b2a" },
-  H: { symbol: "♥", color: "#b93131" },
-  D: { symbol: "♦", color: "#b93131" },
-  C: { symbol: "♣", color: "#173b2a" },
+const suitMap: Record<Suit, string> = {
+  S: "♠",
+  H: "♥",
+  D: "♦",
+  C: "♣",
 };
+
+const startCardScaleStyle = {
+  "--start-card-scale": "calc(clamp(5.25rem, 16.5vw, 9.9rem) / 49px)",
+} as CSSProperties;
 
 export default function BounceCards({
   className = "",
@@ -168,31 +174,32 @@ export default function BounceCards({
   return (
     <div ref={containerRef} className={`relative h-full w-full ${className}`}>
       {cards.map((card, index) => {
-        const suit = suitMap[card.suit];
+        const suitSymbol = suitMap[card.suit];
+        const playingCard = {
+          id: `start-${card.rank}-${card.suit}`,
+          rank: "A",
+          suit: card.suit,
+        } as const;
 
         return (
           <div
             key={`${card.rank}-${card.suit}-${index}`}
-            className="absolute left-1/2 top-1/2 h-[clamp(7.5rem,24vw,14.5rem)] w-[clamp(5.25rem,16.5vw,9.9rem)] -translate-x-1/2 -translate-y-1/2"
+            className="absolute left-1/2 top-1/2 aspect-[49/65] w-[clamp(5.25rem,16.5vw,9.9rem)] -translate-x-1/2 -translate-y-1/2"
+            style={startCardScaleStyle}
           >
             <div data-bounce-card-flight={card.rank} className="lie-bounce-card-flight-shell h-full w-full">
               <button
                 type="button"
-                aria-label={`${card.rank}${suit.symbol}`}
+                aria-label={`${card.rank}${suitSymbol}`}
                 onMouseEnter={() => pushSiblings(index)}
                 onMouseLeave={resetSiblings}
                 onFocus={() => pushSiblings(index)}
                 onBlur={resetSiblings}
-                className={`lie-bounce-card lie-bounce-card-${index} h-full w-full cursor-pointer overflow-hidden rounded border-2 border-[#e8ddb7] bg-[#f7f0dc] p-3 text-left shadow-2xl shadow-black/45 outline-none transition-[filter] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#f0d98d]`}
+                className={`lie-bounce-card lie-bounce-card-${index} grid h-full w-full cursor-pointer place-items-center bg-transparent outline-none transition-[filter] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#f0d98d]`}
                 style={{ transform: cardTransform(index), transformOrigin: "50% 92%" }}
               >
-                <span className="lie-bounce-card-face flex h-full w-full flex-col">
-                  <span className="block text-[clamp(2.2rem,7.2vw,4.1rem)] font-black leading-none" style={{ color: suit.color }}>
-                    {card.rank}
-                  </span>
-                  <span className="grid flex-1 place-items-center pb-1 text-[clamp(3.4rem,11vw,6.7rem)] leading-none" style={{ color: suit.color }}>
-                    {suit.symbol}
-                  </span>
+                <span className="lie-bounce-card-face block h-full w-full drop-shadow-2xl">
+                  <DomPlayingCard card={playingCard} displayRank={card.rank} className="[--pixel-card-scale:var(--start-card-scale)]" />
                 </span>
               </button>
             </div>

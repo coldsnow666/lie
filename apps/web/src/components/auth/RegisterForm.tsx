@@ -108,7 +108,7 @@ export default function RegisterForm() {
 
     try {
       await register({ nickname: nickname.trim(), email: email.trim(), password });
-      router.push("/lobby");
+      router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "注册失败");
     } finally {
@@ -196,7 +196,7 @@ export default function RegisterForm() {
 
         <PixelButton type="submit" disabled={loading || transitioning} variant="primary" size="lg" fullWidth className="h-14 text-lg">
           <UserPlus size={18} />
-          {loading ? "注册中" : "注册并进入大厅"}
+          {loading ? "注册中" : "注册并返回主页"}
         </PixelButton>
 
         <div className="mt-7">

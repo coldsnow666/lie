@@ -3,10 +3,12 @@
  */
 "use client";
 
-import { useId, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelPanel from "@/components/ui/PixelPanel";
+
+const MODAL_EXIT_DURATION = 220;
 
 type PixelModalProps = {
   children: ReactNode;
@@ -14,13 +16,53 @@ type PixelModalProps = {
   icon?: ReactNode;
   onClose: () => void;
   className?: string;
+  closeDisabled?: boolean;
 };
 
-export default function PixelModal({ children, title, icon, onClose, className = "" }: PixelModalProps) {
+export default function PixelModal({ children, title, icon, onClose, className = "", closeDisabled = false }: PixelModalProps) {
   const titleId = useId();
+  const [closing, setClosing] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const requestClose = useCallback(() => {
+    if (closing || closeDisabled) {
+      return;
+    }
+
+    setClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      onClose();
+    }, MODAL_EXIT_DURATION);
+  }, [closeDisabled, closing, onClose]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        requestClose();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [requestClose]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <div className="lie-pixel-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/62 px-4 py-6 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="lie-pixel-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/62 px-4 py-6 backdrop-blur-sm"
+      data-modal-state={closing ? "closing" : "open"}
+      onClick={requestClose}
+    >
       <PixelPanel
         role="dialog"
         aria-modal="true"
@@ -39,7 +81,15 @@ export default function PixelModal({ children, title, icon, onClose, className =
               {title}
             </h2>
           </div>
-          <PixelButton onClick={onClose} variant="ghost" size="sm" className="h-9 w-9 shrink-0 px-0" aria-label="关闭弹窗">
+          <PixelButton
+            onClick={requestClose}
+            disabled={closeDisabled}
+            variant="ghost"
+            size="sm"
+            square
+            className="h-9 w-9.5 shrink-0"
+            aria-label="关闭弹窗"
+          >
             <X size={16} />
           </PixelButton>
         </div>

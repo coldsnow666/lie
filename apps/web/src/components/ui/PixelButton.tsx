@@ -33,6 +33,7 @@ type PixelButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: PixelButtonSize;
   fullWidth?: boolean;
   asChild?: boolean;
+  square?: boolean;
 };
 
 export default function PixelButton({
@@ -42,6 +43,7 @@ export default function PixelButton({
   variant = "primary",
   size = "md",
   fullWidth = false,
+  square = false,
   type = "button",
   ...props
 }: PixelButtonProps) {
@@ -51,6 +53,7 @@ export default function PixelButton({
         "active:translate-y-[3px] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0",
         sizeClassMap[size],
         variantClassMap[variant],
+        square ? "lie-pixel-button-square aspect-square min-w-0 px-0" : "",
         fullWidth ? "w-full" : "",
         className,
       ]
