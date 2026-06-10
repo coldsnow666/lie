@@ -34,9 +34,14 @@ function getHandScale(containerWidth: number, cardCount: number) {
     return HAND_CARD_MAX_SCALE;
   }
 
-  const fittedScale = (containerWidth + HAND_CARD_TARGET_OVERLAP * (cardCount - 1)) / (CARD_BASE_WIDTH * cardCount);
+  const availableWidth = Math.max(containerWidth - getHandEdgePadding(containerWidth) * 2, CARD_BASE_WIDTH);
+  const fittedScale = (availableWidth + HAND_CARD_TARGET_OVERLAP * (cardCount - 1)) / (CARD_BASE_WIDTH * cardCount);
 
   return Math.min(Math.max(fittedScale, HAND_CARD_MIN_SCALE), HAND_CARD_MAX_SCALE);
+}
+
+function getHandEdgePadding(containerWidth: number) {
+  return Math.min(Math.max(containerWidth * 0.064, 18), 30);
 }
 
 function getHandOverlap(scale: number, cardCount: number) {
@@ -60,6 +65,7 @@ export default function Hand({
   const [handWidth, setHandWidth] = useState(0);
   const handScale = getHandScale(handWidth, cards.length);
   const handOverlap = getHandOverlap(handScale, cards.length);
+  const handEdgePadding = getHandEdgePadding(handWidth);
 
   useEffect(() => {
     const hand = handRef.current;
@@ -67,7 +73,12 @@ export default function Hand({
       return;
     }
 
-    const updateHandWidth = () => setHandWidth(hand.clientWidth);
+    const updateHandWidth = () => {
+      setHandWidth((currentWidth) => {
+        const nextWidth = hand.clientWidth;
+        return Math.abs(currentWidth - nextWidth) > 1 ? nextWidth : currentWidth;
+      });
+    };
     updateHandWidth();
 
     const observer = new ResizeObserver(updateHandWidth);
@@ -86,6 +97,7 @@ export default function Hand({
             style={
               {
                 "--hand-card-overlap": `${handOverlap}px`,
+                "--hand-edge-padding": `${handEdgePadding}px`,
                 "--pixel-card-scale": handScale,
               } as CSSProperties
             }

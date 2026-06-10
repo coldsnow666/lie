@@ -928,7 +928,7 @@ input:-webkit-autofill:active {
   width: 100%;
   overflow-x: hidden;
   overflow-y: visible;
-  padding: 1.15rem 0 1.35rem;
+  padding: 1.15rem var(--hand-edge-padding, 1.25rem) 1.35rem;
 }
 
 .lie-game-hand-card {

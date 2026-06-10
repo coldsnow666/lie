@@ -33,7 +33,7 @@ export async function fetchRooms() {
   return data.rooms;
 }
 
-export async function createRoom(input: { roomCode?: string; maxPlayers: 2 | 3 | 4 }) {
+export async function createRoom(input: { roomCode?: string; maxPlayers: 2 | 3 }) {
   const data = await request<{ room: PublicRoom }>("/rooms", {
     method: "POST",
     body: JSON.stringify(input),

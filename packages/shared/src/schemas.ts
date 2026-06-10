@@ -9,7 +9,7 @@ export const nicknameSchema = z.string().trim().min(2).max(16);
 export const passwordSchema = z.string().min(8);
 export const roomCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z0-9]{4,8}$/);
 export const cardIdSchema = z.string().min(2).max(3);
-export const roomMaxPlayersSchema = z.union([z.literal(2), z.literal(3), z.literal(4)]);
+export const roomMaxPlayersSchema = z.union([z.literal(2), z.literal(3)]);
 export const declaredRankSchema = z.enum(DECLARABLE_RANKS);
 
 export const registerSchema = z.object({

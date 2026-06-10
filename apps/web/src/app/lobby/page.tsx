@@ -255,7 +255,7 @@ export default function LobbyPage() {
   const [refreshingRooms, setRefreshingRooms] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<LobbyModalKind | null>(null);
-  const [roomMaxPlayers, setRoomMaxPlayers] = useState<2 | 3 | 4>(4);
+  const [roomMaxPlayers, setRoomMaxPlayers] = useState<2 | 3>(3);
 
   const enterRoom = useCallback(
     (room: PublicRoom) => {
@@ -431,14 +431,13 @@ export default function LobbyPage() {
               房间人数
               <PixelSelect
                 value={String(roomMaxPlayers)}
-                onChange={(event) => setRoomMaxPlayers(Number(event.target.value) as 2 | 3 | 4)}
+                onChange={(event) => setRoomMaxPlayers(Number(event.target.value) as 2 | 3)}
                 aria-label="房间人数"
                 className="mt-2"
                 selectClassName="text-base font-bold tracking-[0.12em]"
               >
                 <option value="2">2 人房</option>
                 <option value="3">3 人房</option>
-                <option value="4">4 人房</option>
               </PixelSelect>
             </label>
             <PixelButton

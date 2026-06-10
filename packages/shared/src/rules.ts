@@ -2,7 +2,7 @@
  * 共享游戏规则引擎：只包含纯函数，不依赖 Socket、Redis 或数据库。
  */
 import { MAX_PLAY_CARDS, MAX_PLAYERS, MIN_PLAY_CARDS, MIN_PLAYERS } from "./constants";
-import { createDeck, dealCards, isJokerCard, shuffleDeck, type Card, type DeclaredRank } from "./cards";
+import { createGameDeck, dealFixedHands, getGameDeckConfig, isJokerCard, shuffleDeck, sortHandCards, type Card, type DeclaredRank } from "./cards";
 import type { CardsPlayedEvent, ChallengeResolvedEvent } from "./events";
 
 export type Player = {
@@ -36,6 +36,7 @@ export type PrivateGameState = {
   status: "waiting" | "playing" | "finished";
   players: Player[];
   hands: Record<string, Card[]>;
+  undealtCards: Card[];
   discardPile: DiscardEntry[];
   currentPlayerId: string;
   lastPlay: LastPlay | null;
@@ -45,7 +46,7 @@ export type PrivateGameState = {
   updatedAt: number;
 };
 
-export type PublicGameState = Omit<PrivateGameState, "hands" | "discardPile" | "lastPlay"> & {
+export type PublicGameState = Omit<PrivateGameState, "hands" | "undealtCards" | "discardPile" | "lastPlay"> & {
   players: Array<Player & { cardCount: number }>;
   selfHand: Card[];
   discardPileCount: number;
@@ -123,8 +124,9 @@ export function createInitialGameState(params: {
   const players = [...params.players]
     .sort((a, b) => a.seatIndex - b.seatIndex)
     .map((player) => ({ ...player, ready: true, connected: player.connected ?? true }));
-  const deck = shuffleDeck(createDeck(), params.seed);
-  const hands = dealCards(deck, players.map((player) => player.playerId));
+  const deckConfig = getGameDeckConfig(players.length);
+  const deck = shuffleDeck(createGameDeck(players.length, params.seed), `${params.seed}:shuffle`);
+  const { hands, undealtCards } = dealFixedHands(deck, players.map((player) => player.playerId), deckConfig.handSize);
   const now = params.now ?? Date.now();
 
   return {
@@ -133,6 +135,7 @@ export function createInitialGameState(params: {
     status: "playing",
     players,
     hands,
+    undealtCards,
     discardPile: [],
     currentPlayerId: players[0].playerId,
     lastPlay: null,
@@ -303,7 +306,7 @@ export function toPublicGameState(state: PrivateGameState, viewerPlayerId: strin
     roomId: state.roomId,
     status: state.status,
     players,
-    selfHand: state.hands[viewerPlayerId] ?? [],
+    selfHand: sortHandCards(state.hands[viewerPlayerId] ?? []),
     discardPileCount: state.discardPile.length,
     currentPlayerId: state.currentPlayerId,
     lastPlay,

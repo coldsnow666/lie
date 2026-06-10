@@ -157,7 +157,7 @@ export async function createRoom(
   user: AuthUser,
   options: {
     roomCode?: string;
-    maxPlayers: 2 | 3 | 4;
+    maxPlayers: 2 | 3;
   },
   socketId?: string,
 ) {

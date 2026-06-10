@@ -2,7 +2,7 @@
  * 共享规则测试：验证牌堆、出牌、质疑和隐藏信息脱敏。
  */
 import { describe, expect, it } from "vitest";
-import { createDeck } from "./cards";
+import { createDeck, createGameDeck, sortHandCards } from "./cards";
 import {
   challengeLastPlay,
   createInitialGameState,
@@ -54,6 +54,45 @@ describe("cards", () => {
     expect(deck.some((card) => card.rank === "BLACK_JOKER")).toBe(true);
     expect(deck.some((card) => card.rank === "RED_JOKER")).toBe(true);
   });
+
+  it("creates fixed game decks from random full-rank subsets", () => {
+    const twoPlayerDeck = createGameDeck(2, "two-player-seed");
+    const threePlayerDeck = createGameDeck(3, "three-player-seed");
+
+    expect(twoPlayerDeck).toHaveLength(22);
+    expect(new Set(twoPlayerDeck.filter((card) => card.suit !== "JOKER").map((card) => card.rank))).toHaveLength(5);
+    expect(twoPlayerDeck.filter((card) => card.suit === "JOKER")).toHaveLength(2);
+
+    expect(threePlayerDeck).toHaveLength(34);
+    expect(new Set(threePlayerDeck.filter((card) => card.suit !== "JOKER").map((card) => card.rank))).toHaveLength(8);
+    expect(threePlayerDeck.filter((card) => card.suit === "JOKER")).toHaveLength(2);
+  });
+
+  it("sorts hands by jokers first and ranks descending", () => {
+    const sorted = sortHandCards([
+      { id: "3D", rank: "3", suit: "D" },
+      { id: "KS", rank: "K", suit: "S" },
+      { id: "BJ", rank: "BLACK_JOKER", suit: "JOKER" },
+      { id: "10H", rank: "10", suit: "H" },
+      { id: "RJ", rank: "RED_JOKER", suit: "JOKER" },
+      { id: "AS", rank: "A", suit: "S" },
+      { id: "QH", rank: "Q", suit: "H" },
+      { id: "9C", rank: "9", suit: "C" },
+      { id: "JD", rank: "J", suit: "D" },
+    ]);
+
+    expect(sorted.map((card) => card.rank)).toEqual([
+      "RED_JOKER",
+      "BLACK_JOKER",
+      "K",
+      "Q",
+      "J",
+      "10",
+      "9",
+      "3",
+      "A",
+    ]);
+  });
 });
 
 describe("game rules", () => {
@@ -65,8 +104,41 @@ describe("game rules", () => {
 
     expect(result.event.declaredRank).toBe("A");
     expect(result.state.hands["player-1"]).toHaveLength(state.hands["player-1"].length - 2);
-    expect(publicState.selfHand).toEqual(result.state.hands["player-2"]);
+    expect(publicState.selfHand).toEqual(sortHandCards(result.state.hands["player-2"]));
     expect(publicState.lastPlay).not.toHaveProperty("actualCards");
+  });
+
+  it("deals eleven-card hands and keeps undealt cards hidden", () => {
+    const twoPlayerState = stateForTests();
+    const threePlayerState = createInitialGameState({
+      matchId: "match-3",
+      roomId: "room-3",
+      players: [
+        ...players,
+        {
+          playerId: "player-3",
+          userId: "user-3",
+          nickname: "玩家C",
+          seatIndex: 2,
+          connected: true,
+          ready: true,
+          pendingWin: false,
+        },
+      ],
+      seed: "three-player-state-seed",
+      now: 1,
+    });
+    const publicState = toPublicGameState(threePlayerState, "player-1");
+
+    expect(twoPlayerState.hands["player-1"]).toHaveLength(11);
+    expect(twoPlayerState.hands["player-2"]).toHaveLength(11);
+    expect(twoPlayerState.undealtCards).toHaveLength(0);
+
+    expect(threePlayerState.hands["player-1"]).toHaveLength(11);
+    expect(threePlayerState.hands["player-2"]).toHaveLength(11);
+    expect(threePlayerState.hands["player-3"]).toHaveLength(11);
+    expect(threePlayerState.undealtCards).toHaveLength(1);
+    expect(publicState).not.toHaveProperty("undealtCards");
   });
 
   it("rejects cards that are not in the active player's hand", () => {
