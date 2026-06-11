@@ -16,12 +16,11 @@ import {
 } from "@lie/shared";
 import { prisma } from "../db/prisma";
 import type { AuthUser } from "../auth/token";
+import { errorContext, logger } from "../utils/logger";
 import { deleteRoom, getRoomByCode, getRoomById, listRooms, saveRoom, type RoomState } from "./room.store";
 
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const STALE_SOCKET_GRACE_MS = 15_000;
 const WAITING_ROOM_WITHOUT_SOCKET_GRACE_MS = 60_000;
-const activeSocketIds = new Set<string>();
 
 function generateRoomCode() {
   return Array.from({ length: 6 }, () => ROOM_CODE_ALPHABET[Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)]).join("");
@@ -78,10 +77,6 @@ function pushRoomEvent(room: RoomState, event: RoomLifecycleEvent) {
   room.events = [...room.events, event].slice(-50);
 }
 
-function hasActiveSocket(room: RoomState) {
-  return room.players.some((player) => player.socketId && activeSocketIds.has(player.socketId));
-}
-
 function shouldDeleteAbandonedRoom(room: RoomState, now = Date.now()) {
   if (room.players.length === 0) {
     return true;
@@ -91,15 +86,13 @@ function shouldDeleteAbandonedRoom(room: RoomState, now = Date.now()) {
     return true;
   }
 
-  // Redis 里可能保留了服务重启前的旧 socketId；超过宽限期且当前进程没有任何活跃 socket 时，
-  // 在房间列表查询时顺手清理，避免大厅长期展示僵尸房间。
-  if (room.players.some((player) => player.socketId)) {
-    return now - room.updatedAt > STALE_SOCKET_GRACE_MS && !hasActiveSocket(room);
-  }
-
-  // REST 建房到房间页 Socket 同步之间存在短窗口；如果超过 1 分钟仍没有任何 socket，
-  // 基本可以判定为创建后关闭、回退或导航中断产生的孤儿等待房。
-  return room.status === "waiting" && now - room.updatedAt > WAITING_ROOM_WITHOUT_SOCKET_GRACE_MS;
+  // 房间热状态可能来自其他实例，当前进程不能仅凭 socketId 判断对方连接是否仍然有效，
+  // 因此这里只清理“从未建立过 Socket 同步”的等待房，避免误删其他实例上的活房间。
+  return (
+    room.status === "waiting" &&
+    room.players.every((player) => !player.socketId) &&
+    now - room.updatedAt > WAITING_ROOM_WITHOUT_SOCKET_GRACE_MS
+  );
 }
 
 async function createRoomRecord(room: RoomState) {
@@ -119,21 +112,18 @@ async function createRoomRecord(room: RoomState) {
         maxPlayers: room.maxPlayers,
       },
     });
-  } catch {
-    // PostgreSQL 未启动时仍允许本地调试 Socket 房间流程，正式环境应记录告警。
+  } catch (error) {
+    logger.warn("room metadata persistence failed", {
+      scope: "room.persistence.metadata",
+      roomId: room.id,
+      roomCode: room.code,
+      ...errorContext(error),
+    });
   }
 }
 
 export function serializeRoom(room: RoomState) {
   return publicRoom(room);
-}
-
-export function registerRoomSocket(socketId: string) {
-  activeSocketIds.add(socketId);
-}
-
-export function unregisterRoomSocket(socketId: string) {
-  activeSocketIds.delete(socketId);
 }
 
 export async function listPublicRooms() {
@@ -235,6 +225,10 @@ export async function leaveRoom(roomId: string, user: AuthUser) {
 
   if (!room) {
     return null;
+  }
+
+  if (room.status === "playing" || room.gameState?.status === "playing") {
+    throw new Error("ROOM_IN_GAME");
   }
 
   const player = findPlayerByUser(room, user.id);
@@ -414,8 +408,13 @@ export async function startGame(roomId: string, user: AuthUser) {
         },
       },
     });
-  } catch {
-    // 持久化失败不应改变已生成的服务端权威游戏状态；后续稳定性阶段再补偿写入。
+  } catch (error) {
+    logger.warn("match persistence failed after game start", {
+      scope: "room.persistence.matchStart",
+      roomId: room.id,
+      matchId,
+      ...errorContext(error),
+    });
   }
 
   return saveRoom(room);

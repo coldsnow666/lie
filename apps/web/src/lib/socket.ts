@@ -25,7 +25,15 @@ export function createSocket() {
     socketToken = null;
   }
 
-  if (socket?.connected) {
+  if (socket && socketToken === token) {
+    socket.auth = {
+      token,
+    };
+
+    if (!socket.connected && !socket.active) {
+      socket.connect();
+    }
+
     return socket;
   }
 
@@ -34,9 +42,10 @@ export function createSocket() {
     auth: {
       token,
     },
-    autoConnect: true,
+    autoConnect: false,
   });
   socketToken = token;
+  socket.connect();
 
   return socket;
 }

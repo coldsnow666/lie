@@ -1,0 +1,154 @@
+.lie-room-card-hand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: 1.9rem;
+  padding: 1.6rem 1.1rem 1.2rem 1.8rem;
+}
+
+.lie-game-hand {
+  position: relative;
+  display: block;
+  min-height: var(--hand-height, calc(65px * var(--pixel-card-scale, 2) + 2.6rem));
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: visible;
+  padding: 1.85rem var(--hand-edge-padding, 1.25rem) 1.15rem;
+}
+
+.lie-game-hand-card {
+  position: absolute;
+  left: 50%;
+  bottom: 1.15rem;
+  cursor: pointer;
+  transform: translate3d(calc(-50% + var(--hand-card-x, 0px)), var(--hand-card-y, 0px), 0) rotate(var(--hand-card-rotate, 0deg));
+  transform-origin: 50% 92%;
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.9, 0.24, 1.08),
+    filter 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.lie-game-hand-card:not(:first-child) {
+  margin-left: 0;
+}
+
+.lie-game-hand-card::after {
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  bottom: -0.52rem;
+  height: 0.48rem;
+  pointer-events: none;
+  content: "";
+  background: rgba(8, 13, 14, 0.34);
+  filter: blur(2px);
+  transform: rotate(var(--hand-card-rotate, 0deg));
+}
+
+.lie-game-hand-card:not([data-selected="true"]):hover,
+.lie-game-hand-card:not([data-selected="true"]):focus-visible {
+  transform: translate3d(calc(-50% + var(--hand-card-x, 0px)), calc(var(--hand-card-y, 0px) - 0.45rem), 0) rotate(0deg);
+}
+
+.lie-game-hand-card[data-selected="true"] {
+  filter: drop-shadow(0 14px 0 rgba(215, 188, 114, 0.26));
+  transform: translate3d(calc(-50% + var(--hand-card-x, 0px)), calc(var(--hand-card-y, 0px) - 0.9rem), 0) rotate(0deg);
+}
+
+.lie-dom-playing-card {
+  --dom-card-border-size: calc(2px * var(--pixel-card-scale, 2));
+  --dom-card-radius: calc(4px * var(--pixel-card-scale, 2));
+  --dom-card-step-1: calc(1px * var(--pixel-card-scale, 2));
+  --dom-card-step-2: calc(2px * var(--pixel-card-scale, 2));
+  --dom-card-step-3: calc(3px * var(--pixel-card-scale, 2));
+  background: #17251f;
+  clip-path: polygon(
+    var(--dom-card-radius) 0,
+    calc(100% - var(--dom-card-radius)) 0,
+    calc(100% - var(--dom-card-radius)) var(--dom-card-step-1),
+    calc(100% - var(--dom-card-step-3)) var(--dom-card-step-1),
+    calc(100% - var(--dom-card-step-3)) var(--dom-card-step-2),
+    calc(100% - var(--dom-card-step-2)) var(--dom-card-step-2),
+    calc(100% - var(--dom-card-step-2)) var(--dom-card-step-3),
+    calc(100% - var(--dom-card-step-1)) var(--dom-card-step-3),
+    calc(100% - var(--dom-card-step-1)) var(--dom-card-radius),
+    100% var(--dom-card-radius),
+    100% calc(100% - var(--dom-card-radius)),
+    calc(100% - var(--dom-card-step-1)) calc(100% - var(--dom-card-radius)),
+    calc(100% - var(--dom-card-step-1)) calc(100% - var(--dom-card-step-3)),
+    calc(100% - var(--dom-card-step-2)) calc(100% - var(--dom-card-step-3)),
+    calc(100% - var(--dom-card-step-2)) calc(100% - var(--dom-card-step-2)),
+    calc(100% - var(--dom-card-step-3)) calc(100% - var(--dom-card-step-2)),
+    calc(100% - var(--dom-card-step-3)) calc(100% - var(--dom-card-step-1)),
+    calc(100% - var(--dom-card-radius)) calc(100% - var(--dom-card-step-1)),
+    calc(100% - var(--dom-card-radius)) 100%,
+    var(--dom-card-radius) 100%,
+    var(--dom-card-radius) calc(100% - var(--dom-card-step-1)),
+    var(--dom-card-step-3) calc(100% - var(--dom-card-step-1)),
+    var(--dom-card-step-3) calc(100% - var(--dom-card-step-2)),
+    var(--dom-card-step-2) calc(100% - var(--dom-card-step-2)),
+    var(--dom-card-step-2) calc(100% - var(--dom-card-step-3)),
+    var(--dom-card-step-1) calc(100% - var(--dom-card-step-3)),
+    var(--dom-card-step-1) calc(100% - var(--dom-card-radius)),
+    0 calc(100% - var(--dom-card-radius)),
+    0 var(--dom-card-radius),
+    var(--dom-card-step-1) var(--dom-card-radius),
+    var(--dom-card-step-1) var(--dom-card-step-3),
+    var(--dom-card-step-2) var(--dom-card-step-3),
+    var(--dom-card-step-2) var(--dom-card-step-2),
+    var(--dom-card-step-3) var(--dom-card-step-2),
+    var(--dom-card-step-3) var(--dom-card-step-1),
+    var(--dom-card-radius) var(--dom-card-step-1)
+  );
+}
+
+.lie-dom-playing-card-face {
+  position: absolute;
+  inset: var(--dom-card-border-size);
+  background: #eef4eb;
+  clip-path: inherit;
+}
+
+.lie-room-card {
+  width: clamp(5.6rem, 12vw, 8.4rem);
+  aspect-ratio: 0.68;
+  margin-right: clamp(-1.35rem, -1.8vw, -0.55rem);
+  transform: translateY(var(--room-card-y, 0)) rotate(var(--room-card-rotate, 0deg));
+  transform-origin: 50% 92%;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.9, 0.24, 1.08),
+    filter 160ms ease,
+    box-shadow 220ms ease;
+}
+
+.lie-room-card:not(:disabled):hover,
+.lie-room-card:not(:disabled):focus-visible {
+  z-index: 8;
+  box-shadow: 0 18px 0 rgba(8, 13, 14, 0.38), 0 24px 34px rgba(0, 0, 0, 0.36);
+  transform: translateY(-0.9rem) rotate(0deg) scale(1.06);
+}
+
+.lie-empty-room-card {
+  width: clamp(7.25rem, 18vw, 9.5rem);
+  margin-right: 0;
+  cursor: default;
+  transform: rotate(-3deg);
+}
+
+@media (max-width: 640px) {
+  .lie-room-card-hand {
+    row-gap: 1.3rem;
+    column-gap: 0.35rem;
+    padding: 1.2rem 0.2rem 1rem 0.8rem;
+  }
+
+  .lie-room-card {
+    width: clamp(5.25rem, 29vw, 7rem);
+    margin-right: 0;
+  }
+
+  .lie-empty-room-card {
+    width: clamp(6.8rem, 34vw, 8rem);
+  }
+}

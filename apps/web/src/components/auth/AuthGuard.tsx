@@ -1,12 +1,12 @@
 /**
- * 登录保护组件：校验本地 token，并在失效时跳转登录页。
+ * 登录保护组件：消费全局会话状态，并在未登录时跳转登录页。
  */
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PropsWithChildren, useEffect, useState } from "react";
-import { clearSession, getAccessToken, getStoredUser, type StoredUser } from "@/lib/auth";
-import { fetchMe } from "@/service/modules/user";
+import { PropsWithChildren, useEffect } from "react";
+import { useSession } from "@/components/auth/SessionProvider";
+import type { StoredUser } from "@/lib/auth";
 
 type AuthGuardProps = PropsWithChildren<{
   onReady?: () => void;
@@ -15,34 +15,22 @@ type AuthGuardProps = PropsWithChildren<{
 
 export default function AuthGuard({ children, onReady, onUser }: AuthGuardProps) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const { status, user } = useSession();
 
   useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
+    if (status === "unauthenticated") {
       router.replace("/login");
-      return;
     }
+  }, [router, status]);
 
-    const storedUser = getStoredUser();
-    if (storedUser) {
-      // 先展示本地用户信息，再用 /auth/me 校准登录态，减少大厅首屏等待。
-      queueMicrotask(() => onUser?.(storedUser));
+  useEffect(() => {
+    if (status === "authenticated" && user) {
+      onUser?.(user);
+      onReady?.();
     }
+  }, [onReady, onUser, status, user]);
 
-    fetchMe()
-      .then((user) => {
-        onUser?.(user);
-        setReady(true);
-        onReady?.();
-      })
-      .catch(() => {
-        clearSession();
-        router.replace("/login");
-      });
-  }, [onReady, onUser, router]);
-
-  if (!ready) {
+  if (status !== "authenticated") {
     return (
       <div className="grid min-h-screen place-items-center text-[#f5e7b0]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d7bc72] border-t-transparent" />

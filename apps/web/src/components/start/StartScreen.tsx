@@ -5,65 +5,51 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "@/components/auth/SessionProvider";
 import BounceCards from "@/components/start/BounceCards";
 import { useStartScreenTransition } from "@/components/start/useStartScreenTransition";
 import { useRouteLoading } from "@/components/loading/RouteLoadingProvider";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelModal from "@/components/ui/PixelModal";
 import PixelPanel from "@/components/ui/PixelPanel";
-import { clearSession, isLoggedIn } from "@/lib/auth";
+import { clearSession } from "@/lib/auth";
 
 const LOBBY_ROUTE_PUSH_DELAY = 900;
 
 export default function StartScreen() {
   const router = useRouter();
   const routeLoading = useRouteLoading();
+  const { status } = useSession();
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [loggedIn, setLoggedIn] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [enteringLobby, setEnteringLobby] = useState(false);
   const lobbyRouteTimerRef = useRef<number | null>(null);
   const { cardRegionRef, menuRef, playExit, replayIntro, transitioning } = useStartScreenTransition();
+  const loggedIn = status === "authenticated";
 
   useEffect(() => {
     const htmlOverflow = document.documentElement.style.overflow;
     const bodyOverflow = document.body.style.overflow;
     const bodyHeight = document.body.style.height;
 
-    const loginStateTimer = window.setTimeout(() => setLoggedIn(isLoggedIn()), 0);
-
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
     document.body.style.height = "100dvh";
 
-    const syncLoginState = () => {
-      setLoggedIn(isLoggedIn());
-    };
-
     const handlePageShow = () => {
-      syncLoginState();
       setEnteringLobby(false);
       routeLoading.cancel();
       // 浏览器返回命中 bfcache 时，页面会复用上次退出后的 DOM 状态，这里强制重播入场动画。
       window.setTimeout(() => replayIntro(), 0);
     };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        syncLoginState();
-      }
-    };
-
     window.addEventListener("pageshow", handlePageShow);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.clearTimeout(loginStateTimer);
       if (lobbyRouteTimerRef.current) {
         window.clearTimeout(lobbyRouteTimerRef.current);
       }
       window.removeEventListener("pageshow", handlePageShow);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.documentElement.style.overflow = htmlOverflow;
       document.body.style.overflow = bodyOverflow;
       document.body.style.height = bodyHeight;
@@ -95,7 +81,6 @@ export default function StartScreen() {
   function logoutFromStart() {
     // 启动页退出只清理本地登录态，让菜单立即回到未登录状态，不跳转登录页。
     clearSession();
-    setLoggedIn(false);
     setLogoutConfirmOpen(false);
   }
 

@@ -3,9 +3,8 @@
  */
 "use client";
 
-import { type PublicGameEvent } from "@lie/shared";
-import { getAccessToken } from "@/lib/auth";
-import { API_URL, request } from "../index";
+import { type PublicGameEvent, type PublicGameState } from "@lie/shared";
+import { API_URL, authHeader, request } from "../index";
 
 export type PublicRoomPlayer = {
   playerId: string;
@@ -26,6 +25,11 @@ export type PublicRoom = {
   events: PublicGameEvent[];
   gameStarted?: boolean;
   updatedAt?: number;
+};
+
+export type RoomSyncPayload = {
+  room: PublicRoom;
+  gameState: PublicGameState | null;
 };
 
 export async function fetchRooms() {
@@ -62,20 +66,11 @@ export async function leaveRoomByHttp(roomId: string) {
 }
 
 export function leaveRoomOnPageExit(roomId: string) {
-  const token = getAccessToken();
-  if (!token) {
-    return;
-  }
-
-  const url = `${API_URL}/rooms/${roomId}/leave-beacon?token=${encodeURIComponent(token)}`;
-
-  // sendBeacon 返回 true 只代表浏览器已排队，不代表服务端一定处理成功；
-  // 退出接口是幂等的，因此同时补一个 keepalive fetch 来提高刷新/关闭页签时的到达率。
-  navigator.sendBeacon?.(url);
-
-  void fetch(url, {
+  // 退出请求改走标准 Authorization 头，避免把 token 暴露在 URL、代理日志和浏览器历史里。
+  void fetch(`${API_URL}/rooms/${roomId}/leave`, {
     method: "POST",
     keepalive: true,
+    headers: authHeader(),
   }).catch(() => {
     // 页面正在卸载时无法可靠展示错误；服务端断线清理仍会兜底。
   });

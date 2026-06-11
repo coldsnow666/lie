@@ -18,6 +18,7 @@ export default function GameTable({
   events,
   selectedCardIds,
   declaredRank,
+  ownerUserId,
   onDeclaredRankChange,
   onToggleCard,
   onPlayCards,
@@ -29,6 +30,7 @@ export default function GameTable({
   events: PublicGameEvent[];
   selectedCardIds: string[];
   declaredRank: DeclaredRank;
+  ownerUserId?: string | null;
   onDeclaredRankChange: (rank: DeclaredRank) => void;
   onToggleCard: (cardId: string) => void;
   onPlayCards: () => void;
@@ -44,7 +46,12 @@ export default function GameTable({
     <div className="grid gap-3 px-3 py-3 sm:gap-5 sm:px-4 sm:py-5 xl:px-1">
       <section className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
         {state.players.map((player) => (
-          <PlayerSeat key={player.playerId} player={player} active={player.playerId === state.currentPlayerId} />
+          <PlayerSeat
+            key={player.playerId}
+            player={player}
+            active={player.playerId === state.currentPlayerId}
+            owner={Boolean(ownerUserId && player.userId === ownerUserId)}
+          />
         ))}
       </section>
 

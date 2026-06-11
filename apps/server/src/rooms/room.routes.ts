@@ -5,37 +5,10 @@ import { roomCreateSchema, roomJoinSchema, roomIdSchema } from "@lie/shared";
 import { API_RESPONSE_CODE } from "@lie/shared";
 import type { FastifyInstance } from "fastify";
 import { requireAuth } from "../auth/auth.middleware";
-import { verifyAccessToken } from "../auth/token";
-import { sendError, sendOk, type ApiErrorPayload } from "../utils/response";
+import { reportAppError, toApiErrorPayload } from "../utils/errors";
+import { sendError, sendOk } from "../utils/response";
 import { createRoom, joinRoom, leaveRoom, listPublicRooms, serializeRoom } from "./room.service";
 import { getRoomById } from "./room.store";
-
-function routeError(error: unknown): ApiErrorPayload {
-  const rawCode = error instanceof Error ? error.message : "UNKNOWN_ERROR";
-  const errors: Record<string, ApiErrorPayload> = {
-    ROOM_CODE_EXISTS: {
-      code: API_RESPONSE_CODE.ROOM_CODE_EXISTS,
-      message: "房间码已存在",
-    },
-    ROOM_NOT_FOUND: {
-      code: API_RESPONSE_CODE.ROOM_NOT_FOUND,
-      message: "房间不存在",
-    },
-    ROOM_NOT_WAITING: {
-      code: API_RESPONSE_CODE.ROOM_NOT_WAITING,
-      message: "房间已开始",
-    },
-    ROOM_FULL: {
-      code: API_RESPONSE_CODE.ROOM_FULL,
-      message: "房间已满",
-    },
-    UNKNOWN_ERROR: {
-      code: API_RESPONSE_CODE.UNKNOWN_ERROR,
-      message: "房间请求失败",
-    },
-  };
-  return errors[rawCode] ?? errors.UNKNOWN_ERROR;
-}
 
 export async function roomRoutes(app: FastifyInstance) {
   app.get("/rooms", { preHandler: requireAuth }, async (_request, reply) => {
@@ -54,7 +27,11 @@ export async function roomRoutes(app: FastifyInstance) {
       const room = await createRoom(request.user, parsed.data);
       return sendOk(reply, { room: serializeRoom(room) });
     } catch (error) {
-      return sendError(reply, routeError(error));
+      reportAppError("http.rooms.create", error, {
+        userId: request.user.id,
+        roomCode: parsed.data.roomCode ?? null,
+      });
+      return sendError(reply, toApiErrorPayload(error));
     }
   });
 
@@ -69,7 +46,11 @@ export async function roomRoutes(app: FastifyInstance) {
       const room = await joinRoom(parsed.data.roomCode, request.user);
       return sendOk(reply, { room: serializeRoom(room) });
     } catch (error) {
-      return sendError(reply, routeError(error));
+      reportAppError("http.rooms.join", error, {
+        userId: request.user.id,
+        roomCode: parsed.data.roomCode,
+      });
+      return sendError(reply, toApiErrorPayload(error));
     }
   });
 
@@ -84,24 +65,11 @@ export async function roomRoutes(app: FastifyInstance) {
       const room = await leaveRoom(parsed.data.roomId, request.user);
       return sendOk(reply, { room: room ? serializeRoom(room) : null });
     } catch (error) {
-      return sendError(reply, routeError(error));
-    }
-  });
-
-  app.post("/rooms/:roomId/leave-beacon", async (request, reply) => {
-    const parsed = roomIdSchema.safeParse(request.params);
-    const query = request.query as { token?: unknown };
-    const user = verifyAccessToken(typeof query.token === "string" ? query.token : null);
-
-    if (!parsed.success || !user) {
-      return sendError(reply, { code: API_RESPONSE_CODE.UNAUTHORIZED, message: "请先登录" });
-    }
-
-    try {
-      const room = await leaveRoom(parsed.data.roomId, user);
-      return sendOk(reply, { room: room ? serializeRoom(room) : null });
-    } catch (error) {
-      return sendError(reply, routeError(error));
+      reportAppError("http.rooms.leave", error, {
+        userId: request.user.id,
+        roomId: parsed.data.roomId,
+      });
+      return sendError(reply, toApiErrorPayload(error));
     }
   });
 

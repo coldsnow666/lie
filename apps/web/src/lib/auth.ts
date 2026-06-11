@@ -12,18 +12,47 @@ export type StoredUser = {
 
 const TOKEN_KEY = "lie.accessToken";
 const USER_KEY = "lie.user";
+export const SESSION_CHANGE_EVENT = "lie:session-changed";
+
+type SessionMutationOptions = {
+  notify?: boolean;
+};
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
-export function saveSession(accessToken: string, user: StoredUser) {
+function notifySessionChanged() {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT));
+}
+
+export function saveStoredUser(user: StoredUser, options: SessionMutationOptions = {}) {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+
+  if (options.notify !== false) {
+    notifySessionChanged();
+  }
+}
+
+export function saveSession(accessToken: string, user: StoredUser, options: SessionMutationOptions = {}) {
   if (!canUseStorage()) {
     return;
   }
 
   window.localStorage.setItem(TOKEN_KEY, accessToken);
   window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+
+  if (options.notify !== false) {
+    notifySessionChanged();
+  }
 }
 
 export function getAccessToken() {
@@ -51,13 +80,17 @@ export function getStoredUser(): StoredUser | null {
   }
 }
 
-export function clearSession() {
+export function clearSession(options: SessionMutationOptions = {}) {
   if (!canUseStorage()) {
     return;
   }
 
   window.localStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
+
+  if (options.notify !== false) {
+    notifySessionChanged();
+  }
 }
 
 export function isLoggedIn() {

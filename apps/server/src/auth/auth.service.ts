@@ -2,6 +2,7 @@
  * 认证业务服务：处理注册、登录、当前用户查询和密码校验。
  */
 import type { LoginInput, RegisterInput } from "@lie/shared";
+import { Prisma } from "../generated/prisma/index";
 import { prisma } from "../db/prisma";
 import { hashPassword, verifyPassword } from "./password";
 import { signAccessToken, type AuthUser } from "./token";
@@ -31,20 +32,28 @@ export async function registerUser(input: RegisterInput) {
     throw new Error("EMAIL_ALREADY_REGISTERED");
   }
 
-  const user = await prisma.user.create({
-    data: {
-      email: input.email,
-      nickname: input.nickname,
-      passwordHash: hashPassword(input.password),
-      lastLoginAt: new Date(),
-    },
-    select: {
-      id: true,
-      email: true,
-      nickname: true,
-      avatarUrl: true,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        email: input.email,
+        nickname: input.nickname,
+        passwordHash: await hashPassword(input.password),
+        lastLoginAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        nickname: true,
+        avatarUrl: true,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw new Error("EMAIL_ALREADY_REGISTERED");
+    }
+    throw error;
+  }
 
   const authUser = toAuthUser(user);
 
@@ -57,15 +66,30 @@ export async function registerUser(input: RegisterInput) {
 export async function loginUser(input: LoginInput) {
   const user = await prisma.user.findUnique({
     where: { email: input.email },
+    select: {
+      id: true,
+      email: true,
+      nickname: true,
+      avatarUrl: true,
+      passwordHash: true,
+    },
   });
 
-  if (!user || !verifyPassword(input.password, user.passwordHash)) {
+  if (!user) {
+    throw new Error("INVALID_EMAIL_OR_PASSWORD");
+  }
+
+  const passwordVerification = await verifyPassword(input.password, user.passwordHash);
+  if (!passwordVerification.valid) {
     throw new Error("INVALID_EMAIL_OR_PASSWORD");
   }
 
   const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { lastLoginAt: new Date() },
+    data: {
+      lastLoginAt: new Date(),
+      ...(passwordVerification.needsRehash ? { passwordHash: await hashPassword(input.password) } : {}),
+    },
     select: {
       id: true,
       email: true,

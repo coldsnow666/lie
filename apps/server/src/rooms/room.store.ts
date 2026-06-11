@@ -1,12 +1,13 @@
 /**
- * 房间热状态存储：优先使用内存 Map，同时尝试同步 Redis 以支持活跃房间 TTL。
+ * 房间热状态存储：以 Redis 为权威热状态源，当前进程内存仅作为开发和测试环境下的兜底缓存。
  */
 import type { PrivateGameState, PublicGameEvent, Player } from "@lie/shared";
-import { tryRedis } from "../redis/client";
+import { tryRedis, tryRedisResult } from "../redis/client";
 
 const WAITING_ROOM_TTL_SECONDS = 60 * 60 * 2;
 const PLAYING_ROOM_TTL_SECONDS = 60 * 60 * 6;
 const FINISHED_ROOM_TTL_SECONDS = 60 * 60;
+const ROOM_INDEX_KEY = "rooms:index";
 
 export type RoomStatus = "waiting" | "playing" | "finished";
 
@@ -26,6 +27,38 @@ export type RoomState = {
 const roomsById = new Map<string, RoomState>();
 const roomIdByCode = new Map<string, string>();
 
+function roomStateKey(roomId: string) {
+  return `room:${roomId}:state`;
+}
+
+function roomCodeKey(roomCode: string) {
+  return `room:${roomCode}:id`;
+}
+
+function cacheRoom(room: RoomState) {
+  roomsById.set(room.id, room);
+  roomIdByCode.set(room.code, room.id);
+}
+
+function evictCachedRoom(room: Pick<RoomState, "id" | "code">) {
+  roomsById.delete(room.id);
+  roomIdByCode.delete(room.code);
+}
+
+function reconcileRoomCache(rooms: RoomState[]) {
+  const nextRoomIds = new Set(rooms.map((room) => room.id));
+
+  for (const room of roomsById.values()) {
+    if (!nextRoomIds.has(room.id)) {
+      evictCachedRoom(room);
+    }
+  }
+
+  for (const room of rooms) {
+    cacheRoom(room);
+  }
+}
+
 function ttlFor(room: RoomState) {
   if (room.status === "playing") {
     return PLAYING_ROOM_TTL_SECONDS;
@@ -37,88 +70,91 @@ function ttlFor(room: RoomState) {
 }
 
 export async function saveRoom(room: RoomState) {
-  roomsById.set(room.id, room);
-  roomIdByCode.set(room.code, room.id);
-
-  // Redis 写入失败不会阻塞本地开发；内存 Map 仍是当前进程内的权威热状态。
+  // Redis 可用时以它作为权威热状态源；写入失败才退回当前进程缓存。
   await tryRedis(async (client) => {
     const ttl = ttlFor(room);
-    await client.set(`room:${room.id}:state`, JSON.stringify(room), "EX", ttl);
-    await client.set(`room:${room.code}:id`, room.id, "EX", ttl);
-  });
+    await client.set(roomStateKey(room.id), JSON.stringify(room), "EX", ttl);
+    await client.set(roomCodeKey(room.code), room.id, "EX", ttl);
+    await client.sadd(ROOM_INDEX_KEY, room.id);
+  }, "room.save");
+
+  cacheRoom(room);
 
   return room;
 }
 
 export async function getRoomById(roomId: string) {
-  const memoryRoom = roomsById.get(roomId);
-  if (memoryRoom) {
-    return memoryRoom;
-  }
-
-  const redisRoom = await tryRedis(async (client) => {
-    const raw = await client.get(`room:${roomId}:state`);
+  const redisRoom = await tryRedisResult(async (client) => {
+    const raw = await client.get(roomStateKey(roomId));
     return raw ? (JSON.parse(raw) as RoomState) : null;
-  });
+  }, "room.getById");
 
-  if (redisRoom) {
-    roomsById.set(redisRoom.id, redisRoom);
-    roomIdByCode.set(redisRoom.code, redisRoom.id);
+  if (redisRoom.available) {
+    if (!redisRoom.value) {
+      const cachedRoom = roomsById.get(roomId);
+      if (cachedRoom) {
+        evictCachedRoom(cachedRoom);
+      }
+      return null;
+    }
+
+    cacheRoom(redisRoom.value);
+    return redisRoom.value;
   }
 
-  return redisRoom;
+  return roomsById.get(roomId) ?? null;
 }
 
 export async function getRoomByCode(roomCode: string) {
-  const memoryId = roomIdByCode.get(roomCode);
-  if (memoryId) {
-    return getRoomById(memoryId);
+  const redisId = await tryRedisResult((client) => client.get(roomCodeKey(roomCode)), "room.getByCode");
+
+  if (redisId.available) {
+    if (!redisId.value) {
+      roomIdByCode.delete(roomCode);
+      return null;
+    }
+
+    return getRoomById(redisId.value);
   }
 
-  const redisId = await tryRedis((client) => client.get(`room:${roomCode}:id`));
-
-  return redisId ? getRoomById(redisId) : null;
+  const memoryId = roomIdByCode.get(roomCode);
+  return memoryId ? getRoomById(memoryId) : null;
 }
 
 export async function listRooms() {
-  const memoryRooms = Array.from(roomsById.values()).sort((left, right) => right.updatedAt - left.updatedAt);
+  const redisRooms = await tryRedisResult(async (client) => {
+    const roomIds = await client.smembers(ROOM_INDEX_KEY);
 
-  if (memoryRooms.length > 0) {
-    return memoryRooms;
-  }
-
-  const redisRooms = await tryRedis(async (client) => {
-    const keys = await client.keys("room:*:state");
-
-    if (keys.length === 0) {
+    if (roomIds.length === 0) {
       return [];
     }
 
-    const rawRooms = await client.mget(keys);
+    const rawRooms = await client.mget(roomIds.map((roomId) => roomStateKey(roomId)));
+    const staleRoomIds = roomIds.filter((_roomId, index) => !rawRooms[index]);
+
+    if (staleRoomIds.length > 0) {
+      await client.srem(ROOM_INDEX_KEY, ...staleRoomIds);
+    }
 
     return rawRooms
       .filter((rawRoom): rawRoom is string => Boolean(rawRoom))
       .map((rawRoom) => JSON.parse(rawRoom) as RoomState)
       .sort((left, right) => right.updatedAt - left.updatedAt);
-  });
+  }, "room.list");
 
-  if (!redisRooms) {
-    return [];
+  if (redisRooms.available) {
+    reconcileRoomCache(redisRooms.value);
+    return redisRooms.value;
   }
 
-  for (const room of redisRooms) {
-    roomsById.set(room.id, room);
-    roomIdByCode.set(room.code, room.id);
-  }
-
-  return redisRooms;
+  return Array.from(roomsById.values()).sort((left, right) => right.updatedAt - left.updatedAt);
 }
 
 export async function deleteRoom(room: RoomState) {
-  roomsById.delete(room.id);
-  roomIdByCode.delete(room.code);
-
   await tryRedis(async (client) => {
-    await client.del(`room:${room.id}:state`, `room:${room.code}:id`);
-  });
+    await client.del(roomStateKey(room.id), roomCodeKey(room.code));
+    await client.srem(ROOM_INDEX_KEY, room.id);
+  }, "room.delete");
+
+  evictCachedRoom(room);
 }

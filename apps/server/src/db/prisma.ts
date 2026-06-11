@@ -5,3 +5,7 @@ import "../env";
 import { PrismaClient } from "../generated/prisma/index";
 
 export const prisma = new PrismaClient();
+
+export async function closePrisma() {
+  await prisma.$disconnect();
+}
