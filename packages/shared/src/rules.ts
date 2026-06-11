@@ -46,10 +46,11 @@ export type PrivateGameState = {
   updatedAt: number;
 };
 
-export type PublicGameState = Omit<PrivateGameState, "hands" | "undealtCards" | "discardPile" | "lastPlay"> & {
-  players: Array<Player & { cardCount: number }>;
+export type PublicGameState = Omit<PrivateGameState, "players" | "hands" | "undealtCards" | "discardPile" | "lastPlay"> & {
+  players: Array<Player & { cardCount: number; cardBack: number }>;
   selfHand: Card[];
   discardPileCount: number;
+  discardPileCards: Array<Pick<DiscardEntry, "playedByPlayerId" | "turnSeq"> & { cardBack: number }>;
   lastPlay: Omit<LastPlay, "actualCards"> | null;
 };
 
@@ -285,10 +286,12 @@ export function challengeLastPlay(state: PrivateGameState, challengerPlayerId: s
 export function toPublicGameState(state: PrivateGameState, viewerPlayerId: string): PublicGameState {
   // 每个玩家只能看到自己的手牌；其他玩家只暴露剩余牌数，避免泄露隐藏信息。
 
+  const cardBackByPlayerId = new Map(state.players.map((player) => [player.playerId, player.seatIndex % 4]));
 
   const players = state.players.map((player) => ({
     ...player,
     cardCount: state.hands[player.playerId]?.length ?? 0,
+    cardBack: cardBackByPlayerId.get(player.playerId) ?? 0,
   }))
 
   const lastPlay = state.lastPlay
@@ -308,6 +311,11 @@ export function toPublicGameState(state: PrivateGameState, viewerPlayerId: strin
     players,
     selfHand: sortHandCards(state.hands[viewerPlayerId] ?? []),
     discardPileCount: state.discardPile.length,
+    discardPileCards: state.discardPile.map((entry) => ({
+      playedByPlayerId: entry.playedByPlayerId,
+      turnSeq: entry.turnSeq,
+      cardBack: cardBackByPlayerId.get(entry.playedByPlayerId) ?? 0,
+    })),
     currentPlayerId: state.currentPlayerId,
     lastPlay,
     turnSeq: state.turnSeq,

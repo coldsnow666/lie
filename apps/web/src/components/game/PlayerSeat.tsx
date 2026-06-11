@@ -1,8 +1,9 @@
 /**
- * 玩家座位组件：展示昵称、座位、连接状态、准备状态或剩余牌数。
+ * 玩家座位组件：以牌背堆展示对手玩家的剩余手牌。
  */
-import { Crown, Wifi, WifiOff } from "lucide-react";
-import PixelPanel from "@/components/ui/PixelPanel";
+import type { CSSProperties } from "react";
+import { Crown } from "lucide-react";
+import CardBackArt from "./CardBackArt";
 
 export type SeatPlayer = {
   playerId: string;
@@ -12,6 +13,7 @@ export type SeatPlayer = {
   connected: boolean;
   ready?: boolean;
   cardCount?: number;
+  cardBack?: number;
   pendingWin?: boolean;
 };
 
@@ -24,30 +26,40 @@ export default function PlayerSeat({
   active?: boolean;
   owner?: boolean;
 }) {
+  const cardCount = player.cardCount ?? 0;
+  const visibleBacks = Array.from({ length: cardCount });
+
   return (
-    <PixelPanel tone={active ? "highlight" : "dark"} padding="sm" className="min-w-0">
-      <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-[#fff6cf] sm:gap-2 sm:text-sm">
-            {owner ? <Crown size={14} className="text-[#d7bc72]" /> : null}
-            <span className="truncate">{player.nickname}</span>
-          </div>
-          <div className="mt-1 text-xs text-[#c6b889]">座位 {player.seatIndex + 1}</div>
+    <div className="relative min-w-0 overflow-visible px-1 py-1">
+      <div className="grid min-w-0 justify-items-center gap-2">
+        <div className="flex min-w-0 max-w-full items-center gap-1.5 text-xs font-semibold text-[#fff6cf] sm:gap-2 sm:text-sm">
+          {owner ? <Crown size={14} className="shrink-0 text-[#d7bc72]" /> : null}
+          <span className="truncate">{player.nickname}</span>
         </div>
-        {player.connected ? <Wifi size={16} className="shrink-0 text-emerald-300" /> : <WifiOff size={16} className="shrink-0 text-red-300" />}
+        <div className="lie-opponent-card-stack" aria-label={`${player.nickname} 剩余 ${cardCount} 张牌`}>
+          {visibleBacks.map((_, index) => (
+            <CardBackArt
+              key={`${player.playerId}-back-${index}`}
+              back={player.cardBack ?? 0}
+              label={`${player.nickname} 的牌背`}
+              className="lie-opponent-card-stack-card [--card-back-art-height:65px] [--card-back-art-width:49px] [--card-back-scale:1.55]"
+              style={
+                {
+                  "--stack-card-x": `${index * 1.15}px`,
+                  "--stack-card-y": `${index * -0.72}px`,
+                  "--stack-card-rotate": `${-3.5 + (index % 6) * 0.72}deg`,
+                  zIndex: index,
+                } as CSSProperties
+              }
+            />
+          ))}
+          <div className="lie-opponent-card-count">{player.pendingWin ? "待质疑" : `${cardCount} 张`}</div>
+        </div>
       </div>
-      <div className="mt-2 flex items-center justify-between gap-2 text-xs text-[#c6b889] sm:mt-3">
-        <span>
-          {typeof player.cardCount === "number"
-            ? player.pendingWin
-              ? "待质疑"
-              : `${player.cardCount} 张`
-            : player.ready
-              ? "已准备"
-              : "等待中"}
-        </span>
-        {active ? <span className="shrink-0 text-[#f2df9e]">行动中</span> : null}
+      <div className="mt-2 flex min-h-4 items-center justify-center gap-2 text-xs text-[#c6b889]">
+        {active ? <span className="shrink-0 text-[#f2df9e]">他的回合</span> : null}
+        {!active && typeof player.cardCount !== "number" ? <span>{player.ready ? "已准备" : "等待中"}</span> : null}
       </div>
-    </PixelPanel>
+    </div>
   );
 }

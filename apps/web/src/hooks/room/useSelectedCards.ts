@@ -27,6 +27,22 @@ export function useSelectedCards() {
     });
   }, []);
 
+  const setCardSelected = useCallback((cardId: string, selected: boolean) => {
+    setSelectedCardIds((current) => {
+      const alreadySelected = current.includes(cardId);
+
+      if (!selected) {
+        return alreadySelected ? current.filter((id) => id !== cardId) : current;
+      }
+
+      if (alreadySelected || current.length >= 4) {
+        return current;
+      }
+
+      return [...current, cardId];
+    });
+  }, []);
+
   const reconcileSelectedCards = useCallback((nextState: PublicGameState) => {
     setSelectedCardIds((current) => current.filter((cardId) => nextState.selfHand.some((card) => card.id === cardId)));
   }, []);
@@ -36,6 +52,7 @@ export function useSelectedCards() {
     setSelectedCardIds,
     clearSelectedCards,
     toggleCard,
+    setCardSelected,
     reconcileSelectedCards,
   };
 }

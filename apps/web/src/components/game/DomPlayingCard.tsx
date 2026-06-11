@@ -157,7 +157,7 @@ const pixelCardStyle = {
 const pixelCardFaceStyle = {
   position: "absolute",
   inset: "var(--dom-card-border-size)",
-  background: "#eef4eb",
+  background: "var(--dom-card-face-bg, #eef4eb)",
   boxShadow: "inset 0 0 calc(2px * var(--pixel-card-scale, 2)) rgba(23, 37, 31, 0.28)",
   clipPath: pixelCardClipPath,
 } as CSSProperties;

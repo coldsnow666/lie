@@ -16,7 +16,17 @@ const cardBackCropMap = [
   { x: 1106, y: 4, width: 375, height: 460 },
 ] as const;
 
-export default function CardBackArt({ back = 0, label, className = "" }: { back?: number; label: string; className?: string }) {
+export default function CardBackArt({
+  back = 0,
+  label,
+  className = "",
+  style,
+}: {
+  back?: number;
+  label: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const crop = cardBackCropMap[Math.max(0, Math.min(back, cardBackCropMap.length - 1))];
 
   return (
@@ -33,6 +43,7 @@ export default function CardBackArt({ back = 0, label, className = "" }: { back?
           backgroundImage: `url("${CARD_BACK_ART.src}")`,
           backgroundPosition: `calc(-${crop.x / crop.width} * var(--card-back-render-width)) calc(-${crop.y / crop.height} * var(--card-back-render-height))`,
           backgroundSize: `calc(${CARD_BACK_ART.imageWidth / crop.width} * var(--card-back-render-width)) calc(${CARD_BACK_ART.imageHeight / crop.height} * var(--card-back-render-height))`,
+          ...style,
         } as CSSProperties
       }
     />

@@ -18,7 +18,7 @@ export default function RoomPage() {
   const roomCode = params.roomCode?.toUpperCase();
   const {
     session: { roomId, room, gameState, events, message, busy, selfPlayer, isOwner, canStart },
-    selection: { selectedCardIds, declaredRank, setDeclaredRank, toggleCard },
+    selection: { selectedCardIds, setDeclaredRank, toggleCard, setCardSelected },
     actions: { leave, ready, startGame, playCards, challenge },
   } = useRoomSession({
     roomCode,
@@ -40,29 +40,22 @@ export default function RoomPage() {
     <AuthGuard>
       <AppShell edgeToEdge>
         {!roomId ? (
-          <PixelMessage className="mb-4" placement="inline">
-            缺少房间 ID，请从大厅重新加入。
-          </PixelMessage>
+          <PixelMessage>缺少房间 ID，请从大厅重新加入。</PixelMessage>
         ) : null}
 
-        {message ? (
-          <PixelMessage className="mb-4" placement="inline">
-            {message}
-          </PixelMessage>
-        ) : null}
+        {message ? <PixelMessage>{message}</PixelMessage> : null}
 
         {gameState ? (
           <GameTable
             state={gameState}
-            events={events}
             selectedCardIds={selectedCardIds}
-            declaredRank={declaredRank}
             ownerUserId={room?.ownerUserId ?? null}
+            selfPlayerId={selfPlayer?.playerId ?? null}
             onDeclaredRankChange={setDeclaredRank}
             onToggleCard={toggleCard}
+            onSetCardSelected={setCardSelected}
             onPlayCards={playCards}
             onChallenge={challenge}
-            onLeave={() => void handleLeave()}
             busy={busy}
           />
         ) : (

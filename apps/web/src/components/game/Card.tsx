@@ -9,12 +9,14 @@ import DomPlayingCard from "./DomPlayingCard";
 export default function Card({
   card,
   selected = false,
-  onClick,
+  dealing = false,
+  onKeyboardToggle,
   style,
 }: {
   card: CardType;
   selected?: boolean;
-  onClick?: () => void;
+  dealing?: boolean;
+  onKeyboardToggle?: () => void;
   style?: CSSProperties;
 }) {
   const label = getCardLabel(card);
@@ -24,19 +26,18 @@ export default function Card({
       type="button"
       aria-pressed={selected}
       aria-label={`${selected ? "取消选择" : "选择"}${label}`}
-      onClick={onClick}
+      onClick={(event) => {
+        if (event.detail === 0) {
+          onKeyboardToggle?.();
+        }
+      }}
+      data-hand-card-id={card.id}
+      data-dealing={dealing ? "true" : undefined}
       data-selected={selected ? "true" : undefined}
       style={style}
-      className="lie-game-hand-card group grid h-auto shrink-0 place-items-center bg-transparent transition"
+      className="lie-game-hand-card grid h-auto shrink-0 place-items-center bg-transparent transition"
     >
-      <DomPlayingCard
-        card={card}
-        className={`${
-          selected
-            ? "drop-shadow-[0_0_0_#d7bc72] shadow-[0_0_0_3px_rgba(215,188,114,0.35)]"
-            : "group-hover:drop-shadow-[0_0_6px_rgba(242,223,158,0.58)]"
-        }`}
-      />
+      <DomPlayingCard card={card} />
     </button>
   );
 }

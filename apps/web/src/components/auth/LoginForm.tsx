@@ -11,7 +11,7 @@ import { useAuthTransition } from "@/components/auth/AuthTransitionContext";
 import { login } from "@/service/modules/user";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelInput from "@/components/ui/PixelInput";
-import PixelMessage from "@/components/ui/PixelMessage";
+import { showPixelMessage } from "@/components/ui/PixelMessage";
 import PixelPanel from "@/components/ui/PixelPanel";
 
 export default function LoginForm() {
@@ -19,8 +19,11 @@ export default function LoginForm() {
   const formRef = useRef<HTMLFormElement | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function showError(text: string) {
+    showPixelMessage(text);
+  }
 
   function validateForm() {
     const trimmedEmail = email.trim();
@@ -67,11 +70,10 @@ export default function LoginForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
     const validationError = validateForm();
 
     if (validationError) {
-      setError(validationError);
+      showError(validationError);
       return;
     }
 
@@ -81,7 +83,7 @@ export default function LoginForm() {
       await login({ email: email.trim(), password });
       navigateHome();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "登录失败");
+      showError(err instanceof Error ? err.message : "登录失败");
       setLoading(false);
     }
   }
@@ -138,8 +140,6 @@ export default function LoginForm() {
             disabled={loading || transitioning}
           />
         </div>
-
-        {error ? <PixelMessage>{error}</PixelMessage> : null}
 
         <PixelButton type="submit" disabled={loading || transitioning} variant="primary" size="lg" fullWidth className="h-14 text-lg">
           <LogIn size={18} />

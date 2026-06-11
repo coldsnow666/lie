@@ -26,7 +26,7 @@ export function useRoomSession({
   const { user } = useSession();
   const [declaredRank, setDeclaredRank] = useState<DeclaredRank>(DECLARABLE_RANKS[0]);
   const [busy, setBusy] = useState(false);
-  const { selectedCardIds, clearSelectedCards, reconcileSelectedCards, toggleCard } = useSelectedCards();
+  const { selectedCardIds, clearSelectedCards, reconcileSelectedCards, toggleCard, setCardSelected } = useSelectedCards();
   const {
     roomId,
     room,
@@ -110,7 +110,7 @@ export function useRoomSession({
     }
   }, [applyRoomSyncPayload, roomId, setMessage, syncRoom]);
 
-  const playCards = useCallback(async () => {
+  const playCards = useCallback(async (declaredRankOverride?: DeclaredRank) => {
     if (!roomId) {
       return;
     }
@@ -126,7 +126,7 @@ export function useRoomSession({
       await emitWithAck("game:playCards", {
         roomId,
         cardIds: resolvingPendingWin ? [] : selectedCardIds,
-        declaredRank: resolvingPendingWin ? undefined : declaredRank,
+        declaredRank: resolvingPendingWin ? undefined : (declaredRankOverride ?? declaredRank),
       });
       clearSelectedCards();
     } catch (error) {
@@ -169,6 +169,7 @@ export function useRoomSession({
       declaredRank,
       setDeclaredRank,
       toggleCard,
+      setCardSelected,
     },
     actions: {
       setMessage,

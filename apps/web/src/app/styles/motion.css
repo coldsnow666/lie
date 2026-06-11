@@ -1,3 +1,6 @@
+/**
+ * 全局动效样式：集中定义背景、消息、弹窗和页面过渡动画。
+ */
 .lie-balatro-fallback-forest {
   opacity: 0.52;
   background:
@@ -142,6 +145,31 @@
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.lie-pixel-message {
+  transform-origin: top center;
+  will-change: opacity, transform;
+}
+
+.lie-pixel-message[data-message-state="shown"] {
+  animation: lie-pixel-message-drop 180ms steps(6, end) both;
+}
+
+.lie-pixel-message[data-message-state="leaving"] {
+  animation: lie-pixel-message-lift 180ms steps(6, end) both;
+}
+
+@keyframes lie-pixel-message-lift {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -0.85rem, 0) scale(0.98);
   }
 }
 
@@ -305,6 +333,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .lie-pixel-message,
   .lie-pixel-modal-overlay,
   .lie-pixel-modal-panel {
     animation: none;

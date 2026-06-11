@@ -11,9 +11,10 @@
   display: block;
   min-height: var(--hand-height, calc(65px * var(--pixel-card-scale, 2) + 2.6rem));
   width: 100%;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: hidden;
   padding: 1.85rem var(--hand-edge-padding, 1.25rem) 1.15rem;
+  touch-action: none;
+  user-select: none;
 }
 
 .lie-game-hand-card {
@@ -23,37 +24,186 @@
   cursor: pointer;
   transform: translate3d(calc(-50% + var(--hand-card-x, 0px)), var(--hand-card-y, 0px), 0) rotate(var(--hand-card-rotate, 0deg));
   transform-origin: 50% 92%;
-  transition:
-    transform 180ms cubic-bezier(0.2, 0.9, 0.24, 1.08),
-    filter 160ms ease,
-    box-shadow 160ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .lie-game-hand-card:not(:first-child) {
   margin-left: 0;
 }
 
-.lie-game-hand-card::after {
+.lie-game-hand-card .lie-dom-playing-card {
+  transform-origin: 50% 50%;
+  transition:
+    transform 140ms cubic-bezier(0.2, 0.9, 0.24, 1.08),
+    filter 140ms ease;
+}
+
+.lie-game-hand-card:not([data-selected="true"]):hover .lie-dom-playing-card,
+.lie-game-hand-card:not([data-selected="true"]):focus-visible .lie-dom-playing-card {
+  filter: brightness(1.08) saturate(1.08);
+}
+
+.lie-game-hand-card[data-selected="true"] .lie-dom-playing-card {
+  --dom-card-face-bg: #dfffee;
+  filter: brightness(1.12) saturate(1.18);
+  animation: lie-hand-card-selected-pulse 620ms ease-in-out infinite alternate;
+}
+
+@keyframes lie-hand-card-selected-pulse {
+  0% {
+    transform: scale(1.04);
+  }
+
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+.lie-game-hand-card[data-dealing="true"] .lie-dom-playing-card {
+  animation: lie-hand-card-deal-in 220ms cubic-bezier(0.2, 0.9, 0.24, 1.08);
+}
+
+@keyframes lie-hand-card-deal-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-1.8rem) scale(0.86);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.lie-opponent-card-stack {
+  position: relative;
+  width: calc(49px * 1.55 + 2rem);
+  height: calc(65px * 1.55 + 1.35rem);
+}
+
+.lie-opponent-card-stack-card {
   position: absolute;
-  left: 9%;
-  right: 9%;
-  bottom: -0.52rem;
-  height: 0.48rem;
+  left: 0;
+  bottom: 0;
+  transform: translate3d(var(--stack-card-x, 0), var(--stack-card-y, 0), 0) rotate(var(--stack-card-rotate, 0deg));
+  transform-origin: 50% 88%;
+  animation: lie-card-back-deal-in 180ms cubic-bezier(0.2, 0.9, 0.24, 1.08);
+}
+
+.lie-opponent-card-count {
+  position: absolute;
+  left: calc((49px * 1.55 + 2rem) / 2);
+  top: calc((65px * 1.55 + 1.35rem) / 2);
+  z-index: 80;
+  display: grid;
+  min-width: 3.2rem;
+  min-height: 1.55rem;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(247, 240, 220, 0.72);
+  background: rgba(16, 25, 22, 0.76);
+  color: #fff6cf;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+@keyframes lie-card-back-deal-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--stack-card-x, 0), calc(var(--stack-card-y, 0) - 0.7rem), 0) rotate(var(--stack-card-rotate, 0deg)) scale(0.9);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(var(--stack-card-x, 0), var(--stack-card-y, 0), 0) rotate(var(--stack-card-rotate, 0deg)) scale(1);
+  }
+}
+
+.lie-table-surface {
+  position: relative;
+  display: grid;
+  min-height: clamp(16rem, 34vh, 24rem);
+  place-items: center;
+  overflow: visible;
+  padding: 0;
+}
+
+.lie-discard-pile {
+  position: relative;
+  display: grid;
+  width: clamp(16rem, 42vw, 24rem);
+  height: clamp(13rem, 35vw, 20rem);
+  place-items: center;
+}
+
+.lie-discard-pile-card {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  opacity: 1;
+  animation-duration: 720ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.22, 0.88, 0.25, 1);
+  transform: translate3d(calc(-50% + var(--discard-card-x, 0px)), calc(-50% + var(--discard-card-y, 0px)), 0) rotate(var(--discard-card-rotate, 0deg));
+  transform-origin: 50% 50%;
+}
+
+@keyframes lie-discard-card-from-self {
+  0% {
+    opacity: 1;
+    transform: translate3d(calc(-50% + var(--discard-card-start-x, 0px)), var(--discard-card-from-y, 18rem), 0) rotate(var(--discard-card-from-rotate, -10deg)) scale(1.16);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(calc(-50% + var(--discard-card-x, 0px)), calc(-50% + var(--discard-card-y, 0px)), 0) rotate(var(--discard-card-rotate, 0deg)) scale(1);
+  }
+}
+
+@keyframes lie-discard-card-from-opponent {
+  0% {
+    opacity: 1;
+    transform: translate3d(calc(-50% + var(--discard-card-start-x, 0px)), var(--discard-card-from-y, -15rem), 0) rotate(var(--discard-card-from-rotate, 10deg)) scale(1.02);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(calc(-50% + var(--discard-card-x, 0px)), calc(-50% + var(--discard-card-y, 0px)), 0) rotate(var(--discard-card-rotate, 0deg)) scale(1);
+  }
+}
+
+.lie-return-flight-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  overflow: visible;
   pointer-events: none;
-  content: "";
-  background: rgba(8, 13, 14, 0.34);
-  filter: blur(2px);
-  transform: rotate(var(--hand-card-rotate, 0deg));
 }
 
-.lie-game-hand-card:not([data-selected="true"]):hover,
-.lie-game-hand-card:not([data-selected="true"]):focus-visible {
-  transform: translate3d(calc(-50% + var(--hand-card-x, 0px)), calc(var(--hand-card-y, 0px) - 0.45rem), 0) rotate(0deg);
+.lie-return-flight-card {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  opacity: 1;
+  animation: lie-discard-card-return 760ms cubic-bezier(0.2, 0.82, 0.24, 1) both;
+  transform-origin: 50% 50%;
 }
 
-.lie-game-hand-card[data-selected="true"] {
-  filter: drop-shadow(0 14px 0 rgba(215, 188, 114, 0.26));
-  transform: translate3d(calc(-50% + var(--hand-card-x, 0px)), calc(var(--hand-card-y, 0px) - 0.9rem), 0) rotate(0deg);
+@keyframes lie-discard-card-return {
+  0% {
+    opacity: 1;
+    transform: translate3d(calc(-50% + var(--return-card-start-x, 0px)), calc(-50% + var(--return-card-start-y, 0px)), 0) rotate(var(--return-card-start-rotate, 0deg)) scale(1);
+  }
+
+  82% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(-50% + var(--return-card-target-x, 0px)), var(--return-card-target-y, 0px), 0) rotate(var(--return-card-target-rotate, 0deg)) scale(0.92);
+  }
 }
 
 .lie-dom-playing-card {

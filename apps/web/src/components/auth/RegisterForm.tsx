@@ -12,7 +12,7 @@ import { useAuthTransition } from "@/components/auth/AuthTransitionContext";
 import { register } from "@/service/modules/user";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelInput from "@/components/ui/PixelInput";
-import PixelMessage from "@/components/ui/PixelMessage";
+import { showPixelMessage } from "@/components/ui/PixelMessage";
 import PixelPanel from "@/components/ui/PixelPanel";
 
 export default function RegisterForm() {
@@ -23,8 +23,11 @@ export default function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function showError(text: string) {
+    showPixelMessage(text);
+  }
 
   function validateForm() {
     const trimmedNickname = nickname.trim();
@@ -96,11 +99,10 @@ export default function RegisterForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
     const validationError = validateForm();
 
     if (validationError) {
-      setError(validationError);
+      showError(validationError);
       return;
     }
 
@@ -110,7 +112,7 @@ export default function RegisterForm() {
       await register({ nickname: nickname.trim(), email: email.trim(), password });
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "注册失败");
+      showError(err instanceof Error ? err.message : "注册失败");
     } finally {
       setLoading(false);
     }
@@ -191,8 +193,6 @@ export default function RegisterForm() {
             disabled={loading || transitioning}
           />
         </div>
-
-        {error ? <PixelMessage>{error}</PixelMessage> : null}
 
         <PixelButton type="submit" disabled={loading || transitioning} variant="primary" size="lg" fullWidth className="h-14 text-lg">
           <UserPlus size={18} />

@@ -6,11 +6,15 @@
 import type { ReactNode } from "react";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import { RouteLoadingProvider } from "@/components/loading/RouteLoadingProvider";
+import { PixelMessageHost } from "@/components/ui/PixelMessage";
 
 export default function AppProviders({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
-      <RouteLoadingProvider>{children}</RouteLoadingProvider>
+      <RouteLoadingProvider>
+        {children}
+        <PixelMessageHost />
+      </RouteLoadingProvider>
     </SessionProvider>
   );
 }
