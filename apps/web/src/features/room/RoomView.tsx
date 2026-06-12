@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AuthGuard from "@/features/auth/AuthGuard";
 import AppShell from "@/components/layout/AppShell";
+import { useRouteLoading } from "@/components/loading/RouteLoadingProvider";
 import { showPixelMessage } from "@/components/ui/PixelMessage";
 import GameTable from "@/features/game/GameTable";
 import { useBodyScrollLock } from "@/hooks/useScrollLock";
@@ -23,6 +24,7 @@ export default function RoomView({
   roomCode?: string;
 }) {
   const router = useRouter();
+  const routeLoading = useRouteLoading();
 
   useBodyScrollLock();
 
@@ -37,9 +39,16 @@ export default function RoomView({
 
   useEffect(() => {
     if (!roomId) {
+      routeLoading.cancel();
       showPixelMessage("缺少房间 ID，请从大厅重新加入。");
     }
-  }, [roomId]);
+  }, [roomId, routeLoading]);
+
+  useEffect(() => {
+    if (room || gameState) {
+      routeLoading.complete();
+    }
+  }, [gameState, room, routeLoading]);
 
   async function handleLeave() {
     if (!roomId) {

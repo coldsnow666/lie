@@ -1,41 +1,36 @@
 /**
- * @Description: 全站动态背景：统一承载蓝色 Balatro 风格牌桌旋涡和暗色遮罩，供所有页面共用。
+ * @Description: 全站动态背景：使用 Faulty Terminal 作为黑底终端噪声背景。
  *
  * @Date 2026-06-12 14:47
  */
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
-const Balatro = dynamic(() => import("@/components/backgrounds/Balatro"), {
+const FaultyTerminal = dynamic(() => import("@/components/backgrounds/FaultyTerminal"), {
   ssr: false,
 });
 
-const backgroundTheme = {
-  color1: "#71b8ff",
-  color2: "#2b6fff",
-  color3: "#0b1812",
-  spinRotation: -2.4,
-  spinSpeed: 6.9,
-  contrast: 3.18,
-  lighting: 0.38,
-  spinAmount: 0.26,
-  pixelFilter: 1200,
-  spinEase: 1.02,
-  fallbackClassName: "lie-balatro-fallback-ocean",
-  fallbackActiveClassName: "lie-balatro-fallback-ocean-active",
-  overlayClassName: "lie-balatro-overlay-ocean",
+const oceanTheme = {
+  tint: "#71b8ff",
+};
+
+const lobbyTheme = {
+  tint: "#c9a5ff",
+};
+
+const gameTheme = {
+  tint: "#a7e79e",
 };
 
 export default function GlobalBackground() {
-  const [fallbackActive, setFallbackActive] = useState(false);
+  const pathname = usePathname();
   const [pageVisible, setPageVisible] = useState(true);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const backgroundTheme = pathname?.startsWith("/room") ? gameTheme : pathname?.startsWith("/lobby") ? lobbyTheme : oceanTheme;
   const shaderEnabled = !prefersReducedMotion;
-  const animatedFallback = fallbackActive && !prefersReducedMotion;
-  const handleWebglReady = useCallback(() => setFallbackActive(false), []);
-  const handleWebglFallback = useCallback(() => setFallbackActive(true), []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -59,42 +54,31 @@ export default function GlobalBackground() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden bg-[#0b1812]" aria-hidden="true">
+    <div className="fixed inset-0 z-0 overflow-hidden bg-black" aria-hidden="true">
       <div className="absolute inset-0">
-        <div
-          className={[
-            "absolute inset-0",
-            backgroundTheme.fallbackClassName,
-            animatedFallback ? backgroundTheme.fallbackActiveClassName : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        />
         {shaderEnabled ? (
-          <Balatro
-            dpr={1.05}
-            maxFps={30}
-            mouseInteraction={false}
-            onFallback={handleWebglFallback}
-            onReady={handleWebglReady}
-            color1={backgroundTheme.color1}
-            color2={backgroundTheme.color2}
-            color3={backgroundTheme.color3}
-            spinRotation={backgroundTheme.spinRotation}
-            spinSpeed={backgroundTheme.spinSpeed}
-            contrast={backgroundTheme.contrast}
-            lighting={backgroundTheme.lighting}
-            spinAmount={backgroundTheme.spinAmount}
-            pixelFilter={backgroundTheme.pixelFilter}
-            spinEase={backgroundTheme.spinEase}
-            isRotate={false}
+          <FaultyTerminal
+            className="absolute inset-0"
+            brightness={0.8}
+            curvature={0.35}
+            digitSize={1.2}
+            dpr={1}
+            flickerAmount={1}
+            glitchAmount={1}
+            mouseReact={false}
+            mouseStrength={0.7}
+            noiseAmp={0.8}
+            pageLoadAnimation={false}
             paused={!pageVisible}
+            scale={1.5}
+            scanlineIntensity={0.5}
+            timeScale={0.5}
+            tint={backgroundTheme.tint}
           />
         ) : null}
-        <div className={`absolute inset-0 ${backgroundTheme.overlayClassName}`} />
       </div>
       <div className="absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,rgba(0,0,0,0.62),transparent)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,4,8,0.08),rgba(3,5,10,0.18)_38%,rgba(2,3,6,0.52))]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.36)_76%,rgba(0,0,0,0.72))]" />
     </div>
   );
 }

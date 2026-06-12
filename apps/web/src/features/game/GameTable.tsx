@@ -40,11 +40,7 @@ type ReturnFlightCard = {
   targetRotate: number;
   zIndex: number;
 };
-type DiscardCardPose = {
-  x: number;
-  y: number;
-  rotate: number;
-};
+
 type DiscardGroupMeta = {
   cardIndex: number;
   cardCount: number;
@@ -168,14 +164,6 @@ function useDealAnimation(state: PublicGameState, selfPlayerId?: string | null) 
   }, []);
 
   return { completeDealFlight, dealFlights, remainingDeckCount, visibleCardCounts, dealing };
-}
-
-function getDiscardCardPose(index: number) {
-  const x = ((index * 17) % 39) - 19;
-  const y = ((index * 11) % 31) - 15;
-  const rotate = ((index * 23) % 38) - 19;
-
-  return { x, y, rotate };
 }
 
 function getDiscardGroupKey(card: PublicDiscardCard) {

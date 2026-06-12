@@ -58,11 +58,13 @@ export default function LobbyView() {
 
   async function joinRoomWithCode(nextRoomCode: string, actionKey: string) {
     setPendingAction(actionKey);
+    routeLoading.begin();
 
     try {
       const room = await joinRoom({ roomCode: normalizeRoomCode(nextRoomCode) });
       enterRoom(room);
     } catch (error) {
+      routeLoading.cancel();
       showPixelMessage(error instanceof Error ? error.message : "加入房间失败");
     } finally {
       setPendingAction(null);
@@ -71,11 +73,13 @@ export default function LobbyView() {
 
   async function handleCreateRoom() {
     setPendingAction("create");
+    routeLoading.begin();
 
     try {
       const room = await createRoom({ maxPlayers: roomMaxPlayers });
       enterRoom(room);
     } catch (error) {
+      routeLoading.cancel();
       showPixelMessage(error instanceof Error ? error.message : "创建房间失败");
     } finally {
       setPendingAction(null);
