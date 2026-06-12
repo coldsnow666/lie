@@ -61,7 +61,7 @@ export default function PixelModal({ children, title, icon, onClose, className =
 
   return (
     <div
-      className="lie-pixel-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/62 px-4 py-6 backdrop-blur-sm"
+      className="lie-pixel-modal-overlay fixed inset-0 z-[200] flex items-center justify-center bg-black/62 px-4 py-6 backdrop-blur-sm"
       data-modal-state={closing ? "closing" : "open"}
       onClick={requestClose}
     >

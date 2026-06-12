@@ -12,6 +12,7 @@ type Vec2 = [number, number];
 type Vec4 = [number, number, number, number];
 
 export interface BalatroProps {
+  animated?: boolean;
   className?: string;
   dpr?: number;
   onFallback?: () => void;
@@ -127,6 +128,7 @@ void main() {
 `;
 
 export default function Balatro({
+  animated = true,
   className = "",
   dpr = 1,
   onFallback,
@@ -237,6 +239,10 @@ export default function Balatro({
       const height = Math.max(container.offsetHeight, 1);
       renderer.setSize(width, height);
       program.uniforms.iResolution.value = [gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height];
+
+      if (!animated) {
+        renderer.render({ scene: mesh });
+      }
     };
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -255,19 +261,21 @@ export default function Balatro({
         return;
       }
 
-      frameId = requestAnimationFrame(render);
+      if (animated) {
+        frameId = requestAnimationFrame(render);
+      }
 
-      if (paused) {
+      if (animated && paused) {
         return;
       }
 
       const minFrameInterval = 1000 / maxFps;
-      if (time - lastFrameTime < minFrameInterval) {
+      if (animated && time - lastFrameTime < minFrameInterval) {
         return;
       }
 
       lastFrameTime = time;
-      program.uniforms.iTime.value = time * 0.001;
+      program.uniforms.iTime.value = animated ? time * 0.001 : 0;
       renderer?.render({ scene: mesh });
     };
 
@@ -276,7 +284,11 @@ export default function Balatro({
     container.addEventListener("pointermove", handlePointerMove);
     container.appendChild(canvas);
     onReady?.();
-    frameId = requestAnimationFrame(render);
+    if (animated) {
+      frameId = requestAnimationFrame(render);
+    } else {
+      render(0);
+    }
 
     return () => {
       disposed = true;
@@ -285,6 +297,7 @@ export default function Balatro({
       teardown();
     };
   }, [
+    animated,
     color1,
     color2,
     color3,

@@ -1,41 +1,146 @@
 /**
- * @Description: 全站动态背景：统一承载蓝色 Balatro 风格牌桌旋涡和暗色遮罩，供所有页面共用。
+ * @Description: 全站背景：按页面和房间状态切换 Balatro 风格动效或静态牌桌底图。
  *
  * @Date 2026-06-12 14:47
  */
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 const Balatro = dynamic(() => import("@/components/backgrounds/Balatro"), {
   ssr: false,
 });
 
-const backgroundTheme = {
-  color1: "#71b8ff",
-  color2: "#2b6fff",
-  color3: "#0b1812",
-  spinRotation: -2.4,
-  spinSpeed: 6.9,
-  contrast: 3.18,
-  lighting: 0.38,
-  spinAmount: 0.26,
-  pixelFilter: 1200,
-  spinEase: 1.02,
-  fallbackClassName: "lie-balatro-fallback-ocean",
-  fallbackActiveClassName: "lie-balatro-fallback-ocean-active",
-  overlayClassName: "lie-balatro-overlay-ocean",
+type BackgroundMode = "default" | "lobby" | "room" | "game";
+
+type BackgroundTheme = {
+  color1: string;
+  color2: string;
+  color3: string;
+  spinRotation: number;
+  spinSpeed: number;
+  contrast: number;
+  lighting: number;
+  spinAmount: number;
+  pixelFilter: number;
+  spinEase: number;
+  fallbackClassName: string;
+  fallbackActiveClassName: string;
+  overlayClassName: string;
+  animated: boolean;
+  shaderEnabled: boolean;
 };
 
+const backgroundThemes: Record<BackgroundMode, BackgroundTheme> = {
+  default: {
+    color1: "#71b8ff",
+    color2: "#2b6fff",
+    color3: "#0b1812",
+    spinRotation: -2.4,
+    spinSpeed: 6.9,
+    contrast: 3.18,
+    lighting: 0.38,
+    spinAmount: 0.26,
+    pixelFilter: 1200,
+    spinEase: 1.02,
+    fallbackClassName: "lie-balatro-fallback-ocean",
+    fallbackActiveClassName: "lie-balatro-fallback-ocean-active",
+    overlayClassName: "lie-balatro-overlay-ocean",
+    animated: true,
+    shaderEnabled: true,
+  },
+  lobby: {
+    color1: "#c9a5ff",
+    color2: "#7e45ff",
+    color3: "#0b0716",
+    spinRotation: -2.25,
+    spinSpeed: 6.7,
+    contrast: 3.12,
+    lighting: 0.36,
+    spinAmount: 0.25,
+    pixelFilter: 1060,
+    spinEase: 1,
+    fallbackClassName: "lie-balatro-fallback-violet",
+    fallbackActiveClassName: "lie-balatro-fallback-violet-active",
+    overlayClassName: "lie-balatro-overlay-violet",
+    animated: true,
+    shaderEnabled: true,
+  },
+  room: {
+    color1: "#baf7c7",
+    color2: "#2fd08f",
+    color3: "#0b1812",
+    spinRotation: -2.1,
+    spinSpeed: 6.5,
+    contrast: 3.1,
+    lighting: 0.34,
+    spinAmount: 0.22,
+    pixelFilter: 940,
+    spinEase: 0.95,
+    fallbackClassName: "lie-balatro-fallback-forest",
+    fallbackActiveClassName: "lie-balatro-fallback-forest-active",
+    overlayClassName: "lie-balatro-overlay-forest",
+    animated: true,
+    shaderEnabled: true,
+  },
+  game: {
+    color1: "#baf7c7",
+    color2: "#2fd08f",
+    color3: "#0b1812",
+    spinRotation: -2.1,
+    spinSpeed: 0,
+    contrast: 3.1,
+    lighting: 0.32,
+    spinAmount: 0.22,
+    pixelFilter: 940,
+    spinEase: 0.95,
+    fallbackClassName: "lie-balatro-fallback-forest",
+    fallbackActiveClassName: "lie-balatro-fallback-forest-active",
+    overlayClassName: "lie-balatro-overlay-forest",
+    animated: false,
+    shaderEnabled: true,
+  },
+};
+
+function getBackgroundMode(pathname: string | null, bodyMode?: string): BackgroundMode {
+  if (bodyMode === "game" || bodyMode === "room") {
+    return bodyMode;
+  }
+
+  if (pathname?.startsWith("/room/")) {
+    return "room";
+  }
+
+  return pathname === "/lobby" ? "lobby" : "default";
+}
+
 export default function GlobalBackground() {
+  const pathname = usePathname();
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() => getBackgroundMode(null));
   const [fallbackActive, setFallbackActive] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const shaderEnabled = !prefersReducedMotion;
-  const animatedFallback = fallbackActive && !prefersReducedMotion;
+  const backgroundTheme = backgroundThemes[backgroundMode];
+  const shaderEnabled = backgroundTheme.shaderEnabled && !prefersReducedMotion;
+  const animatedFallback = fallbackActive && backgroundTheme.animated && !prefersReducedMotion;
   const handleWebglReady = useCallback(() => setFallbackActive(false), []);
   const handleWebglFallback = useCallback(() => setFallbackActive(true), []);
+
+  useEffect(() => {
+    const syncBackgroundMode = () => {
+      setBackgroundMode(getBackgroundMode(pathname, document.body.dataset.lieBackgroundMode));
+      setFallbackActive(false);
+    };
+
+    syncBackgroundMode();
+
+    const observer = new MutationObserver(syncBackgroundMode);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["data-lie-background-mode"] });
+
+    return () => observer.disconnect();
+  }, [pathname]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -72,6 +177,7 @@ export default function GlobalBackground() {
         />
         {shaderEnabled ? (
           <Balatro
+            animated={backgroundTheme.animated}
             dpr={1.05}
             maxFps={30}
             mouseInteraction={false}

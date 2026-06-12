@@ -50,6 +50,14 @@ export default function RoomView({
     }
   }, [gameState, room, routeLoading]);
 
+  useEffect(() => {
+    document.body.dataset.lieBackgroundMode = gameState ? "game" : "room";
+
+    return () => {
+      delete document.body.dataset.lieBackgroundMode;
+    };
+  }, [gameState]);
+
   async function handleLeave() {
     if (!roomId) {
       router.push("/lobby");

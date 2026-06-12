@@ -5,7 +5,7 @@
  */
 "use client";
 
-import type { CSSProperties, PointerEvent } from "react";
+import { Fragment, type CSSProperties, type PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { isJokerRank, sortHandCards, type Card as CardType, type StandardSuit } from "@lie/shared";
 import Card from "./Card";
@@ -13,15 +13,15 @@ import Card from "./Card";
 const CARD_BASE_WIDTH = 49;
 const CARD_BASE_HEIGHT = 65;
 const HAND_CARD_MAX_SCALE = 2.35;
-const HAND_CARD_MIN_SCALE = 0.62;
+const HAND_CARD_MIN_SCALE = 0.78;
 const HAND_GROUP_STEP = 9;
 const HAND_STACK_STEP = 16;
 const HAND_FAN_MAX_ROTATE = 14;
 const HAND_FAN_MAX_LIFT = 12;
-const HAND_VERTICAL_PADDING = 44;
-const HAND_VIEWPORT_HEIGHT_RATIO = 0.28;
-const HAND_VIEWPORT_MIN_HEIGHT = 96;
-const HAND_VIEWPORT_MAX_HEIGHT = 246;
+const HAND_VERTICAL_PADDING = 36;
+const HAND_VIEWPORT_HEIGHT_RATIO = 0.34;
+const HAND_VIEWPORT_MIN_HEIGHT = 132;
+const HAND_VIEWPORT_MAX_HEIGHT = 286;
 const suitStackWeight = new Map<StandardSuit, number>([
   ["D", 0],
   ["C", 1],
@@ -225,12 +225,14 @@ export default function Hand({
   const [viewportHeight, setViewportHeight] = useState(0);
   const visibleCardIds = new Set(cards.map((card) => card.id));
   const displayCards = dealTargetCards?.length ? dealTargetCards : returnTargetCards?.length ? returnTargetCards : cards;
-  const returnTargetIndexByCardId = new Map(
-    returnTargetCards
-      ?.filter((card) => !visibleCardIds.has(card.id))
-      .map((card, index) => [card.id, index]) ?? [],
-  );
+  const dealTargetIndexByCardId = new Map((dealTargetCards ?? []).map((card, index) => [card.id, index]));
   const handGroups = groupHandCards(displayCards);
+  const returnTargetIndexByCardId = new Map(
+    handGroups
+      .flatMap((group) => group.cards)
+      .filter((card) => Boolean(returnTargetCards?.length) && !visibleCardIds.has(card.id))
+      .map((card, index) => [card.id, index]),
+  );
   const maxStackSize = handGroups.reduce((maxSize, group) => Math.max(maxSize, group.cards.length), 1);
   const handScale = getHandScale(handWidth, viewportHeight, handGroups.length, maxStackSize);
   const handEdgePadding = getHandEdgePadding(handWidth);
@@ -366,26 +368,53 @@ export default function Hand({
                 const upwardOffset = groupLift + stackOffset.y;
 
                 return (
-                  <Card
-                    key={card.id}
-                    card={card}
-                    dealing={dealing}
-                    dealTarget={Boolean(dealTargetCards?.length)}
-                    returnTargetIndex={returnTargetIndexByCardId.get(card.id)}
-                    disabled={disabled}
-                    selected={selectedCardIds.includes(card.id)}
-                    onKeyboardToggle={disabled ? undefined : () => onToggleCard(card.id)}
-                    style={
-                      {
-                        "--hand-card-x": `${groupX + stackOffset.x}px`,
-                        "--hand-card-y": `${-upwardOffset}px`,
-                        "--hand-card-rotate": `${rotate}deg`,
-                        opacity: visibleCardIds.has(card.id) ? undefined : 0,
-                        pointerEvents: visibleCardIds.has(card.id) ? undefined : "none",
-                        zIndex: groupIndex * (maxStackSize + 1) + (maxStackSize - stackIndex),
-                      } as CSSProperties
-                    }
-                  />
+                  <Fragment key={card.id}>
+                    {dealTargetCards?.length ? (
+                      <span
+                        data-deal-target={`self:${dealTargetIndexByCardId.get(card.id) ?? stackIndex}`}
+                        className="lie-game-hand-card lie-game-hand-card-target"
+                        style={
+                          {
+                            "--hand-card-x": `${groupX + stackOffset.x}px`,
+                            "--hand-card-y": `${-upwardOffset}px`,
+                            "--hand-card-rotate": `${rotate}deg`,
+                            zIndex: groupIndex * (maxStackSize + 1) + (maxStackSize - stackIndex),
+                          } as CSSProperties
+                        }
+                      />
+                    ) : null}
+                    {typeof returnTargetIndexByCardId.get(card.id) === "number" ? (
+                      <span
+                        data-return-target={`self:${returnTargetIndexByCardId.get(card.id)}`}
+                        className="lie-game-hand-card lie-game-hand-card-target"
+                        style={
+                          {
+                            "--hand-card-x": `${groupX + stackOffset.x}px`,
+                            "--hand-card-y": `${-upwardOffset}px`,
+                            "--hand-card-rotate": `${rotate}deg`,
+                            zIndex: groupIndex * (maxStackSize + 1) + (maxStackSize - stackIndex),
+                          } as CSSProperties
+                        }
+                      />
+                    ) : null}
+                    {visibleCardIds.has(card.id) ? (
+                      <Card
+                        card={card}
+                        dealing={dealing}
+                        disabled={disabled}
+                        selected={selectedCardIds.includes(card.id)}
+                        onKeyboardToggle={disabled ? undefined : () => onToggleCard(card.id)}
+                        style={
+                          {
+                            "--hand-card-x": `${groupX + stackOffset.x}px`,
+                            "--hand-card-y": `${-upwardOffset}px`,
+                            "--hand-card-rotate": `${rotate}deg`,
+                            zIndex: groupIndex * (maxStackSize + 1) + (maxStackSize - stackIndex),
+                          } as CSSProperties
+                        }
+                      />
+                    ) : null}
+                  </Fragment>
                 );
               });
             })}

@@ -46,6 +46,17 @@
   pointer-events: none;
 }
 
+.lie-game-hand-card-target {
+  width: calc(49px * var(--pixel-card-scale, 2));
+  height: calc(65px * var(--pixel-card-scale, 2));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lie-game-hand.lie-card-receive-bump {
+  animation: lie-card-receiver-bump 260ms cubic-bezier(0.18, 0.9, 0.24, 1.16);
+}
+
 .lie-game-hand-card .lie-dom-playing-card {
   transform-origin: 50% 50%;
   transition:
@@ -94,6 +105,10 @@
   animation: none;
 }
 
+.lie-opponent-card-stack.lie-card-receive-bump {
+  animation: lie-card-receiver-bump 260ms cubic-bezier(0.18, 0.9, 0.24, 1.16);
+}
+
 .lie-opponent-card-stack-card[data-deal-target] {
   animation: none;
 }
@@ -140,6 +155,23 @@
   }
 }
 
+@keyframes lie-card-receiver-bump {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    filter: none;
+  }
+
+  40% {
+    transform: translate3d(0, -0.34rem, 0) rotate(-0.8deg) scale(1.035);
+    filter: brightness(1.12) saturate(1.12);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    filter: none;
+  }
+}
+
 .lie-table-surface {
   position: relative;
   display: grid;
@@ -155,7 +187,7 @@
   top: clamp(0.25rem, 1.3vw, 0.85rem);
   z-index: 75;
   display: grid;
-  min-width: clamp(5.8rem, 16vw, 8rem);
+  min-width: clamp(9rem, 22vw, 14rem);
   gap: 0.28rem;
   border: 2px solid rgba(246, 226, 160, 0.42);
   background: rgba(13, 27, 26, 0.66);
@@ -183,7 +215,7 @@
 .lie-deal-flight-layer {
   position: absolute;
   inset: 0;
-  z-index: 70;
+  z-index: 130;
   overflow: visible;
   pointer-events: none;
 }
@@ -245,21 +277,182 @@
   width: clamp(16rem, 42vw, 24rem);
   height: clamp(13rem, 35vw, 20rem);
   place-items: center;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.lie-table-center-notice {
+  position: absolute;
+  left: 50%;
+  top: clamp(0.3rem, 2vw, 1rem);
+  z-index: 92;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: min(24rem, calc(100vw - 2rem));
+  transform: translateX(-50%);
+  border: 2px solid rgba(247, 240, 220, 0.78);
+  background: rgba(13, 27, 26, 0.88);
+  padding: 0.3rem 0.62rem;
+  color: #fff6cf;
+  font-size: clamp(0.72rem, 1.8vw, 0.9rem);
+  font-weight: 900;
+  line-height: 1.12;
+  pointer-events: none;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.34);
+  animation: lie-table-center-notice-in 240ms cubic-bezier(0.16, 0.92, 0.24, 1.08) both;
+}
+
+.lie-table-center-notice strong {
+  color: #bff3a8;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.lie-table-center-notice[data-kind="last-play"] strong {
+  color: #f1cf78;
+}
+
+.lie-table-center-notice[data-truthful="true"] strong {
+  color: #f1cf78;
+}
+
+.lie-table-center-notice span {
+  color: #d8e3c4;
+  white-space: nowrap;
+}
+
+@keyframes lie-table-center-notice-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-0.45rem) scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 
 .lie-discard-pile-card-shell {
   position: absolute;
   left: 50%;
-  top: 55%;
+  top: 45%;
   opacity: 1;
   transform-origin: 50% 50%;
   will-change: transform, opacity, filter;
+  perspective: 900px;
 }
 
-.lie-discard-pile-card {
+.lie-discard-pile-card-pose {
+  position: relative;
+  width: calc(49px * 1.55);
+  height: calc(65px * 1.55);
   transform: translate3d(calc(-50% + var(--discard-card-x, 0px)), calc(-50% + var(--discard-card-y, 0px)), 0) rotate(var(--discard-card-rotate, 0deg));
   transform-origin: 50% 50%;
   filter: drop-shadow(0 2px 3px rgba(8, 13, 14, 0.18));
+}
+
+.lie-discard-pile-card-flip {
+  position: absolute;
+  inset: 0;
+  transform: scale(1);
+  transform-origin: 50% 50%;
+  will-change: transform, filter;
+}
+
+.lie-discard-pile-card-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+
+.lie-discard-pile-card-face > .lie-card-back-frame,
+.lie-discard-pile-card-face > .lie-dom-playing-card {
+  width: 100%;
+  height: 100%;
+}
+
+.lie-discard-pile-card-back {
+  z-index: 1;
+  opacity: 1;
+  transform: perspective(900px) rotateY(0deg) scaleX(1);
+}
+
+.lie-discard-pile-card-front {
+  z-index: 2;
+  opacity: 0;
+  filter: drop-shadow(0 8px 10px rgba(8, 13, 14, 0.28)) brightness(1.06);
+  transform: perspective(900px) rotateY(-72deg) scaleX(0.18);
+}
+
+.lie-discard-pile-card-flip[data-revealed="true"] {
+  z-index: 100;
+  animation: lie-discard-card-reveal-lift 560ms cubic-bezier(0.16, 0.92, 0.24, 1.08) both;
+  filter: drop-shadow(0 9px 11px rgba(8, 13, 14, 0.3)) brightness(1.04);
+}
+
+.lie-discard-pile-card-flip[data-revealed="true"] .lie-discard-pile-card-back {
+  animation: lie-discard-card-back-turn 560ms cubic-bezier(0.16, 0.92, 0.24, 1.08) both;
+}
+
+.lie-discard-pile-card-flip[data-revealed="true"] .lie-discard-pile-card-front {
+  animation: lie-discard-card-front-turn 560ms cubic-bezier(0.16, 0.92, 0.24, 1.08) both;
+}
+
+@keyframes lie-discard-card-reveal-lift {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes lie-discard-card-back-turn {
+  0% {
+    opacity: 1;
+    transform: perspective(900px) rotateY(0deg) scaleX(1);
+  }
+
+  47% {
+    opacity: 1;
+    transform: perspective(900px) rotateY(72deg) scaleX(0.18);
+  }
+
+  48%,
+  100% {
+    opacity: 0;
+    transform: perspective(900px) rotateY(72deg) scaleX(0.18);
+  }
+}
+
+@keyframes lie-discard-card-front-turn {
+  0%,
+  47% {
+    opacity: 0;
+    transform: perspective(900px) rotateY(-72deg) scaleX(0.18);
+  }
+
+  48% {
+    opacity: 1;
+    transform: perspective(900px) rotateY(-72deg) scaleX(0.18);
+  }
+
+  100% {
+    opacity: 1;
+    transform: perspective(900px) rotateY(0deg) scaleX(1);
+  }
 }
 
 .lie-return-flight-layer {
@@ -273,16 +466,45 @@
 .lie-return-flight-shell {
   position: absolute;
   left: 50%;
-  top: 55%;
+  top: 45%;
   opacity: 0;
   transform-origin: 50% 50%;
   will-change: transform, opacity;
 }
 
 .lie-return-flight-card {
+  width: 100%;
+  height: 100%;
   filter: drop-shadow(0 4px 6px rgba(8, 13, 14, 0.2));
   transform-origin: 50% 50%;
   will-change: transform;
+}
+
+.lie-declare-rank-modal {
+  max-width: min(56rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: clamp(0.85rem, 2.2vw, 1.35rem);
+}
+
+.lie-declare-rank-grid {
+  --declare-card-columns: 5;
+  --declare-card-scale: 1.45;
+  grid-template-columns: repeat(var(--declare-card-columns), calc(49px * var(--declare-card-scale) + 0.65rem));
+  justify-content: center;
+  gap: 0.75rem;
+  overflow: visible;
+  padding: 0;
+  place-items: center;
+}
+
+.lie-declare-rank-card-button {
+  min-width: calc(49px * var(--declare-card-scale) + 0.65rem);
+  min-height: calc(65px * var(--declare-card-scale) + 0.65rem);
+}
+
+.lie-declare-rank-card {
+  --pixel-card-scale: var(--declare-card-scale);
+  cursor: pointer;
 }
 
 .lie-card-back-frame {
