@@ -66,7 +66,7 @@ function sortStackCards(cards: CardType[]) {
  *
  * @Date 2026-06-12 14:47
  */
-function groupHandCards(cards: CardType[]) {
+export function groupHandCards(cards: CardType[]) {
   const groups = new Map<string, HandGroup>();
 
   for (const card of sortHandCards(cards)) {
@@ -192,6 +192,7 @@ function getStackOffset(rotate: number, stackIndex: number, scale: number) {
  * @param dealing 是否处于发牌动画中。
  * @param disabled 是否禁用交互。
  * @param dealTargetCards 发牌动画期间用于预占目标位置的完整手牌。
+ * @param returnTargetCards 回收弃牌动画期间用于预占目标位置的完整手牌。
  * @param selectedCardIds 已选中的手牌 ID。
  * @param onToggleCard 键盘或单击切换选中回调。
  * @param onSetCardSelected 拖选时按目标状态设置选中回调。
@@ -204,6 +205,7 @@ export default function Hand({
   dealing = false,
   disabled = false,
   dealTargetCards,
+  returnTargetCards,
   selectedCardIds,
   onToggleCard,
   onSetCardSelected,
@@ -212,6 +214,7 @@ export default function Hand({
   dealing?: boolean;
   disabled?: boolean;
   dealTargetCards?: CardType[];
+  returnTargetCards?: CardType[];
   selectedCardIds: string[];
   onToggleCard: (cardId: string) => void;
   onSetCardSelected: (cardId: string, selected: boolean) => void;
@@ -221,7 +224,12 @@ export default function Hand({
   const [handWidth, setHandWidth] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const visibleCardIds = new Set(cards.map((card) => card.id));
-  const displayCards = dealTargetCards?.length ? dealTargetCards : cards;
+  const displayCards = dealTargetCards?.length ? dealTargetCards : returnTargetCards?.length ? returnTargetCards : cards;
+  const returnTargetIndexByCardId = new Map(
+    returnTargetCards
+      ?.filter((card) => !visibleCardIds.has(card.id))
+      .map((card, index) => [card.id, index]) ?? [],
+  );
   const handGroups = groupHandCards(displayCards);
   const maxStackSize = handGroups.reduce((maxSize, group) => Math.max(maxSize, group.cards.length), 1);
   const handScale = getHandScale(handWidth, viewportHeight, handGroups.length, maxStackSize);
@@ -363,6 +371,7 @@ export default function Hand({
                     card={card}
                     dealing={dealing}
                     dealTarget={Boolean(dealTargetCards?.length)}
+                    returnTargetIndex={returnTargetIndexByCardId.get(card.id)}
                     disabled={disabled}
                     selected={selectedCardIds.includes(card.id)}
                     onKeyboardToggle={disabled ? undefined : () => onToggleCard(card.id)}

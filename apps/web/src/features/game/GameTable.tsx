@@ -14,12 +14,11 @@ import PixelButton from "@/components/ui/PixelButton";
 import PixelModal from "@/components/ui/PixelModal";
 import CardBackArt from "@/components/cards/CardBackArt";
 import DomPlayingCard from "@/components/cards/DomPlayingCard";
-import Hand from "./Hand";
+import Hand, { groupHandCards } from "./Hand";
 import PlayerSeat from "./PlayerSeat";
 
 type GamePlayer = PublicGameState["players"][number];
 type PublicDiscardCard = PublicGameState["discardPileCards"][number];
-type TableHistoryEvent = Extract<PublicGameEvent, { type: "cards_played" | "challenge_resolved" }>;
 type VisibleCardCounts = Record<string, number>;
 type DealFlightCard = {
   id: string;
@@ -32,12 +31,12 @@ type DealFlightCard = {
 type ReturnFlightCard = {
   id: string;
   cardBack: number;
+  selfCard?: Card;
+  playerId: string;
   startX: number;
   startY: number;
   startRotate: number;
-  targetX: number;
-  targetY: string;
-  targetRotate: number;
+  targetIndex: number;
   zIndex: number;
 };
 
@@ -47,15 +46,77 @@ type DiscardGroupMeta = {
   groupIndex: number;
 };
 
+type DealFlightTargetPose = {
+  x: number;
+  y: number;
+  rotate: number;
+  scale: number;
+  visible: boolean;
+};
+
 const DISCARD_CARD_STAGGER_SECONDS = 0.086;
 const DISCARD_CARD_FLIGHT_SECONDS = 0.52;
 const DISCARD_RETURN_STAGGER_SECONDS = 0.058;
 const DISCARD_RETURN_FLIGHT_SECONDS = 0.62;
-const DEAL_CARD_STAGGER_SECONDS = 0.075;
-const DEAL_CARD_FLIGHT_SECONDS = 0.5;
+const DEAL_CARD_FLIGHT_SECONDS = 0.18;
+const DEAL_CARD_NEXT_START_RATIO = 0.68;
 
 function getTargetCardCounts(players: GamePlayer[]) {
   return Object.fromEntries(players.map((player) => [player.playerId, player.cardCount])) as VisibleCardCounts;
+}
+
+function getSelfDealCardsByBottomFirstLayout(cards: Card[]) {
+  return groupHandCards(cards).flatMap((group) => [...group.cards].reverse());
+}
+
+function getDealFlightArc(orderIndex: number, selfCard?: Card) {
+  const direction = orderIndex % 2 === 0 ? -1 : 1;
+
+  return {
+    midX: direction * (10 + (orderIndex % 3) * 4),
+    midY: -20 - (orderIndex % 4) * 3,
+    overshootX: direction * (3 + (orderIndex % 2)),
+    overshootY: -4 - (orderIndex % 3),
+    startRotate: -7 + (orderIndex % 5) * 3,
+    settleRotate: selfCard ? direction * 2.4 : direction * 1.6,
+  };
+}
+
+function getElementRotation(element: HTMLElement) {
+  const transform = window.getComputedStyle(element).transform;
+
+  if (!transform || transform === "none") {
+    return 0;
+  }
+
+  const matrix = new DOMMatrixReadOnly(transform);
+  return (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI;
+}
+
+function getDealFlightTargetPose(targetNode: HTMLElement | null, shell: HTMLElement, layer: HTMLElement): DealFlightTargetPose {
+  if (!targetNode) {
+    return {
+      x: 0,
+      y: 0,
+      rotate: 0,
+      scale: 0.96,
+      visible: false,
+    };
+  }
+
+  const layerBounds = layer.getBoundingClientRect();
+  const originX = layerBounds.left + layerBounds.width / 2;
+  const originY = layerBounds.top + layerBounds.height * 0.55;
+  const targetBounds = targetNode.getBoundingClientRect();
+  const shellBounds = shell.getBoundingClientRect();
+
+  return {
+    x: targetBounds.left + targetBounds.width / 2 - originX,
+    y: targetBounds.top + targetBounds.height / 2 - originY,
+    rotate: getElementRotation(targetNode),
+    scale: Math.max(0.62, Math.min(1.7, targetBounds.width / Math.max(shellBounds.width, 1))),
+    visible: true,
+  };
 }
 
 /**
@@ -75,7 +136,7 @@ function useDealAnimation(state: PublicGameState, selfPlayerId?: string | null) 
     const dealSequence = Array.from({ length: maxCards }).flatMap((_, cardIndex) =>
       players.filter((player) => cardIndex < player.cardCount).map((player) => player.playerId),
     );
-    const selfDealCards = [...state.selfHand];
+    const selfDealCards = getSelfDealCardsByBottomFirstLayout(state.selfHand);
     const dealtCountByPlayerId = new Map<string, number>();
     const flights = dealSequence.map((playerId, orderIndex) => {
       const player = players.find((candidate) => candidate.playerId === playerId);
@@ -110,6 +171,7 @@ function useDealAnimation(state: PublicGameState, selfPlayerId?: string | null) 
       key,
       matchId: state.matchId,
       players,
+      selfDealCards,
       shouldDeal: state.status === "playing" && state.turnSeq === 1 && state.discardPileCount === 0,
       targetCounts,
     };
@@ -139,7 +201,7 @@ function useDealAnimation(state: PublicGameState, selfPlayerId?: string | null) 
     setDealing(true);
     setVisibleCardCounts(Object.fromEntries(currentDealPlan.players.map((player) => [player.playerId, 0])) as VisibleCardCounts);
     setRemainingDeckCount(currentDealPlan.flights.length);
-    setDealFlights(currentDealPlan.flights);
+    setDealFlights(currentDealPlan.flights[0] ? [currentDealPlan.flights[0]] : []);
 
     const endTimer = window.setTimeout(
       () => {
@@ -149,21 +211,58 @@ function useDealAnimation(state: PublicGameState, selfPlayerId?: string | null) 
         setDealFlights([]);
         setDealing(false);
       },
-      currentDealPlan.flights.length * DEAL_CARD_STAGGER_SECONDS * 1000 + DEAL_CARD_FLIGHT_SECONDS * 1000 + 120,
+      currentDealPlan.flights.length * DEAL_CARD_FLIGHT_SECONDS * DEAL_CARD_NEXT_START_RATIO * 1000 + DEAL_CARD_FLIGHT_SECONDS * 1000 + 1000,
     );
 
     return () => window.clearTimeout(endTimer);
   }, [dealPlan.key]);
 
   const completeDealFlight = useCallback((flight: DealFlightCard) => {
+    const currentDealPlan = dealPlanRef.current;
+    const nextFlight = currentDealPlan.flights[flight.orderIndex + 1] ?? null;
+
     setVisibleCardCounts((current) => ({
       ...current,
       [flight.playerId]: (current[flight.playerId] ?? 0) + 1,
     }));
     setRemainingDeckCount((current) => Math.max(0, current - 1));
+    setDealFlights((current) => {
+      const withoutCompletedFlight = current.filter((currentFlight) => currentFlight.id !== flight.id);
+
+      if (!nextFlight || withoutCompletedFlight.some((currentFlight) => currentFlight.id === nextFlight.id)) {
+        return withoutCompletedFlight;
+      }
+
+      return [...withoutCompletedFlight, nextFlight];
+    });
+
+    if (!nextFlight) {
+      completedDealMatchIdRef.current = currentDealPlan.matchId;
+      setVisibleCardCounts(currentDealPlan.targetCounts);
+      setRemainingDeckCount(0);
+      setDealing(false);
+    }
   }, []);
 
-  return { completeDealFlight, dealFlights, remainingDeckCount, visibleCardCounts, dealing };
+  const startNextDealFlight = useCallback((flight: DealFlightCard) => {
+    const nextFlight = dealPlanRef.current.flights[flight.orderIndex + 1] ?? null;
+
+    if (!nextFlight) {
+      return;
+    }
+
+    setDealFlights((current) => (current.some((currentFlight) => currentFlight.id === nextFlight.id) ? current : [...current, nextFlight]));
+  }, []);
+
+  return {
+    completeDealFlight,
+    dealFlights,
+    dealing,
+    remainingDeckCount,
+    selfDealCards: dealPlan.selfDealCards,
+    startNextDealFlight,
+    visibleCardCounts,
+  };
 }
 
 function getDiscardGroupKey(card: PublicDiscardCard) {
@@ -250,57 +349,6 @@ function getDiscardFlightStart(card: PublicDiscardCard, players: GamePlayer[], s
   };
 }
 
-/**
- * @Description: 计算质疑结算后弃牌堆飞回失败方手牌区的目标位置。
- *
- * @param playerId 拿走弃牌堆的玩家 ID。
- * @param players 当前公开玩家列表。
- * @param selfPlayerId 当前玩家 ID。
- * @return 飞回动画目标位移和旋转角。
- *
- * @Date 2026-06-12 14:47
- */
-function getPlayerFlightTarget(playerId: string, players: GamePlayer[], selfPlayerId?: string | null) {
-  if (playerId === selfPlayerId) {
-    return { x: 0, y: "20rem", rotate: -8 };
-  }
-
-  const opponents = players
-    .filter((player) => player.playerId !== selfPlayerId)
-    .sort((left, right) => left.seatIndex - right.seatIndex);
-  const opponentIndex = Math.max(0, opponents.findIndex((player) => player.playerId === playerId));
-
-  return {
-    x: opponentIndex === 0 ? -140 : 140,
-    y: "-15rem",
-    rotate: opponentIndex === 0 ? -9 : 9,
-  };
-}
-
-function getPlayerName(playerId: string, playerNameById: Map<string, string>) {
-  return playerNameById.get(playerId) ?? "玩家";
-}
-
-function formatCardCount(count: number) {
-  const countLabels = ["零", "一", "两", "三", "四"] as const;
-
-  return `${countLabels[count] ?? count}张`;
-}
-
-function formatTableHistoryEvent(event: TableHistoryEvent, playerNameById: Map<string, string>) {
-  if (event.type === "cards_played") {
-    const actorName = getPlayerName(event.actorPlayerId, playerNameById);
-    const action = event.playMode === "follow" ? "跟" : "声明";
-
-    return `${actorName}，${action}${formatCardCount(event.cardCount)}${event.declaredRank}`;
-  }
-
-  const challengerName = getPlayerName(event.challengerPlayerId, playerNameById);
-  const challengedName = getPlayerName(event.challengedPlayerId, playerNameById);
-
-  return `${challengerName}，质疑${challengedName}${event.wasTruthful ? "失败" : "成功"}`;
-}
-
 function DiscardPile({
   cards,
   players,
@@ -367,7 +415,7 @@ function DiscardPile({
           rotate: startRotate,
           scale: isSelfCard ? 1.12 : 1.04,
           opacity: 0,
-          filter: isSelfCard ? "drop-shadow(0 16px 0 rgba(8, 13, 14, 0.22))" : "drop-shadow(0 14px 0 rgba(8, 13, 14, 0.2))",
+          filter: isSelfCard ? "drop-shadow(0 5px 7px rgba(8, 13, 14, 0.22))" : "drop-shadow(0 4px 6px rgba(8, 13, 14, 0.2))",
         },
           {
             x: 0,
@@ -375,7 +423,7 @@ function DiscardPile({
             rotate: 0,
             scale: 1,
             opacity: 1,
-            filter: "drop-shadow(0 0 0 rgba(8, 13, 14, 0))",
+            filter: "drop-shadow(0 2px 3px rgba(8, 13, 14, 0.18))",
             duration: DISCARD_CARD_FLIGHT_SECONDS,
             ease: "back.out(1.18)",
           delay: meta.cardIndex * DISCARD_CARD_STAGGER_SECONDS,
@@ -436,7 +484,9 @@ function DiscardPile({
   );
 }
 
-function TableStatusPanel({ discardPileCount, followRank }: { discardPileCount: number; followRank: DeclaredRank | null }) {
+function TableStatusPanel({ followRank, lastPlayCardCount }: { followRank: DeclaredRank | null; lastPlayCardCount?: number }) {
+  const lastPlayCardCountLabel = typeof lastPlayCardCount === "number" ? `${lastPlayCardCount} 张` : "无";
+
   return (
     <aside className="lie-table-status-panel" aria-label="当前牌桌状态">
       <div>
@@ -445,30 +495,8 @@ function TableStatusPanel({ discardPileCount, followRank }: { discardPileCount: 
       </div>
       <div>
         <span className="lie-table-status-label">弃牌区</span>
-        <strong>{discardPileCount} 张</strong>
+        <strong>上一手 {lastPlayCardCountLabel}</strong>
       </div>
-    </aside>
-  );
-}
-
-function TableHistoryPanel({ events, players }: { events: PublicGameEvent[]; players: GamePlayer[] }) {
-  const playerNameById = useMemo(() => new Map(players.map((player) => [player.playerId, player.nickname])), [players]);
-  const historyEvents = events.filter((event): event is TableHistoryEvent => event.type === "cards_played" || event.type === "challenge_resolved");
-
-  return (
-    <aside className="lie-table-history-panel" aria-label="出牌历史">
-      {historyEvents.length ? (
-        historyEvents
-          .slice(-9)
-          .reverse()
-          .map((event, index) => (
-            <div key={`${event.type}-${event.turnSeq}-${index}`} className="lie-table-history-item">
-              {formatTableHistoryEvent(event, playerNameById)}
-            </div>
-          ))
-      ) : (
-        <div className="lie-table-history-empty">等待第一手牌</div>
-      )}
     </aside>
   );
 }
@@ -487,84 +515,129 @@ function DealFlightLayer({
   flights,
   onFlightComplete,
   remainingDeckCount,
+  onFlightReadyForNext,
 }: {
   flights: DealFlightCard[];
   onFlightComplete: (flight: DealFlightCard) => void;
   remainingDeckCount: number;
+  onFlightReadyForNext: (flight: DealFlightCard) => void;
 }) {
   const layerRef = useRef<HTMLDivElement | null>(null);
+  const startedFlightIdsRef = useRef(new Set<string>());
   const completedFlightIdsRef = useRef(new Set<string>());
+  const readyFlightIdsRef = useRef(new Set<string>());
+  const flightTimelinesRef = useRef(new Map<string, gsap.core.Timeline>());
 
   useLayoutEffect(() => {
-    completedFlightIdsRef.current.clear();
-
     if (!flights.length || !layerRef.current) {
       return;
     }
 
-    const context = gsap.context(() => {
-      flights.forEach((flight) => {
-        const shell = layerRef.current?.querySelector<HTMLElement>(`[data-deal-flight-card-id="${flight.id}"]`);
-        const flipper = shell?.querySelector<HTMLElement>("[data-deal-flight-flipper]");
+    flights.forEach((flight) => {
+      const shell = layerRef.current?.querySelector<HTMLElement>(`[data-deal-flight-card-id="${flight.id}"]`);
 
-        if (!shell || !layerRef.current) {
-          return;
-        }
+      if (!shell || !layerRef.current || startedFlightIdsRef.current.has(flight.id) || completedFlightIdsRef.current.has(flight.id)) {
+        return;
+      }
 
-        const layerBounds = layerRef.current.getBoundingClientRect();
-        const originX = layerBounds.left + layerBounds.width / 2;
-        const originY = layerBounds.top + layerBounds.height * 0.55;
-        const targetSelector = flight.selfCard ? `[data-hand-card-id="${flight.selfCard.id}"]` : `[data-deal-target="${flight.playerId}:${flight.targetIndex}"]`;
-        const targetNode = document.querySelector<HTMLElement>(targetSelector);
-        const targetBounds = targetNode?.getBoundingClientRect();
-        const shellBounds = shell.getBoundingClientRect();
-        const targetX = targetBounds ? targetBounds.left + targetBounds.width / 2 - originX : 0;
-        const targetY = targetBounds ? targetBounds.top + targetBounds.height / 2 - originY : "20rem";
-        const targetScale = targetBounds ? Math.max(0.62, Math.min(1.08, targetBounds.width / Math.max(shellBounds.width, 1))) : 0.96;
+      startedFlightIdsRef.current.add(flight.id);
+      const targetSelector = flight.selfCard ? `[data-hand-card-id="${flight.selfCard.id}"]` : `[data-deal-target="${flight.playerId}:${flight.targetIndex}"]`;
+      const targetNode = document.querySelector<HTMLElement>(targetSelector);
+      const targetPose = getDealFlightTargetPose(targetNode ?? null, shell, layerRef.current);
+      const arc = getDealFlightArc(flight.orderIndex, flight.selfCard);
+      const timeline = gsap.timeline();
 
-        gsap.fromTo(
-          shell,
-          {
-            x: 0,
-            y: 0,
-            rotate: -6 + (flight.orderIndex % 5) * 3,
-            scale: 1,
-            opacity: 0,
+      flightTimelinesRef.current.set(flight.id, timeline);
+
+      timeline.fromTo(
+        shell,
+        {
+          xPercent: -50,
+          yPercent: -50,
+          x: 0,
+          y: 0,
+          rotate: arc.startRotate,
+          scale: 1,
+          opacity: 0,
+        },
+        {
+          xPercent: -50,
+          yPercent: -50,
+          x: targetPose.x * 0.58 + arc.midX,
+          y: targetPose.y * 0.52 + arc.midY,
+          rotate: targetPose.rotate + arc.settleRotate,
+          scale: Math.max(0.82, Math.min(1.08, targetPose.scale * 1.04)),
+          opacity: targetPose.visible ? 1 : 0.4,
+          filter: "drop-shadow(0 9px 10px rgba(8, 13, 14, 0.24))",
+          duration: DEAL_CARD_FLIGHT_SECONDS * 0.38,
+          ease: "power2.out",
+        },
+        0,
+      );
+
+      timeline.to(
+        shell,
+        {
+          x: targetPose.x + arc.overshootX,
+          y: targetPose.y + arc.overshootY,
+          rotate: targetPose.rotate - arc.settleRotate * 0.35,
+          scale: targetPose.scale * 1.02,
+          opacity: targetPose.visible ? 1 : 0,
+          filter: "drop-shadow(0 5px 6px rgba(8, 13, 14, 0.22))",
+          duration: DEAL_CARD_FLIGHT_SECONDS * 0.42,
+          ease: "power3.in",
+        },
+        DEAL_CARD_FLIGHT_SECONDS * 0.38,
+      );
+
+      timeline.to(
+        shell,
+        {
+          x: targetPose.x,
+          y: targetPose.y,
+          rotate: targetPose.rotate,
+          scale: targetPose.scale,
+          opacity: targetPose.visible ? 1 : 0,
+          filter: "drop-shadow(0 3px 4px rgba(8, 13, 14, 0.2))",
+          duration: DEAL_CARD_FLIGHT_SECONDS * 0.2,
+          ease: "back.out(1.8)",
+          onComplete: () => {
+            if (completedFlightIdsRef.current.has(flight.id)) {
+              return;
+            }
+
+            completedFlightIdsRef.current.add(flight.id);
+            flightTimelinesRef.current.delete(flight.id);
+            gsap.set(shell, { opacity: 0 });
+            onFlightComplete(flight);
           },
-          {
-            x: targetX,
-            y: targetY,
-            rotate: 0,
-            scale: targetScale,
-            opacity: targetBounds ? 1 : 0,
-            duration: DEAL_CARD_FLIGHT_SECONDS,
-            ease: "power3.inOut",
-            delay: flight.orderIndex * DEAL_CARD_STAGGER_SECONDS,
-            onComplete: () => {
-              if (completedFlightIdsRef.current.has(flight.id)) {
-                return;
-              }
+        },
+        DEAL_CARD_FLIGHT_SECONDS * 0.8,
+      );
 
-              completedFlightIdsRef.current.add(flight.id);
-              gsap.set(shell, { opacity: 0 });
-              onFlightComplete(flight);
-            },
-          },
-        );
+      timeline.call(
+        () => {
+          if (readyFlightIdsRef.current.has(flight.id)) {
+            return;
+          }
 
-        if (flight.selfCard && flipper) {
-          gsap.to(flipper, {
-            rotateY: 180,
-            duration: 0.28,
-            ease: "power2.inOut",
-            delay: flight.orderIndex * DEAL_CARD_STAGGER_SECONDS + 0.12,
-          });
-        }
-      });
-    }, layerRef);
+          readyFlightIdsRef.current.add(flight.id);
+          onFlightReadyForNext(flight);
+        },
+        undefined,
+        DEAL_CARD_FLIGHT_SECONDS * DEAL_CARD_NEXT_START_RATIO,
+      );
+    });
+  }, [flights, onFlightComplete, onFlightReadyForNext]);
 
-    return () => context.revert();
-  }, [flights, onFlightComplete]);
+  useEffect(() => {
+    const timelines = flightTimelinesRef.current;
+
+    return () => {
+      timelines.forEach((timeline) => timeline.kill());
+      timelines.clear();
+    };
+  }, []);
 
   if (!flights.length) {
     return null;
@@ -598,20 +671,19 @@ function DealFlightLayer({
           className="lie-deal-flight-card"
           style={{ zIndex: flights.length + flight.orderIndex } as CSSProperties}
         >
-          <span data-deal-flight-flipper className="lie-deal-flight-flipper">
+          {flight.selfCard ? (
+            <DomPlayingCard
+              card={flight.selfCard}
+              label="发到你手中的牌"
+              className="lie-deal-flight-side [--pixel-card-scale:1.55]"
+            />
+          ) : (
             <CardBackArt
               back={flight.cardBack}
               label="发牌中的牌背"
-              className="lie-deal-flight-side lie-deal-flight-back [--card-back-art-height:65px] [--card-back-art-width:49px] [--card-back-scale:1.55]"
+              className="lie-deal-flight-side [--card-back-art-height:65px] [--card-back-art-width:49px] [--card-back-scale:1.55]"
             />
-            {flight.selfCard ? (
-              <DomPlayingCard
-                card={flight.selfCard}
-                label="发到你手中的牌"
-                className="lie-deal-flight-side lie-deal-flight-front [--pixel-card-scale:1.55]"
-              />
-            ) : null}
-          </span>
+          )}
         </span>
       ))}
     </div>
@@ -642,56 +714,79 @@ function ReturnFlightLayer({ cards }: { cards: ReturnFlightCard[] }) {
       cards.forEach((card, index) => {
         const shell = layerRef.current?.querySelector<HTMLElement>(`[data-return-flight-card-id="${card.id}"]`);
 
-        if (!shell) {
+        if (!shell || !layerRef.current) {
           return;
         }
 
-        const cardNode = shell.querySelector<HTMLElement>("[data-return-flight-card-body]");
+        const targetSelector = card.selfCard ? `[data-return-target="self:${card.targetIndex}"]` : `[data-return-target="${card.playerId}:${card.targetIndex}"]`;
+        const targetNode = document.querySelector<HTMLElement>(targetSelector);
+        const targetPose = getDealFlightTargetPose(targetNode, shell, layerRef.current);
+        const arc = getDealFlightArc(index, card.selfCard);
 
         gsap.set(shell, {
+          xPercent: -50,
+          yPercent: -50,
           x: card.startX,
           y: card.startY,
           rotate: card.startRotate,
           opacity: 0,
-        });
-
-        gsap.set(cardNode, {
-          x: 0,
-          y: 0,
-          rotate: 0,
           scale: 1,
         });
 
         tlRef.current?.fromTo(
           shell,
           {
+            xPercent: -50,
+            yPercent: -50,
             x: card.startX,
             y: card.startY,
             rotate: card.startRotate,
             opacity: 0,
+            scale: 1,
           },
           {
-            x: card.targetX,
-            y: card.targetY,
-            rotate: card.targetRotate,
-            opacity: 1,
-            duration: DISCARD_RETURN_FLIGHT_SECONDS,
-            ease: "power3.out",
+            xPercent: -50,
+            yPercent: -50,
+            x: targetPose.x * 0.58 + arc.midX,
+            y: targetPose.y * 0.52 + arc.midY,
+            rotate: targetPose.rotate + arc.settleRotate,
+            opacity: targetPose.visible ? 1 : 0.4,
+            scale: Math.max(0.82, Math.min(1.08, targetPose.scale * 1.04)),
+            filter: "drop-shadow(0 9px 10px rgba(8, 13, 14, 0.24))",
+            duration: DISCARD_RETURN_FLIGHT_SECONDS * 0.34,
+            ease: "power2.out",
           },
           index * DISCARD_RETURN_STAGGER_SECONDS,
         );
 
         tlRef.current?.to(
-          cardNode,
+          shell,
           {
-            x: index * 0.95 - ((cards.length - 1) * 0.95) / 2,
-            y: index * -0.55,
-            rotate: (index - (cards.length - 1) / 2) * 0.5,
-            scale: 0.94,
-            duration: 0.12,
-            ease: "power1.out",
+            x: targetPose.x + arc.overshootX,
+            y: targetPose.y + arc.overshootY,
+            rotate: targetPose.rotate - arc.settleRotate * 0.35,
+            scale: targetPose.scale * 1.02,
+            opacity: targetPose.visible ? 1 : 0,
+            filter: "drop-shadow(0 5px 6px rgba(8, 13, 14, 0.22))",
+            duration: DISCARD_RETURN_FLIGHT_SECONDS * 0.42,
+            ease: "power3.in",
           },
-          index * DISCARD_RETURN_STAGGER_SECONDS + DISCARD_RETURN_FLIGHT_SECONDS - 0.1,
+          index * DISCARD_RETURN_STAGGER_SECONDS + DISCARD_RETURN_FLIGHT_SECONDS * 0.34,
+        );
+
+        tlRef.current?.to(
+          shell,
+          {
+            x: targetPose.x,
+            y: targetPose.y,
+            rotate: targetPose.rotate,
+            scale: targetPose.scale,
+            opacity: targetPose.visible ? 1 : 0,
+            filter: "drop-shadow(0 3px 4px rgba(8, 13, 14, 0.2))",
+            duration: DISCARD_RETURN_FLIGHT_SECONDS * 0.24,
+            ease: "back.out(1.8)",
+          },
+          index * DISCARD_RETURN_STAGGER_SECONDS + DISCARD_RETURN_FLIGHT_SECONDS * 0.76,
         );
       });
     }, layerRef);
@@ -716,12 +811,19 @@ function ReturnFlightLayer({ cards }: { cards: ReturnFlightCard[] }) {
             } as CSSProperties
           }
         >
-          <CardBackArt
-            back={card.cardBack}
-            label="飞回手牌的牌背"
-            data-return-flight-card-body
-            className="lie-return-flight-card [--card-back-art-height:65px] [--card-back-art-width:49px] [--card-back-scale:1.55]"
-          />
+          {card.selfCard ? (
+            <DomPlayingCard
+              card={card.selfCard}
+              label="飞回手牌的牌"
+              className="lie-return-flight-card [--pixel-card-scale:1.55]"
+            />
+          ) : (
+            <CardBackArt
+              back={card.cardBack}
+              label="飞回手牌的牌背"
+              className="lie-return-flight-card [--card-back-art-height:65px] [--card-back-art-width:49px] [--card-back-scale:1.55]"
+            />
+          )}
         </div>
       ))}
     </div>
@@ -748,7 +850,7 @@ function ReturnFlightLayer({ cards }: { cards: ReturnFlightCard[] }) {
  */
 export default function GameTable({
   state,
-  events,
+  events: _events,
   selectedCardIds,
   ownerUserId,
   selfPlayerId,
@@ -777,16 +879,39 @@ export default function GameTable({
   const followRank = resolvingPendingWin ? null : (state.lastPlay?.declaredRank ?? null);
   const canChallenge = Boolean(isSelfTurn && state.lastPlay && state.lastPlay.playerId !== selfPlayerId && state.status !== "finished");
   const canPlay = Boolean(isSelfTurn && state.status !== "finished");
-  const { completeDealFlight, dealFlights, remainingDeckCount, visibleCardCounts, dealing } = useDealAnimation(state, selfPlayerId);
+  const {
+    completeDealFlight,
+    dealFlights,
+    dealing,
+    remainingDeckCount,
+    selfDealCards,
+    startNextDealFlight,
+    visibleCardCounts,
+  } = useDealAnimation(state, selfPlayerId);
   const [declareModalOpen, setDeclareModalOpen] = useState(false);
   const [returnFlights, setReturnFlights] = useState<ReturnFlightCard[]>([]);
+  const [returnTargetSelfCards, setReturnTargetSelfCards] = useState<Card[]>([]);
+  const [returnTargetCardCounts, setReturnTargetCardCounts] = useState<VisibleCardCounts>({});
   const previousDiscardCardsRef = useRef<PublicDiscardCard[]>(state.discardPileCards);
   const opponents = useMemo(
     () => [...state.players].sort((left, right) => left.seatIndex - right.seatIndex).filter((player) => player.playerId !== selfPlayerId),
     [selfPlayerId, state.players],
   );
   const selfVisibleCardCount = selfPlayerId ? (visibleCardCounts[selfPlayerId] ?? state.selfHand.length) : state.selfHand.length;
-  const visibleSelfHand = dealing ? state.selfHand.slice(0, selfVisibleCardCount) : state.selfHand;
+  const activeSelfFlightTargetIndex = dealing
+    ? Math.max(
+        -1,
+        ...dealFlights
+          .filter((flight) => flight.playerId === selfPlayerId && flight.selfCard)
+          .map((flight) => flight.targetIndex),
+      )
+    : -1;
+  const visibleSelfHand = dealing ? selfDealCards.slice(0, selfVisibleCardCount) : state.selfHand;
+  const dealTargetSelfHand = dealing && activeSelfFlightTargetIndex >= 0 ? selfDealCards.slice(0, activeSelfFlightTargetIndex + 1) : visibleSelfHand;
+  const returnVisibleSelfHand =
+    returnTargetSelfCards.length > 0
+      ? state.selfHand.filter((card) => !returnTargetSelfCards.some((targetCard) => targetCard.id === card.id))
+      : visibleSelfHand;
 
   useEffect(() => {
     const previousDiscardCards = previousDiscardCardsRef.current;
@@ -796,7 +921,12 @@ export default function GameTable({
       return;
     }
 
-    const target = getPlayerFlightTarget(state.currentPlayerId, state.players, selfPlayerId);
+    const targetPlayerId = state.currentPlayerId;
+    const returnToSelf = targetPlayerId === selfPlayerId;
+    const returnedSelfCards = returnToSelf ? state.selfHand.slice(Math.max(0, state.selfHand.length - previousDiscardCards.length)) : [];
+    const currentTargetPlayer = state.players.find((player) => player.playerId === targetPlayerId);
+    const returnTargetCardCount = currentTargetPlayer?.cardCount ?? previousDiscardCards.length;
+    const firstReturnTargetIndex = Math.max(0, returnTargetCardCount - previousDiscardCards.length);
     const batchId = Date.now();
     const nextFlights = previousDiscardCards.map((card, index) => {
       const startPose = getScatteredDiscardPose(index);
@@ -804,22 +934,26 @@ export default function GameTable({
       return {
         id: `${state.turnSeq}-${card.playedByPlayerId}-${index}-${batchId}`,
         cardBack: card.cardBack,
+        playerId: targetPlayerId,
+        selfCard: returnedSelfCards[index],
         startX: startPose.x,
         startY: startPose.y,
         startRotate: startPose.rotate,
-        targetX: target.x,
-        targetY: target.y,
-        targetRotate: target.rotate,
+        targetIndex: firstReturnTargetIndex + index,
         zIndex: previousDiscardCards.length - index,
       };
     });
 
     const startTimer = window.setTimeout(() => {
+      setReturnTargetSelfCards(returnToSelf ? state.selfHand : []);
+      setReturnTargetCardCounts(returnToSelf ? {} : { [targetPlayerId]: returnTargetCardCount });
       setReturnFlights((current) => [...current, ...nextFlights]);
     }, 0);
     const endTimer = window.setTimeout(
       () => {
         setReturnFlights((current) => current.filter((card) => !nextFlights.some((flight) => flight.id === card.id)));
+        setReturnTargetSelfCards([]);
+        setReturnTargetCardCounts({});
       },
       (nextFlights.length - 1) * DISCARD_RETURN_STAGGER_SECONDS * 1000 + DISCARD_RETURN_FLIGHT_SECONDS * 1000 + 160,
     );
@@ -828,7 +962,7 @@ export default function GameTable({
       window.clearTimeout(startTimer);
       window.clearTimeout(endTimer);
     };
-  }, [selfPlayerId, state.currentPlayerId, state.discardPileCards, state.players, state.turnSeq]);
+  }, [selfPlayerId, state.currentPlayerId, state.discardPileCards, state.players, state.selfHand, state.turnSeq]);
 
   function handlePlayButtonClick() {
     if (resolvingPendingWin) {
@@ -864,20 +998,21 @@ export default function GameTable({
             dealing={dealing}
             dealTargetCardCount={dealing ? player.cardCount : undefined}
             owner={Boolean(ownerUserId && player.userId === ownerUserId)}
+            returnTargetCardCount={returnTargetCardCounts[player.playerId]}
           />
         ))}
       </section>
 
       <div className="lie-table-surface">
-        <TableStatusPanel discardPileCount={state.discardPileCount} followRank={followRank} />
+        <TableStatusPanel followRank={followRank} lastPlayCardCount={state.lastPlay?.cardCount} />
         <DealFlightLayer
           flights={dealFlights}
           onFlightComplete={completeDealFlight}
+          onFlightReadyForNext={startNextDealFlight}
           remainingDeckCount={remainingDeckCount}
         />
         <DiscardPile cards={state.discardPileCards} players={state.players} selfPlayerId={selfPlayerId} />
         <ReturnFlightLayer cards={returnFlights} />
-        <TableHistoryPanel events={events} players={state.players} />
       </div>
 
       <section className="grid min-h-0 gap-2 sm:gap-3">
@@ -911,9 +1046,10 @@ export default function GameTable({
           <p className="text-sm text-[#c6b889]">上一手玩家已打空手牌。你可以质疑；如果不质疑，点击主按钮会直接确认其获胜。</p>
         ) : null}
         <Hand
-          cards={visibleSelfHand}
+          cards={returnVisibleSelfHand}
           dealing={dealing}
-          dealTargetCards={dealing ? state.selfHand : undefined}
+          dealTargetCards={dealing ? dealTargetSelfHand : undefined}
+          returnTargetCards={returnTargetSelfCards.length ? returnTargetSelfCards : undefined}
           disabled={!isSelfTurn || dealing || state.status === "finished"}
           selectedCardIds={selectedCardIds}
           onToggleCard={onToggleCard}

@@ -13,6 +13,7 @@ export default function Card({
   selected = false,
   dealing = false,
   dealTarget = false,
+  returnTargetIndex,
   disabled = false,
   onKeyboardToggle,
   style,
@@ -21,6 +22,7 @@ export default function Card({
   selected?: boolean;
   dealing?: boolean;
   dealTarget?: boolean;
+  returnTargetIndex?: number;
   disabled?: boolean;
   onKeyboardToggle?: () => void;
   style?: CSSProperties;
@@ -41,6 +43,7 @@ export default function Card({
       data-hand-card-id={card.id}
       data-dealing={dealing ? "true" : undefined}
       data-deal-target={dealTarget ? "self" : undefined}
+      data-return-target={typeof returnTargetIndex === "number" ? `self:${returnTargetIndex}` : undefined}
       data-selected={selected ? "true" : undefined}
       style={style}
       className="lie-game-hand-card grid h-auto shrink-0 place-items-center bg-transparent transition"
