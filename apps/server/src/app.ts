@@ -1,5 +1,7 @@
 /**
- * Fastify 应用工厂：注册 CORS、健康检查、认证路由和房间路由。
+ * @Description: Fastify 应用工厂：注册 CORS、健康检查、认证路由和房间路由。
+ *
+ * @Date 2026-06-12 14:47
  */
 import cors from "@fastify/cors";
 import Fastify from "fastify";

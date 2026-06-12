@@ -1,5 +1,7 @@
 /**
- * 认证业务服务：处理注册、登录、当前用户查询和密码校验。
+ * @Description: 认证业务服务：处理注册、登录、当前用户查询和密码校验。
+ *
+ * @Date 2026-06-12 14:47
  */
 import type { LoginInput, RegisterInput } from "@lie/shared";
 import { Prisma } from "../generated/prisma/index";
@@ -21,15 +23,33 @@ function toAuthUser(user: {
   };
 }
 
+function uniqueRegisterError(error: Prisma.PrismaClientKnownRequestError) {
+  const target = Array.isArray(error.meta?.target) ? error.meta.target : [];
+
+  return target.includes("nickname") ? "NICKNAME_ALREADY_REGISTERED" : "EMAIL_ALREADY_REGISTERED";
+}
+
 export async function registerUser(input: RegisterInput) {
   // 注册前先查重，避免把 Prisma unique constraint 错误直接暴露给前端。
-  const existing = await prisma.user.findUnique({
-    where: { email: input.email },
-    select: { id: true },
+  const existing = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email: input.email },
+        { nickname: input.nickname },
+      ],
+    },
+    select: {
+      email: true,
+      nickname: true,
+    },
   });
 
-  if (existing) {
+  if (existing?.email === input.email) {
     throw new Error("EMAIL_ALREADY_REGISTERED");
+  }
+
+  if (existing?.nickname === input.nickname) {
+    throw new Error("NICKNAME_ALREADY_REGISTERED");
   }
 
   let user;
@@ -50,7 +70,7 @@ export async function registerUser(input: RegisterInput) {
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      throw new Error("EMAIL_ALREADY_REGISTERED");
+      throw new Error(uniqueRegisterError(error));
     }
     throw error;
   }

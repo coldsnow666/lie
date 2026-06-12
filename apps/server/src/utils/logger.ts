@@ -1,5 +1,7 @@
 /**
- * 文件说明：提供服务端统一结构化日志，方便路由、Socket 和基础设施模块共享。
+ * @Description: 提供服务端统一结构化日志，方便路由、Socket 和基础设施模块共享。
+ *
+ * @Date 2026-06-12 14:47
  */
 type LogLevel = "info" | "warn" | "error";
 

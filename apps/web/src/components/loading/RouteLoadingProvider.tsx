@@ -1,10 +1,12 @@
 /**
- * 文件说明：管理跨路由的大厅进入 Loading 状态。
+ * @Description: 管理跨路由的大厅进入 Loading 状态。
+ *
+ * @Date 2026-06-12 14:47
  */
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import RouteLoadingOverlay from "@/components/start/RouteLoadingOverlay";
+import RouteLoadingOverlay from "@/features/start/RouteLoadingOverlay";
 
 type RouteLoadingPhase = "opening" | "waiting" | "closing";
 

@@ -1,5 +1,7 @@
 /**
- * 共享 Zod schema：统一前后端 REST 与 Socket payload 的运行时校验。
+ * @Description: 共享 Zod schema：统一前后端 REST 与 Socket payload 的运行时校验。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { DECLARABLE_RANKS } from "./constants";
 import { z } from "zod";

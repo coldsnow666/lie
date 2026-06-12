@@ -1,10 +1,16 @@
 /**
- * Next 根布局：设置中文页面元信息、字体变量和全局样式入口。
+ * @Description: Next 根布局：设置中文页面元信息、字体变量和全局样式入口。
+ *
+ * @Date 2026-06-12 14:47
  */
 import type { Metadata } from "next";
 import AppProviders from "@/components/providers/AppProviders";
 import GlobalBackground from "@/components/backgrounds/GlobalBackground";
 import "./globals.css";
+import "./styles/theme.css";
+import "./styles/pixel-ui.css";
+import "./styles/game.css";
+import "./styles/motion.css";
 
 export const metadata: Metadata = {
   title: "LIAR",

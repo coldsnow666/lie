@@ -1,5 +1,7 @@
 /**
- * ESLint 配置：使用 Next.js core web vitals 规则并保留默认忽略项。
+ * @Description: ESLint 配置：使用 Next.js core web vitals 规则并保留默认忽略项。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";

@@ -1,5 +1,7 @@
 /**
- * 请求入口：统一处理前端 REST 请求、鉴权头和后端 code/data 协议解析。
+ * @Description: 请求入口：统一处理前端 REST 请求、鉴权头和后端 code/data 协议解析。
+ *
+ * @Date 2026-06-12 14:47
  */
 "use client";
 

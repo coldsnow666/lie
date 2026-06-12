@@ -1,5 +1,7 @@
 /**
- * 文件说明：统一维护服务端领域错误、基础设施错误和 HTTP/Socket 的错误序列化规则。
+ * @Description: 统一维护服务端领域错误、基础设施错误和 HTTP/Socket 的错误序列化规则。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { API_RESPONSE_CODE, type ApiResponseCode } from "@lie/shared";
 import type { ApiErrorPayload } from "./response";
@@ -11,6 +13,7 @@ type AppErrorCode =
   | "UNAUTHORIZED"
   | "AUTH_EXPIRED"
   | "EMAIL_ALREADY_REGISTERED"
+  | "NICKNAME_ALREADY_REGISTERED"
   | "INVALID_EMAIL_OR_PASSWORD"
   | "ROOM_CODE_EXISTS"
   | "ROOM_NOT_FOUND"
@@ -28,6 +31,7 @@ type AppErrorCode =
   | "DUPLICATE_CARD_IDS"
   | "CARD_NOT_IN_HAND"
   | "DECLARED_RANK_REQUIRED"
+  | "DECLARED_RANK_LOCKED"
   | "NO_LAST_PLAY"
   | "CANNOT_CHALLENGE_SELF"
   | "DATABASE_UNAVAILABLE"
@@ -68,6 +72,11 @@ const APP_ERROR_DEFINITIONS: Record<AppErrorCode, AppErrorDefinition> = {
   EMAIL_ALREADY_REGISTERED: {
     apiCode: API_RESPONSE_CODE.EMAIL_ALREADY_REGISTERED,
     publicMessage: "邮箱已注册",
+    logLevel: "silent",
+  },
+  NICKNAME_ALREADY_REGISTERED: {
+    apiCode: API_RESPONSE_CODE.NICKNAME_ALREADY_REGISTERED,
+    publicMessage: "昵称已被使用",
     logLevel: "silent",
   },
   INVALID_EMAIL_OR_PASSWORD: {
@@ -155,6 +164,11 @@ const APP_ERROR_DEFINITIONS: Record<AppErrorCode, AppErrorDefinition> = {
     publicMessage: "请选择本回合声明的牌点",
     logLevel: "silent",
   },
+  DECLARED_RANK_LOCKED: {
+    apiCode: API_RESPONSE_CODE.UNKNOWN_ERROR,
+    publicMessage: "本轮已声明牌点，只能跟牌",
+    logLevel: "silent",
+  },
   NO_LAST_PLAY: {
     apiCode: API_RESPONSE_CODE.UNKNOWN_ERROR,
     publicMessage: "当前没有可质疑的上一手",
@@ -187,7 +201,7 @@ const APP_ERROR_DEFINITIONS: Record<AppErrorCode, AppErrorDefinition> = {
   },
   REDIS_UNAVAILABLE: {
     apiCode: API_RESPONSE_CODE.REDIS_UNAVAILABLE,
-    publicMessage: "Redis 不可用，房间服务暂时不可用",
+    publicMessage: "Redis 不可用，服务暂时不可用",
     logLevel: "warn",
   },
 };

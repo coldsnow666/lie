@@ -1,5 +1,7 @@
 /**
- * 客户端 Socket 事件名：统一前端 emit 与后端监听的协议常量。
+ * @Description: 客户端 Socket 事件名：统一前端 emit 与后端监听的协议常量。
+ *
+ * @Date 2026-06-12 14:47
  */
 export const CLIENT_EVENTS = {
   LOBBY_SUBSCRIBE: "lobby:subscribe",

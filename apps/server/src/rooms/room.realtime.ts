@@ -1,5 +1,7 @@
 /**
- * 文件说明：统一执行房间领域结果对应的 Socket 实时副作用，避免在 socket.ts 中分散拼装广播逻辑。
+ * @Description: 统一执行房间领域结果对应的 Socket 实时副作用，避免在 socket.ts 中分散拼装广播逻辑。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { type PublicGameEvent, toPublicGameState } from "@lie/shared";
 import { type Server, type Socket } from "socket.io";
@@ -25,6 +27,15 @@ export type RoomRealtimeEffectResult = {
   lobbyRooms?: Awaited<ReturnType<typeof listPublicRooms>>;
 };
 
+/**
+ * @Description: 广播房间公开状态，房间已被删除时静默跳过。
+ *
+ * @param io Socket.IO server。
+ * @param roomId 房间 ID。
+ * @return 广播完成。
+ *
+ * @Date 2026-06-12 14:47
+ */
 async function emitRoomUpdated(io: Server, roomId: string) {
   const room = await getRoomById(roomId);
   if (!room) {
@@ -34,12 +45,29 @@ async function emitRoomUpdated(io: Server, roomId: string) {
   io.to(room.id).emit(SERVER_EVENTS.ROOM_UPDATED, serializeRoom(room));
 }
 
+/**
+ * @Description: 刷新大厅房间列表并广播给所有大厅订阅者。
+ *
+ * @param io Socket.IO server。
+ * @return 最新大厅公开房间列表，供订阅 ack 直接复用。
+ *
+ * @Date 2026-06-12 14:47
+ */
 async function emitLobbyRoomsUpdated(io: Server) {
   const rooms = await listPublicRooms();
   io.to(LOBBY_WATCHERS_ROOM).emit(SERVER_EVENTS.LOBBY_ROOMS_UPDATED, rooms);
   return rooms;
 }
 
+/**
+ * @Description: 按玩家逐个单播游戏状态，确保 selfHand 只发送给对应玩家。
+ *
+ * @param io Socket.IO server。
+ * @param roomId 房间 ID。
+ * @return 单播完成。
+ *
+ * @Date 2026-06-12 14:47
+ */
 async function emitGameUpdated(io: Server, roomId: string) {
   const room = await getRoomById(roomId);
   if (!room?.gameState) {
@@ -54,6 +82,14 @@ async function emitGameUpdated(io: Server, roomId: string) {
   }
 }
 
+/**
+ * @Description: 顺序执行房间服务返回的实时副作用，把业务结果转换成 join/leave/emit。
+ *
+ * @param params Socket server、当前 socket 和待执行副作用列表。
+ * @return 执行过程产生的附加数据，例如大厅房间列表。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function applyRoomRealtimeEffects(params: {
   io: Server;
   socket: Socket;

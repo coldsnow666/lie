@@ -1,5 +1,7 @@
 /**
- * 应用壳组件：只提供统一页面内容宽度和横向裁剪。
+ * @Description: 应用壳组件：只提供统一页面内容宽度和横向裁剪。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { PropsWithChildren } from "react";
 

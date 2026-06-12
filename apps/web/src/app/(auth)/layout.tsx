@@ -1,13 +1,15 @@
 /**
- * 认证页布局：固定左侧回飞扑克牌，只切换右侧登录或注册表单。
+ * @Description: 认证页布局：固定左侧回飞扑克牌，只切换右侧登录或注册表单。
+ *
+ * @Date 2026-06-12 14:47
  */
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AuthTransitionProvider } from "@/components/auth/AuthTransitionContext";
-import { useAuthScreenTransition } from "@/components/auth/useAuthScreenTransition";
-import BounceCards from "@/components/start/BounceCards";
+import { AuthTransitionProvider } from "@/features/auth/AuthTransitionContext";
+import { useAuthScreenTransition } from "@/features/auth/hooks/useAuthScreenTransition";
+import BounceCards from "@/features/start/BounceCards";
 
 const LOGIN_BACK_SENTINEL_KEY = "__lieLoginBackSentinel";
 

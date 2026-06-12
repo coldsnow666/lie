@@ -1,5 +1,7 @@
 /**
- * 像素风面板：统一信息卡、侧栏和表单容器的像素圆角单边框质感。
+ * @Description: 像素风面板：统一信息卡、侧栏和表单容器的像素圆角单边框质感。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { forwardRef, type CSSProperties, type HTMLAttributes, type ReactNode } from "react";
 

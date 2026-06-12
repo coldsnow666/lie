@@ -1,5 +1,7 @@
 /**
- * 共享常量：牌面顺序、玩家数量和单次出牌数量限制。
+ * @Description: 共享常量：牌面顺序、玩家数量和单次出牌数量限制。
+ *
+ * @Date 2026-06-12 14:47
  */
 export const SUITS = ["S", "H", "D", "C"] as const;
 export const JOKER_SUIT = "JOKER" as const;

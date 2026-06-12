@@ -1,5 +1,7 @@
 /**
- * 前端登录态存储：在 MVP 中使用 localStorage 保存 token 和当前用户。
+ * @Description: 前端登录态存储：在 MVP 中使用 localStorage 保存 token 和当前用户。
+ *
+ * @Date 2026-06-12 14:47
  */
 "use client";
 

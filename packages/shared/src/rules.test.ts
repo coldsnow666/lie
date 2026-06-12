@@ -1,8 +1,10 @@
 /**
- * 共享规则测试：验证牌堆、出牌、质疑和隐藏信息脱敏。
+ * @Description: 共享规则测试：验证牌堆、出牌、质疑和隐藏信息脱敏。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { describe, expect, it } from "vitest";
-import { createDeck, createGameDeck, sortHandCards } from "./cards";
+import { createDeck, createGameDeck, sortHandCards, type Card } from "./cards";
 import {
   challengeLastPlay,
   createInitialGameState,
@@ -106,6 +108,65 @@ describe("game rules", () => {
     expect(result.state.hands["player-1"]).toHaveLength(state.hands["player-1"].length - 2);
     expect(publicState.selfHand).toEqual(sortHandCards(result.state.hands["player-2"]));
     expect(publicState.lastPlay).not.toHaveProperty("actualCards");
+  });
+
+  it("locks the declared rank for follow plays until a challenge resolves", () => {
+    const state = stateForTests();
+    const openingCard = state.hands["player-1"][0];
+    const followCard: Card = { id: "2S", rank: "2", suit: "S" };
+    state.hands["player-2"] = [followCard, ...state.hands["player-2"].filter((card) => card.id !== followCard.id)];
+
+    const opened = playCards(state, "player-1", [openingCard.id], "A");
+    const followed = playCards(opened.state, "player-2", [followCard.id]);
+
+    expect(opened.event.playMode).toBe("declare");
+    expect(followed.event.playMode).toBe("follow");
+    expect(followed.event.declaredRank).toBe("A");
+    expect(followed.state.lastPlay?.declaredRank).toBe("A");
+    expect(followed.state.lastPlay?.actualCards).toEqual([followCard]);
+
+    const challenged = challengeLastPlay(followed.state, "player-1");
+
+    expect(challenged.event.wasTruthful).toBe(false);
+    expect(challenged.state.lastPlay).toBeNull();
+    expect(() => playCards(challenged.state, "player-2", [followCard.id])).toThrow("DECLARED_RANK_REQUIRED");
+  });
+
+  it("rejects changing the declared rank while following", () => {
+    const state = stateForTests();
+    const openingCard = state.hands["player-1"][0];
+    const followCard: Card = { id: "2S", rank: "2", suit: "S" };
+    state.hands["player-2"] = [followCard, ...state.hands["player-2"].filter((card) => card.id !== followCard.id)];
+
+    const opened = playCards(state, "player-1", [openingCard.id], "A");
+
+    expect(() => playCards(opened.state, "player-2", [followCard.id], "2")).toThrow("DECLARED_RANK_LOCKED");
+  });
+
+  it("only lets the current player challenge the last play", () => {
+    const state = createInitialGameState({
+      matchId: "match-3",
+      roomId: "room-3",
+      players: [
+        ...players,
+        {
+          playerId: "player-3",
+          userId: "user-3",
+          nickname: "玩家C",
+          seatIndex: 2,
+          connected: true,
+          ready: true,
+          pendingWin: false,
+        },
+      ],
+      seed: "three-player-challenge-seed",
+      now: 1,
+    });
+    const openingCard = state.hands["player-1"][0];
+    const opened = playCards(state, "player-1", [openingCard.id], "A");
+
+    expect(opened.state.currentPlayerId).toBe("player-2");
+    expect(() => challengeLastPlay(opened.state, "player-3")).toThrow("NOT_YOUR_TURN");
   });
 
   it("deals eleven-card hands and keeps undealt cards hidden", () => {

@@ -1,5 +1,7 @@
 /**
- * 文件说明：集中维护扑克牌牌面显示文案。
+ * @Description: 集中维护扑克牌牌面显示文案。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { JOKER_SUIT, type Card, type Rank, type Suit } from "@lie/shared";
 

@@ -1,11 +1,14 @@
 /**
- * 共享事件类型：描述可以安全广播给玩家的公开游戏事件。
+ * @Description: 共享事件类型：描述可以安全广播给玩家的公开游戏事件。
+ *
+ * @Date 2026-06-12 14:47
  */
 import type { Card, DeclaredRank } from "./cards";
 
 export type CardsPlayedEvent = {
   type: "cards_played";
   actorPlayerId: string;
+  playMode?: "declare" | "follow";
   declaredRank: DeclaredRank;
   cardCount: number;
   turnSeq: number;

@@ -1,5 +1,7 @@
 /**
- * 文件说明：验证统一错误模型对领域错误和基础设施错误的映射行为。
+ * @Description: 验证统一错误模型对领域错误和基础设施错误的映射行为。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { describe, expect, it } from "vitest";
 import { AppError, normalizeAppError } from "./errors";
@@ -9,6 +11,13 @@ describe("normalizeAppError", () => {
     expect(normalizeAppError(new AppError("ROOM_FULL"))).toMatchObject({
       code: "ROOM_FULL",
       publicMessage: "房间已满",
+    });
+  });
+
+  it("maps duplicate nickname errors", () => {
+    expect(normalizeAppError(new Error("NICKNAME_ALREADY_REGISTERED"))).toMatchObject({
+      code: "NICKNAME_ALREADY_REGISTERED",
+      publicMessage: "昵称已被使用",
     });
   });
 

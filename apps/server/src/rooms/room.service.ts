@@ -1,5 +1,7 @@
 /**
- * 房间业务服务：管理创建、加入、准备、开局、出牌和质疑。
+ * @Description: 房间业务服务：管理创建、加入、准备、开局、出牌和质疑。
+ *
+ * @Date 2026-06-12 14:47
  */
 import crypto from "node:crypto";
 import {
@@ -77,6 +79,15 @@ function pushRoomEvent(room: RoomState, event: RoomLifecycleEvent) {
   room.events = [...room.events, event].slice(-50);
 }
 
+/**
+ * @Description: 判断等待房是否可清理，兼顾空房、全员离线和无 Socket 同步的陈旧房间。
+ *
+ * @param room Redis 中读取到的房间热状态。
+ * @param now 当前时间戳，测试可注入。
+ * @return 可以删除时返回 true。
+ *
+ * @Date 2026-06-12 14:47
+ */
 function shouldDeleteAbandonedRoom(room: RoomState, now = Date.now()) {
   if (room.players.length === 0) {
     return true;
@@ -95,6 +106,14 @@ function shouldDeleteAbandonedRoom(room: RoomState, now = Date.now()) {
   );
 }
 
+/**
+ * @Description: 持久化房间元数据；失败只记日志，房间热状态仍以 Redis 保存结果为准。
+ *
+ * @param room 刚创建或更新后的房间状态。
+ * @return 异步写入完成。
+ *
+ * @Date 2026-06-12 14:47
+ */
 async function createRoomRecord(room: RoomState) {
   try {
     await prisma.room.upsert({
@@ -126,6 +145,13 @@ export function serializeRoom(room: RoomState) {
   return publicRoom(room);
 }
 
+/**
+ * @Description: 列出大厅可见等待房，并顺手清理已废弃的热状态。
+ *
+ * @return 仅包含等待中房间的公开房间列表。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function listPublicRooms() {
   const rooms = await listRooms();
   const publicRooms = [];
@@ -137,12 +163,26 @@ export async function listPublicRooms() {
       continue;
     }
 
+    if (room.status !== "waiting") {
+      continue;
+    }
+
     publicRooms.push(publicRoom(room));
   }
 
   return publicRooms;
 }
 
+/**
+ * @Description: 创建等待房并写入 Redis 热状态，房主默认准备且占据首个座位。
+ *
+ * @param user 当前登录用户，服务端从 token 解析而来。
+ * @param options 房间码和人数上限配置。
+ * @param socketId 当前 Socket 连接 ID，可为空以兼容 HTTP 创建。
+ * @return 创建后的房间状态。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function createRoom(
   user: AuthUser,
   options: {
@@ -182,6 +222,16 @@ export async function createRoom(
   return room;
 }
 
+/**
+ * @Description: 加入等待房；重复加入会刷新连接状态，不重新分配座位。
+ *
+ * @param roomCode 用户输入或系统生成的房间码。
+ * @param user 当前登录用户。
+ * @param socketId 当前 Socket 连接 ID。
+ * @return 更新后的房间状态。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function joinRoom(roomCode: string, user: AuthUser, socketId?: string) {
   const room = await getRoomByCode(roomCode);
 
@@ -220,6 +270,15 @@ export async function joinRoom(roomCode: string, user: AuthUser, socketId?: stri
   return saveRoom(room);
 }
 
+/**
+ * @Description: 离开等待房；房主离开时把房主身份交给下一位玩家。
+ *
+ * @param roomId 房间 ID。
+ * @param user 当前登录用户。
+ * @return 更新后的房间状态；房间被删除时返回 null。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function leaveRoom(roomId: string, user: AuthUser) {
   const room = await getRoomById(roomId);
 
@@ -262,6 +321,16 @@ export async function leaveRoom(roomId: string, user: AuthUser) {
   return saveRoom(room);
 }
 
+/**
+ * @Description: 同步玩家准备状态，房主始终视为已准备。
+ *
+ * @param roomId 房间 ID。
+ * @param user 当前登录用户。
+ * @param ready 非房主玩家提交的准备状态。
+ * @return 更新后的房间状态。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function setReady(roomId: string, user: AuthUser, ready: boolean) {
   const room = await getRoomById(roomId);
 
@@ -280,6 +349,16 @@ export async function setReady(roomId: string, user: AuthUser, ready: boolean) {
   return saveRoom(room);
 }
 
+/**
+ * @Description: 页面进入或 Socket 重连时校准玩家在线状态，并同步到进行中的私有游戏状态。
+ *
+ * @param roomId 房间 ID。
+ * @param user 当前登录用户。
+ * @param socketId 当前 Socket 连接 ID。
+ * @return 更新后的房间状态。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function syncRoomPlayer(roomId: string, user: AuthUser, socketId?: string) {
   const room = await getRoomById(roomId);
 
@@ -315,6 +394,14 @@ export async function syncRoomPlayer(roomId: string, user: AuthUser, socketId?: 
   return saveRoom(room);
 }
 
+/**
+ * @Description: Socket 断开后的延迟清理，把对应玩家标为离线并广播受影响房间。
+ *
+ * @param socketId 已断开的 Socket 连接 ID。
+ * @return 需要重新广播的房间列表。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function handleSocketDisconnect(socketId: string) {
   const rooms = await listRooms();
   const affectedRooms: RoomState[] = [];
@@ -353,6 +440,15 @@ export async function handleSocketDisconnect(socketId: string) {
   return affectedRooms;
 }
 
+/**
+ * @Description: 校验房主和人数后开局，创建服务端私有状态并尝试写入持久化比赛记录。
+ *
+ * @param roomId 房间 ID。
+ * @param user 当前登录用户。
+ * @return 开局后的房间状态。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function startGame(roomId: string, user: AuthUser) {
   const room = await getRoomById(roomId);
 
@@ -420,6 +516,17 @@ export async function startGame(roomId: string, user: AuthUser) {
   return saveRoom(room);
 }
 
+/**
+ * @Description: 执行房间内出牌；空牌列表只用于放弃质疑并确认待定赢家。
+ *
+ * @param roomId 房间 ID。
+ * @param user 当前登录用户。
+ * @param cardIds 玩家选择的手牌 ID 列表。
+ * @param declaredRank 首次出牌声明的牌点。
+ * @return 更新后的房间和可广播事件；确认胜利时事件为 null。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function playRoomCards(roomId: string, user: AuthUser, cardIds: string[], declaredRank?: DeclaredRank) {
   const room = await getRoomById(roomId);
 
@@ -450,7 +557,7 @@ export async function playRoomCards(roomId: string, user: AuthUser, cardIds: str
     return { room, event: null };
   }
 
-  if (!declaredRank) {
+  if (!room.gameState.lastPlay && !declaredRank) {
     throw new Error("DECLARED_RANK_REQUIRED");
   }
 
@@ -465,6 +572,15 @@ export async function playRoomCards(roomId: string, user: AuthUser, cardIds: str
   return { room, event: result.event };
 }
 
+/**
+ * @Description: 结算当前房间上一手质疑，并把结算事件写入房间事件流。
+ *
+ * @param roomId 房间 ID。
+ * @param user 当前登录用户。
+ * @return 更新后的房间和质疑结算事件。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function challengeRoomLastPlay(roomId: string, user: AuthUser) {
   const room = await getRoomById(roomId);
 

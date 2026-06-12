@@ -1,5 +1,7 @@
 /**
- * Redis 短锁工具：用于保护同一房间内的并发游戏操作。
+ * @Description: Redis 短锁工具：用于保护同一房间内的并发游戏操作。
+ *
+ * @Date 2026-06-12 14:47
  */
 import crypto from "node:crypto";
 import { errorContext, logger } from "../utils/logger";
@@ -15,6 +17,15 @@ export type AcquireLockResult =
   | { status: "busy" }
   | { status: "unavailable" };
 
+/**
+ * @Description: 尝试获取带过期时间的 Redis 分布式锁，用于保护房间内并发操作。
+ *
+ * @param key 锁 key。
+ * @param ttlMs 锁自动过期时间，避免进程异常时永久占用。
+ * @return 获取成功、已被占用或 Redis 不可用三种结果。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function acquireLock(key: string, ttlMs = 3000): Promise<AcquireLockResult> {
   try {
     const client = getRedis();
@@ -37,6 +48,14 @@ export async function acquireLock(key: string, ttlMs = 3000): Promise<AcquireLoc
   }
 }
 
+/**
+ * @Description: 通过 token 校验释放自己持有的锁，避免误删其他请求刚抢到的新锁。
+ *
+ * @param lock acquireLock 返回的锁凭据。
+ * @return Redis 释放操作完成。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export async function releaseLock(lock: RedisLock) {
   // 只释放自己持有的锁，避免误删其他并发请求刚抢到的新锁。
   await tryRedis(

@@ -1,5 +1,7 @@
 /**
- * 房间 HTTP 路由：提供创建、加入和查询房间的 REST 入口。
+ * @Description: 房间 HTTP 路由：提供创建、加入和查询房间的 REST 入口。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { roomCreateSchema, roomJoinSchema, roomIdSchema } from "@lie/shared";
 import { API_RESPONSE_CODE } from "@lie/shared";

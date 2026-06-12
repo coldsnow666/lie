@@ -1,5 +1,7 @@
 /**
- * Prisma CLI 配置：让命令行工具读取项目根目录 .env，并固定 schema 路径。
+ * @Description: Prisma CLI 配置：让命令行工具读取项目根目录 .env，并固定 schema 路径。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { resolve } from "node:path";
 import { config } from "dotenv";

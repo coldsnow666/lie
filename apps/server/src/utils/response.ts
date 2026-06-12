@@ -1,5 +1,7 @@
 /**
- * HTTP 响应工具：统一返回 code/data 结构，前三位对齐 HTTP，后两位做业务细分。
+ * @Description: HTTP 响应工具：统一返回 code/data 结构，前三位对齐 HTTP，后两位做业务细分。
+ *
+ * @Date 2026-06-12 14:47
  */
 import type { FastifyReply } from "fastify";
 import { API_RESPONSE_CODE, type ApiErrorData, type ApiResponseCode } from "@lie/shared";

@@ -1,5 +1,7 @@
 /**
- * 文件说明：统一处理大厅房间码输入的格式化和前端校验规则。
+ * @Description: 统一处理大厅房间码输入的格式化和前端校验规则。
+ *
+ * @Date 2026-06-12 14:47
  */
 export function normalizeRoomCode(roomCode: string) {
   return roomCode.trim().toUpperCase();

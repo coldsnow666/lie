@@ -1,9 +1,11 @@
 /**
- * 文件说明：像素扑克牌展示页，用于预览当前 DOM 牌面和项目内牌面素材。
+ * @Description: 像素扑克牌展示页，用于预览当前 DOM 牌面和项目内牌面素材。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { createDeck, SUITS } from "@lie/shared";
-import CardBackArt from "@/components/game/CardBackArt";
-import DomPlayingCard from "@/components/game/DomPlayingCard";
+import CardBackArt from "@/components/cards/CardBackArt";
+import DomPlayingCard from "@/components/cards/DomPlayingCard";
 import { SUIT_LABELS } from "@/lib/card-assets";
 
 const deck = createDeck();

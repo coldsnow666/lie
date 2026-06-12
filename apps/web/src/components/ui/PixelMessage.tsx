@@ -1,5 +1,7 @@
 /**
- * 像素风消息组件：统一表单校验和页面提示的顶部弹出与内嵌反馈样式。
+ * @Description: 像素风消息组件：统一表单校验和页面提示的顶部弹出
+ *
+ * @Date 2026-06-12 14:47
  */
 "use client";
 
@@ -89,13 +91,21 @@ function removePixelMessage(messageId: number) {
   emitMessageStoreChange();
 }
 
+/**
+ * @Description: 把顶部消息加入全局队列，并为进入离场阶段和最终移除分别设置计时器。
+ *
+ * @param message 不含 ID 和阶段的消息内容。
+ * @return 无。
+ *
+ * @Date 2026-06-12 14:47
+ */
 function enqueuePixelMessage(message: Omit<PixelMessageEntry, "id" | "phase">) {
   const messageId = nextMessageId;
   nextMessageId += 1;
 
-  const nextMessages = [{ ...message, id: messageId, phase: "shown" as const }, ...pixelMessages];
-  const removedMessages = nextMessages.slice(PIXEL_MESSAGE_LIMIT);
-  pixelMessages = nextMessages.slice(0, PIXEL_MESSAGE_LIMIT);
+  const nextMessages = [...pixelMessages, { ...message, id: messageId, phase: "shown" as const }];
+  const removedMessages = nextMessages.slice(0, Math.max(0, nextMessages.length - PIXEL_MESSAGE_LIMIT));
+  pixelMessages = nextMessages.slice(-PIXEL_MESSAGE_LIMIT);
 
   removedMessages.forEach((removedMessage) => {
     const timers = messageTimers.get(removedMessage.id);
@@ -115,6 +125,15 @@ function enqueuePixelMessage(message: Omit<PixelMessageEntry, "id" | "phase">) {
   messageTimers.set(messageId, { leaveTimer, removeTimer });
 }
 
+/**
+ * @Description: 显示一条顶部像素提示；服务端渲染阶段会自动跳过。
+ *
+ * @param children 提示内容。
+ * @param options 样式类名和提示语气。
+ * @return 无。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export function showPixelMessage(
   children: ReactNode,
   options: {
@@ -191,6 +210,13 @@ function PixelMessageFrame({
   );
 }
 
+/**
+ * @Description: 订阅全局消息队列并用 Portal 挂到 body 顶部，避免被页面局部布局裁切。
+ *
+ * @return 顶部消息 Portal。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export function PixelMessageHost() {
   const mounted = useSyncExternalStore(subscribeMounted, getMountedSnapshot, getServerMountedSnapshot);
   const messages = useSyncExternalStore(subscribeMessageStore, getMessageStoreSnapshot, getServerMessageStoreSnapshot);

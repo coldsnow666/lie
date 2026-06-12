@@ -1,5 +1,7 @@
 /**
- * 共享牌面工具：创建完整展示牌堆，并按局内玩家数生成服务端权威牌库。
+ * @Description: 共享牌面工具：创建完整展示牌堆，并按局内玩家数生成服务端权威牌库。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { DECLARABLE_RANKS, JOKER_RANKS, JOKER_SUIT, RANKS, SUITS } from "./constants";
 

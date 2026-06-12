@@ -1,15 +1,15 @@
 /**
- * 游戏服务端入口：启动 Fastify HTTP 服务并挂载 Socket.IO。
+ * @Description: 游戏服务端入口：启动 Fastify HTTP 服务并挂载 Socket.IO。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { errorContext, logger } from "./utils/logger";
 import { createApp } from "./app";
 import { env } from "./env";
-import { ensureRedisAvailable, isRedisRequired } from "./redis/client";
+import { ensureRedisAvailable } from "./redis/client";
 import { attachSocketServer } from "./socket";
 
-if (isRedisRequired()) {
-  await ensureRedisAvailable();
-}
+await ensureRedisAvailable();
 
 const app = await createApp();
 const io = attachSocketServer(app.server);

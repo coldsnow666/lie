@@ -1,5 +1,7 @@
 /**
- * 共享包入口：集中导出牌面、规则、事件、常量和 Zod schema。
+ * @Description: 共享包入口：集中导出牌面、规则、事件、常量和 Zod schema。
+ *
+ * @Date 2026-06-12 14:47
  */
 export * from "./cards";
 export * from "./constants";

@@ -1,5 +1,7 @@
 /**
- * Socket.IO 服务：处理实时房间与游戏事件，并按玩家视角广播脱敏状态。
+ * @Description: Socket.IO 服务：处理实时房间与游戏事件，并按玩家视角广播脱敏状态。
+ *
+ * @Date 2026-06-12 14:47
  */
 import type { Server as HttpServer } from "node:http";
 import { Server, type Socket } from "socket.io";
@@ -10,7 +12,6 @@ import {
   roomJoinSchema,
   roomReadySchema,
 } from "@lie/shared";
-import { env } from "./env";
 import { verifyAccessToken, type AuthUser } from "./auth/token";
 import { CLIENT_EVENTS } from "./events/client-events";
 import {
@@ -55,6 +56,15 @@ function fail(ack: Ack | undefined, error: unknown) {
   });
 }
 
+/**
+ * @Description: 串行化同一房间内的关键游戏操作，先用进程内锁挡重入，再用 Redis 锁挡多实例并发。
+ *
+ * @param roomId 需要保护的房间 ID。
+ * @param task 拿到锁后执行的房间业务操作。
+ * @return task 的返回值。
+ *
+ * @Date 2026-06-12 14:47
+ */
 async function withRoomLock<T>(roomId: string, task: () => Promise<T>) {
   if (localRoomLocks.has(roomId)) {
     throw new Error("ROOM_BUSY");
@@ -67,11 +77,10 @@ async function withRoomLock<T>(roomId: string, task: () => Promise<T>) {
       throw new Error("ROOM_BUSY");
     }
 
-    if (lockResult.status === "unavailable" && env.NODE_ENV === "production") {
-      throw new Error("ROOM_BUSY");
+    if (lockResult.status === "unavailable") {
+      throw new Error("REDIS_UNAVAILABLE");
     }
 
-    // 开发环境下 Redis 不可用时仍保留单进程内存锁，避免本地调试直接退化成无锁写入。
     return await task();
   } finally {
     localRoomLocks.delete(roomId);
@@ -82,6 +91,14 @@ async function withRoomLock<T>(roomId: string, task: () => Promise<T>) {
   }
 }
 
+/**
+ * @Description: 挂载 Socket.IO 服务，统一鉴权、ack 响应和房间实时事件编排。
+ *
+ * @param httpServer Fastify 底层 HTTP server。
+ * @return 已挂载的 Socket.IO server。
+ *
+ * @Date 2026-06-12 14:47
+ */
 export function attachSocketServer(httpServer: HttpServer) {
   const io = new Server(httpServer, {
     cors: {

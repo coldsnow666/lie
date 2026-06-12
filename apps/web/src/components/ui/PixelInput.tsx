@@ -1,5 +1,7 @@
 /**
- * 像素风输入框：统一表单输入的图标、像素边框、焦点态和自动填充样式。
+ * @Description: 像素风输入框：统一表单输入的图标、像素边框、焦点态和自动填充样式。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
 

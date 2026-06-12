@@ -1,5 +1,7 @@
 /**
- * Next.js 配置：设置 workspace 根目录，并让前端可编译 shared 包源码。
+ * @Description: Next.js 配置：设置 workspace 根目录，并让前端可编译 shared 包源码。
+ *
+ * @Date 2026-06-12 14:47
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";

@@ -1,5 +1,7 @@
 /**
- * 访问令牌工具：签发和校验用于 HTTP 与 Socket 鉴权的 JWT。
+ * @Description: 访问令牌工具：签发和校验用于 HTTP 与 Socket 鉴权的 JWT。
+ *
+ * @Date 2026-06-12 14:47
  */
 import jwt from "jsonwebtoken";
 import { env } from "../env";

@@ -1,5 +1,7 @@
 /**
- * 服务端 Socket 事件名：统一后端广播与前端监听的协议常量。
+ * @Description: 服务端 Socket 事件名：统一后端广播与前端监听的协议常量。
+ *
+ * @Date 2026-06-12 14:47
  */
 export const SERVER_EVENTS = {
   LOBBY_ROOMS_UPDATED: "lobby:roomsUpdated",

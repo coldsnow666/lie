@@ -1,5 +1,7 @@
 /**
- * 服务端环境配置：读取 .env，并为 Prisma 等只读 process.env 的库回填默认值。
+ * @Description: 服务端环境配置：读取 .env，并为 Prisma 等只读 process.env 的库回填默认值。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

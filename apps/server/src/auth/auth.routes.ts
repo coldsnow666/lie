@@ -1,5 +1,7 @@
 /**
- * 认证 HTTP 路由：提供注册、登录、当前用户和退出登录接口。
+ * @Description: 认证 HTTP 路由：提供注册、登录、当前用户和退出登录接口。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { API_RESPONSE_CODE } from "@lie/shared";
 import type { FastifyInstance } from "fastify";

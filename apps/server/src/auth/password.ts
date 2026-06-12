@@ -1,5 +1,7 @@
 /**
- * 密码哈希工具：默认使用带盐 scrypt，并兼容旧版双 MD5 哈希的渐进迁移。
+ * @Description: 密码哈希工具：默认使用带盐 scrypt，并兼容旧版双 MD5 哈希的渐进迁移。
+ *
+ * @Date 2026-06-12 14:47
  */
 import crypto from "node:crypto";
 import { env } from "../env";

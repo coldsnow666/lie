@@ -1,8 +1,10 @@
 /**
- * 房间热状态存储：以 Redis 为权威热状态源，当前进程内存仅作为开发和测试环境下的兜底缓存。
+ * @Description: 房间热状态以 Redis 为权威来源，进程内存只作为本地缓存加速读写。
+ *
+ * @Date 2026-06-12 14:47
  */
 import type { PrivateGameState, PublicGameEvent, Player } from "@lie/shared";
-import { tryRedis, tryRedisResult } from "../redis/client";
+import { tryRedis } from "../redis/client";
 
 const WAITING_ROOM_TTL_SECONDS = 60 * 60 * 2;
 const PLAYING_ROOM_TTL_SECONDS = 60 * 60 * 6;
@@ -70,7 +72,6 @@ function ttlFor(room: RoomState) {
 }
 
 export async function saveRoom(room: RoomState) {
-  // Redis 可用时以它作为权威热状态源；写入失败才退回当前进程缓存。
   await tryRedis(async (client) => {
     const ttl = ttlFor(room);
     await client.set(roomStateKey(room.id), JSON.stringify(room), "EX", ttl);
@@ -84,45 +85,41 @@ export async function saveRoom(room: RoomState) {
 }
 
 export async function getRoomById(roomId: string) {
-  const redisRoom = await tryRedisResult(async (client) => {
+  const redisRoom = await tryRedis(async (client) => {
     const raw = await client.get(roomStateKey(roomId));
     return raw ? (JSON.parse(raw) as RoomState) : null;
   }, "room.getById");
 
-  if (redisRoom.available) {
-    if (!redisRoom.value) {
-      const cachedRoom = roomsById.get(roomId);
-      if (cachedRoom) {
-        evictCachedRoom(cachedRoom);
-      }
-      return null;
+  if (!redisRoom) {
+    const cachedRoom = roomsById.get(roomId);
+    if (cachedRoom) {
+      evictCachedRoom(cachedRoom);
     }
-
-    cacheRoom(redisRoom.value);
-    return redisRoom.value;
+    return null;
   }
 
-  return roomsById.get(roomId) ?? null;
+  cacheRoom(redisRoom);
+  return redisRoom;
 }
 
 export async function getRoomByCode(roomCode: string) {
-  const redisId = await tryRedisResult((client) => client.get(roomCodeKey(roomCode)), "room.getByCode");
+  const redisId = await tryRedis((client) => client.get(roomCodeKey(roomCode)), "room.getByCode");
 
-  if (redisId.available) {
-    if (!redisId.value) {
-      roomIdByCode.delete(roomCode);
-      return null;
-    }
-
-    return getRoomById(redisId.value);
+  if (!redisId) {
+    roomIdByCode.delete(roomCode);
+    return null;
   }
 
-  const memoryId = roomIdByCode.get(roomCode);
-  return memoryId ? getRoomById(memoryId) : null;
+  const room = await getRoomById(redisId);
+  if (!room) {
+    roomIdByCode.delete(roomCode);
+  }
+
+  return room;
 }
 
 export async function listRooms() {
-  const redisRooms = await tryRedisResult(async (client) => {
+  const redisRooms = await tryRedis(async (client) => {
     const roomIds = await client.smembers(ROOM_INDEX_KEY);
 
     if (roomIds.length === 0) {
@@ -142,12 +139,8 @@ export async function listRooms() {
       .sort((left, right) => right.updatedAt - left.updatedAt);
   }, "room.list");
 
-  if (redisRooms.available) {
-    reconcileRoomCache(redisRooms.value);
-    return redisRooms.value;
-  }
-
-  return Array.from(roomsById.values()).sort((left, right) => right.updatedAt - left.updatedAt);
+  reconcileRoomCache(redisRooms);
+  return redisRooms;
 }
 
 export async function deleteRoom(room: RoomState) {

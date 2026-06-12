@@ -1,5 +1,7 @@
 /**
- * ReactBits Balatro 背景：用旋涡牌桌质感的 shader 渲染全站动态底图。
+ * @Description: ReactBits Balatro 背景：用旋涡牌桌质感的 shader 渲染全站动态底图。
+ *
+ * @Date 2026-06-12 14:47
  */
 "use client";
 

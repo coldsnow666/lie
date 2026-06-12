@@ -1,5 +1,7 @@
 /**
- * 前端 Socket 封装：统一创建鉴权连接，并提供 ack 风格的 emit 方法。
+ * @Description: 前端 Socket 封装：统一创建鉴权连接，并提供 ack 风格的 emit 方法。
+ *
+ * @Date 2026-06-12 14:47
  */
 "use client";
 

@@ -1,5 +1,7 @@
 /**
- * HTTP 鉴权中间件：从 Authorization Bearer token 中解析当前用户。
+ * @Description: HTTP 鉴权中间件：从 Authorization Bearer token 中解析当前用户。
+ *
+ * @Date 2026-06-12 14:47
  */
 import { API_RESPONSE_CODE } from "@lie/shared";
 import type { FastifyReply, FastifyRequest } from "fastify";

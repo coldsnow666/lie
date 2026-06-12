@@ -1,5 +1,7 @@
 /**
- * 文件说明：验证密码哈希升级后的兼容性和渐进迁移行为。
+ * @Description: 验证密码哈希升级后的兼容性和渐进迁移行为。
+ *
+ * @Date 2026-06-12 14:47
  */
 import crypto from "node:crypto";
 import { describe, expect, it } from "vitest";

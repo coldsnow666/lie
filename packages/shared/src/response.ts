@@ -1,5 +1,7 @@
 /**
- * 接口响应协议：统一维护前后端共用的响应码和基础响应类型。
+ * @Description: 接口响应协议：统一维护前后端共用的响应码和基础响应类型。
+ *
+ * @Date 2026-06-12 14:47
  */
 export const API_RESPONSE_CODE = {
   OK: 20000,
@@ -16,6 +18,7 @@ export const API_RESPONSE_CODE = {
   ROOM_FULL: 40913,
   ROOM_IN_GAME: 40914,
   ROOM_BUSY: 40915,
+  NICKNAME_ALREADY_REGISTERED: 40916,
   UNKNOWN_ERROR: 50000,
   DATABASE_UNAVAILABLE: 50301,
   DATABASE_AUTH_FAILED: 50302,
