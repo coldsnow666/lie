@@ -18,6 +18,23 @@ export type DealFlightCard = {
   targetIndex: number;
 };
 
+export type PlayFlightCard = {
+  id: string;
+  card: Card;
+  cardBack: number;
+  startLeft: number;
+  startTop: number;
+  startWidth: number;
+  startHeight: number;
+  startRotate: number;
+  targetLeft: number;
+  targetTop: number;
+  targetWidth: number;
+  targetHeight: number;
+  targetRotate: number;
+  zIndex: number;
+};
+
 export type ReturnFlightCard = {
   id: string;
   cardBack: number;
@@ -57,6 +74,7 @@ export type ChallengeResolvedGameEvent = Extract<PublicGameEvent, { type: "chall
 export type PendingReturnBatch = {
   displayDiscardCards: DisplayDiscardCard[];
   flights: ReturnFlightCard[];
+  returnRevealSelfCards: Card[];
   returnHiddenSelfCardIds: string[];
   returnTargetCardCounts: VisibleCardCounts;
   returnTargetSelfCards: Card[];

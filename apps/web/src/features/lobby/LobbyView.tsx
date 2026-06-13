@@ -131,7 +131,6 @@ export default function LobbyView() {
 
         {activeModal === "create" ? (
           <PixelModal title="创建房间" icon={<Plus size={20} />} onClose={closeModal} closeDisabled={Boolean(pendingAction)}>
-            <p className="mt-4 text-sm leading-6 text-[#d6cba6]">系统会自动生成一组六位房间码，建房后直接进入牌桌等待其他玩家。</p>
             <label className="mt-5 block text-sm text-[#e8ddb7]">
               房间人数
               <PixelSelect
@@ -151,7 +150,7 @@ export default function LobbyView() {
               variant="primary"
               size="lg"
               fullWidth
-              className="mt-6 h-16 text-base"
+              className="mt-5 h-12 text-base"
             >
               <Plus size={22} />
               {pendingAction === "create" ? "正在开桌" : "立即创建"}

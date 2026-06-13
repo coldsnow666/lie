@@ -15,13 +15,14 @@ import Hand, { groupHandCards } from "./Hand";
 import PlayerSeat from "./PlayerSeat";
 import DealFlightLayer from "./DealFlightLayer";
 import DiscardPile, { getScatteredDiscardPose } from "./DiscardPile";
+import PlayFlightLayer, { measurePlayFlightCards } from "./PlayFlightLayer";
 import ReturnFlightLayer from "./ReturnFlightLayer";
 import { TableCenterNotice, TableStatusPanel } from "./TableCenterNotice";
 import { CHALLENGE_REVEAL_HOLD_SECONDS } from "./gameTableConstants";
 import { getDeclareRankCardLayout } from "./declareRankLayout";
 import { getLatestChallengeResolvedEvent, revealDiscardCards, revealReturnFlights } from "./challengeReveal";
 import { getDealHandCards, useDealAnimation } from "./useDealAnimation";
-import type { ChallengeReturnPlan, ReturnFlightCard, ReturnTargetPlan } from "./gameTableTypes";
+import type { ChallengeReturnPlan, PlayFlightCard, ReturnFlightCard, ReturnTargetPlan } from "./gameTableTypes";
 
 /**
  * @Description: 组合牌桌 UI、发牌动画、弃牌动画和出牌/质疑操作入口。
@@ -34,7 +35,7 @@ import type { ChallengeReturnPlan, ReturnFlightCard, ReturnTargetPlan } from "./
  * @param onDeclaredRankChange 声明牌点变更回调。
  * @param onToggleCard 单张手牌切换回调。
  * @param onSetCardSelected 拖选手牌时的定向选中回调。
- * @param onPlayCards 出牌或确认待定胜利回调。
+ * @param onPlayCards 出牌或确认待定胜利回调，可传入与动画一致的出牌顺序。
  * @param onChallenge 质疑回调。
  * @param busy 当前房间操作是否正在提交。
  * @return 游戏牌桌组件。
@@ -62,7 +63,7 @@ export default function GameTable({
   onDeclaredRankChange: (rank: DeclaredRank) => void;
   onToggleCard: (cardId: string) => void;
   onSetCardSelected: (cardId: string, selected: boolean) => void;
-  onPlayCards: (declaredRank?: DeclaredRank) => void;
+  onPlayCards: (declaredRank?: DeclaredRank, orderedCardIds?: string[]) => void;
   onChallenge: () => void;
   busy: boolean;
 }) {
@@ -81,10 +82,14 @@ export default function GameTable({
     visibleCardCounts,
   } = useDealAnimation(state, selfPlayerId);
   const [declareModalOpen, setDeclareModalOpen] = useState(false);
-  const [declareRankCardLayout, setDeclareRankCardLayout] = useState(() => ({ columns: 5, scale: 1.45 }));
+  const [declareRankCardLayout, setDeclareRankCardLayout] = useState(() => ({ columns: 5, scale: 1.12 }));
   const [returnFlights, setReturnFlights] = useState<ReturnFlightCard[]>([]);
   const [returnTargetPlan, setReturnTargetPlan] = useState<ReturnTargetPlan | null>(null);
+  const [playFlightCards, setPlayFlightCards] = useState<PlayFlightCard[]>([]);
+  const [outgoingPlayCardIds, setOutgoingPlayCardIds] = useState<string[]>([]);
   const returnFlightsRef = useRef<ReturnFlightCard[]>([]);
+  const pendingPlayDeclaredRankRef = useRef<DeclaredRank | undefined>(undefined);
+  const pendingPlayCardIdsRef = useRef<string[] | undefined>(undefined);
   const completedReturnFlightIdsRef = useRef(new Set<string>());
   const lastDiscardSnapshotRef = useRef({
     cards: state.discardPileCards,
@@ -109,6 +114,7 @@ export default function GameTable({
   const activeReturnTargetPlan = challengeReturnPlan
     ? {
         challengeResult: challengeReturnPlan.challengeResult,
+        returnRevealSelfCards: challengeReturnPlan.batch.returnRevealSelfCards,
         returnHiddenSelfCardIds: challengeReturnPlan.batch.returnHiddenSelfCardIds,
         returnTargetCardCounts: challengeReturnPlan.batch.returnTargetCardCounts,
         returnTargetSelfCards: challengeReturnPlan.batch.returnTargetSelfCards,
@@ -124,8 +130,16 @@ export default function GameTable({
     returnHiddenSelfCardIdSet.size > 0
       ? state.selfHand.filter((card) => !returnHiddenSelfCardIdSet.has(card.id))
       : visibleSelfHand;
+  const outgoingPlayCardIdSet = useMemo(() => new Set(outgoingPlayCardIds), [outgoingPlayCardIds]);
+  const playVisibleSelfHand =
+    outgoingPlayCardIdSet.size > 0
+      ? returnVisibleSelfHand.filter((card) => !outgoingPlayCardIdSet.has(card.id))
+      : returnVisibleSelfHand;
   const returnTargetCardCounts = activeReturnTargetPlan?.returnTargetCardCounts ?? {};
   const visibleDiscardCards = challengeReturnPlan?.displayCards ?? state.discardPileCards;
+  const playingOut = playFlightCards.length > 0;
+  const playTransitionActive = playingOut || outgoingPlayCardIds.length > 0;
+  const selfCardBack = state.players.find((player) => player.playerId === selfPlayerId)?.cardBack ?? 0;
   const completeReturnFlight = useCallback((cardId: string) => {
     completedReturnFlightIdsRef.current.add(cardId);
 
@@ -153,6 +167,39 @@ export default function GameTable({
   useEffect(() => {
     eventsRef.current = events;
   }, [events]);
+
+  useEffect(() => {
+    if (!outgoingPlayCardIds.length) {
+      return;
+    }
+
+    const selfHandCardIds = new Set(state.selfHand.map((card) => card.id));
+    const removedFromHand = outgoingPlayCardIds.every((cardId) => !selfHandCardIds.has(cardId));
+
+    if (removedFromHand) {
+      const clearTimer = window.setTimeout(() => {
+        setOutgoingPlayCardIds([]);
+        setPlayFlightCards([]);
+      }, 0);
+
+      return () => window.clearTimeout(clearTimer);
+    }
+  }, [outgoingPlayCardIds, state.selfHand]);
+
+  useEffect(() => {
+    if (!outgoingPlayCardIds.length || busy) {
+      return;
+    }
+
+    const fallbackTimer = window.setTimeout(() => {
+      setOutgoingPlayCardIds([]);
+      setPlayFlightCards([]);
+      pendingPlayDeclaredRankRef.current = undefined;
+      pendingPlayCardIdsRef.current = undefined;
+    }, 1400);
+
+    return () => window.clearTimeout(fallbackTimer);
+  }, [busy, outgoingPlayCardIds]);
 
   useEffect(() => {
     if (!declareModalOpen) {
@@ -236,6 +283,7 @@ export default function GameTable({
     const batch = {
       displayDiscardCards: previousDiscardCards,
       flights: nextFlights,
+      returnRevealSelfCards: returnedSelfCards,
       returnHiddenSelfCardIds: returnedSelfCards.map((card) => card.id),
       returnTargetCardCounts: returnToSelf ? {} : { [targetPlayerId]: returnTargetCardCount },
       returnTargetSelfCards: returnToSelf ? state.selfHand : [],
@@ -246,7 +294,12 @@ export default function GameTable({
     setChallengeReturnPlan({
       batch,
       challengeResult: revealEvent,
-      displayCards: revealDiscardCards(previousDiscardCards, revealEvent),
+      displayCards: revealDiscardCards({
+        cards: previousDiscardCards,
+        event: revealEvent,
+        returnedCards: batch.returnRevealSelfCards,
+        selfPlayerId,
+      }),
     });
   }, [
     challengeReturnPlan?.batch.turnSeq,
@@ -275,14 +328,19 @@ export default function GameTable({
           ? {
               ...current,
               challengeResult: revealEvent,
-              displayCards: revealDiscardCards(current.batch.displayDiscardCards, revealEvent),
+              displayCards: revealDiscardCards({
+                cards: current.batch.displayDiscardCards,
+                event: revealEvent,
+                returnedCards: current.batch.returnRevealSelfCards,
+                selfPlayerId,
+              }),
             }
           : current,
       );
     }, 0);
 
     return () => window.clearTimeout(revealTimer);
-  }, [challengeReturnPlan, events]);
+  }, [challengeReturnPlan, events, selfPlayerId]);
 
   useEffect(() => {
     if (!challengeReturnPlan?.challengeResult) {
@@ -301,22 +359,67 @@ export default function GameTable({
         turnSeq: batch.turnSeq,
       });
       setChallengeReturnPlan(null);
-      startReturnFlights(revealReturnFlights(batch.flights, challengeResult));
+      startReturnFlights(
+        revealReturnFlights({
+          event: challengeResult,
+          flights: batch.flights,
+          returnedCards: batch.returnRevealSelfCards,
+          selfPlayerId,
+        }),
+      );
     }, flightDelay);
 
     return () => {
       window.clearTimeout(startTimer);
     };
-  }, [challengeReturnPlan, startReturnFlights]);
+  }, [challengeReturnPlan, selfPlayerId, startReturnFlights]);
+
+  const startPlayFlight = useCallback(
+    (declaredRank?: DeclaredRank) => {
+      const selectedCards = state.selfHand.filter((card) => selectedCardIds.includes(card.id));
+      const orderedCardIds = selectedCards.map((card) => card.id);
+
+      if (!selectedCards.length) {
+        onPlayCards(declaredRank);
+        return;
+      }
+
+      const measuredCards = measurePlayFlightCards(selectedCards, selfCardBack, state.discardPileCards.length);
+
+      if (!measuredCards.length) {
+        onPlayCards(declaredRank, orderedCardIds);
+        return;
+      }
+
+      pendingPlayDeclaredRankRef.current = declaredRank;
+      pendingPlayCardIdsRef.current = orderedCardIds;
+      setOutgoingPlayCardIds(orderedCardIds);
+      setPlayFlightCards(measuredCards);
+    },
+    [onPlayCards, selectedCardIds, selfCardBack, state.discardPileCards.length, state.selfHand],
+  );
+
+  const completePlayFlight = useCallback(() => {
+    const declaredRank = pendingPlayDeclaredRankRef.current;
+    const orderedCardIds = pendingPlayCardIdsRef.current;
+
+    pendingPlayDeclaredRankRef.current = undefined;
+    pendingPlayCardIdsRef.current = undefined;
+    onPlayCards(declaredRank, orderedCardIds);
+  }, [onPlayCards]);
 
   function handlePlayButtonClick() {
+    if (playTransitionActive) {
+      return;
+    }
+
     if (resolvingPendingWin) {
       onPlayCards();
       return;
     }
 
     if (followRank) {
-      onPlayCards();
+      startPlayFlight();
       return;
     }
 
@@ -326,7 +429,7 @@ export default function GameTable({
   function handleDeclaredRank(rank: DeclaredRank) {
     onDeclaredRankChange(rank);
     setDeclareModalOpen(false);
-    onPlayCards(rank);
+    startPlayFlight(rank);
   }
 
   return (
@@ -357,49 +460,57 @@ export default function GameTable({
         />
         <TableCenterNotice event={activeReturnTargetPlan?.challengeResult ?? null} players={state.players} selfPlayerId={selfPlayerId} state={state} />
         <DiscardPile
-          animateEnter={!challengeReturnPlan}
+          animateEnter={!challengeReturnPlan && !outgoingPlayCardIds.length}
           cards={visibleDiscardCards}
           players={state.players}
           selfPlayerId={selfPlayerId}
         />
+        <PlayFlightLayer cards={playFlightCards} onComplete={completePlayFlight} />
         <ReturnFlightLayer cards={returnFlights} onCardComplete={completeReturnFlight} />
       </div>
 
       <section className="relative z-[120] grid min-h-0 gap-2 sm:gap-3">
-        {isSelfTurn ? (
-          <div className="grid justify-items-center gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center">
-            <div className={`grid w-full max-w-[22rem] gap-2 sm:w-auto ${canChallenge ? "grid-cols-2 sm:min-w-[20rem]" : "sm:min-w-[10rem]"}`}>
-              <PixelButton
-                onClick={handlePlayButtonClick}
-                disabled={busy || dealPresentationActive || !canPlay || (!resolvingPendingWin && (selectedCardIds.length < 1 || selectedCardIds.length > 4))}
-                variant="primary"
-                className="w-full"
-              >
-                {resolvingPendingWin ? "不质疑，确认获胜" : followRank ? "跟牌" : "出牌"}
-              </PixelButton>
-              {canChallenge ? (
+        <div className="lie-game-action-slot">
+          <div
+            aria-hidden={!isSelfTurn}
+            className="grid justify-items-center gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center"
+            data-visible={isSelfTurn ? "true" : "false"}
+          >
+            {isSelfTurn ? (
+              <div className={`grid w-full max-w-[22rem] gap-2 sm:w-auto ${canChallenge ? "grid-cols-2 sm:min-w-[20rem]" : "sm:min-w-[10rem]"}`}>
                 <PixelButton
-                  onClick={onChallenge}
-                  disabled={busy || dealPresentationActive}
-                  variant="ghost"
+                  onClick={handlePlayButtonClick}
+                  disabled={busy || playTransitionActive || dealPresentationActive || !canPlay || (!resolvingPendingWin && (selectedCardIds.length < 1 || selectedCardIds.length > 4))}
+                  variant="primary"
                   className="w-full"
                 >
-                  质疑
+                  {resolvingPendingWin ? "不质疑，确认获胜" : followRank ? "跟牌" : "出牌"}
                 </PixelButton>
-              ) : null}
-            </div>
+                {canChallenge ? (
+                  <PixelButton
+                    onClick={onChallenge}
+                    disabled={busy || playTransitionActive || dealPresentationActive}
+                    variant="ghost"
+                    className="w-full"
+                  >
+                    质疑
+                  </PixelButton>
+                ) : null}
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        </div>
         {resolvingPendingWin ? (
           <p className="text-sm text-[#c6b889]">上一手玩家已打空手牌。你可以质疑；如果不质疑，点击主按钮会直接确认其获胜。</p>
         ) : null}
         <Hand
-          cards={returnVisibleSelfHand}
+          cards={playVisibleSelfHand}
           dealing={dealPresentationActive}
           dealTargetCards={dealPresentationActive ? dealTargetSelfHand : undefined}
           returnTargetCards={returnTargetSelfCards.length ? returnTargetSelfCards : undefined}
-          disabled={!isSelfTurn || dealPresentationActive || state.status === "finished"}
+          disabled={!isSelfTurn || playTransitionActive || dealPresentationActive || state.status === "finished"}
           selectedCardIds={selectedCardIds}
+          hiddenCardIds={[]}
           onToggleCard={onToggleCard}
           onSetCardSelected={onSetCardSelected}
         />
@@ -408,7 +519,7 @@ export default function GameTable({
       {declareModalOpen && !followRank ? (
         <PixelModal title="声明点数" onClose={() => setDeclareModalOpen(false)} className="lie-declare-rank-modal">
           <div
-            className="lie-declare-rank-grid mt-3 grid"
+            className="lie-declare-rank-grid mt-2 grid"
             style={
               {
                 "--declare-card-columns": declareRankCardLayout.columns,
@@ -423,7 +534,7 @@ export default function GameTable({
                 className="lie-declare-rank-card-button grid cursor-pointer place-items-center bg-transparent p-0 transition-transform hover:scale-105 focus-visible:scale-105 focus-visible:outline-none"
                 onClick={() => handleDeclaredRank(rank)}
               >
-                <DomPlayingCard card={{ id: `${rank}H`, rank, suit: "H" }} className="lie-declare-rank-card" />
+                <DomPlayingCard card={{ id: `${rank}H`, rank, suit: "H" }} cornerOnly className="lie-declare-rank-card" />
               </button>
             ))}
           </div>

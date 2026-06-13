@@ -90,6 +90,25 @@ export function groupHandCards(cards: CardType[]) {
   }));
 }
 
+/**
+ * @Description: 回收弃牌预占位时，同点数内让已有手牌保持下层，回来的牌只占上层空位。
+ *
+ * @param cards 回收完成后的目标完整手牌。
+ * @param visibleCardIds 当前已经在手牌区可见的牌 ID。
+ * @return 适合回收动画目标占位的手牌分组。
+ *
+ * @Date 2026-06-13 22:10
+ */
+function groupReturnTargetCards(cards: CardType[], visibleCardIds: Set<string>) {
+  return groupHandCards(cards).map((group) => ({
+    ...group,
+    cards: [
+      ...group.cards.filter((card) => visibleCardIds.has(card.id)),
+      ...group.cards.filter((card) => !visibleCardIds.has(card.id)),
+    ],
+  }));
+}
+
 function getHandMaxHeight(viewportHeight: number) {
   if (!viewportHeight) {
     return Infinity;
@@ -192,6 +211,7 @@ function getStackOffset(rotate: number, stackIndex: number, scale: number) {
  * @param dealing 是否处于发牌动画中。
  * @param disabled 是否禁用交互。
  * @param dealTargetCards 发牌动画期间用于预占目标位置的完整手牌。
+ * @param hiddenCardIds 需要保留位置但临时隐藏的手牌 ID。
  * @param returnTargetCards 回收弃牌动画期间用于预占目标位置的完整手牌。
  * @param selectedCardIds 已选中的手牌 ID。
  * @param onToggleCard 键盘或单击切换选中回调。
@@ -205,6 +225,7 @@ export default function Hand({
   dealing = false,
   disabled = false,
   dealTargetCards,
+  hiddenCardIds = [],
   returnTargetCards,
   selectedCardIds,
   onToggleCard,
@@ -214,6 +235,7 @@ export default function Hand({
   dealing?: boolean;
   disabled?: boolean;
   dealTargetCards?: CardType[];
+  hiddenCardIds?: string[];
   returnTargetCards?: CardType[];
   selectedCardIds: string[];
   onToggleCard: (cardId: string) => void;
@@ -224,13 +246,15 @@ export default function Hand({
   const [handWidth, setHandWidth] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const visibleCardIds = new Set(cards.map((card) => card.id));
+  const hiddenCardIdSet = new Set(hiddenCardIds);
   const displayCards = dealTargetCards?.length ? dealTargetCards : returnTargetCards?.length ? returnTargetCards : cards;
   const dealTargetIndexByCardId = new Map((dealTargetCards ?? []).map((card, index) => [card.id, index]));
-  const handGroups = groupHandCards(displayCards);
+  const showingReturnTargets = Boolean(returnTargetCards?.length) && !dealTargetCards?.length;
+  const handGroups = showingReturnTargets ? groupReturnTargetCards(displayCards, visibleCardIds) : groupHandCards(displayCards);
   const returnTargetIndexByCardId = new Map(
     handGroups
       .flatMap((group) => group.cards)
-      .filter((card) => Boolean(returnTargetCards?.length) && !visibleCardIds.has(card.id))
+      .filter((card) => showingReturnTargets && !visibleCardIds.has(card.id))
       .map((card, index) => [card.id, index]),
   );
   const maxStackSize = handGroups.reduce((maxSize, group) => Math.max(maxSize, group.cards.length), 1);
@@ -409,6 +433,8 @@ export default function Hand({
                             "--hand-card-x": `${groupX + stackOffset.x}px`,
                             "--hand-card-y": `${-upwardOffset}px`,
                             "--hand-card-rotate": `${rotate}deg`,
+                            opacity: hiddenCardIdSet.has(card.id) ? 0 : undefined,
+                            pointerEvents: hiddenCardIdSet.has(card.id) ? "none" : undefined,
                             zIndex: groupIndex * (maxStackSize + 1) + (maxStackSize - stackIndex),
                           } as CSSProperties
                         }

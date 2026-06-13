@@ -4,6 +4,7 @@
  * @Date 2026-06-12 14:47
  */
 import type { PublicGameEvent } from "@lie/shared";
+import type { Card } from "@lie/shared";
 import type { ChallengeResolvedGameEvent, DisplayDiscardCard, ReturnFlightCard } from "./gameTableTypes";
 
 export function getLatestChallengeResolvedEvent(events: PublicGameEvent[], turnSeq: number) {
@@ -18,11 +19,7 @@ export function getLatestChallengeResolvedEvent(events: PublicGameEvent[], turnS
   return null;
 }
 
-export function revealDiscardCards(cards: DisplayDiscardCard[], event: ChallengeResolvedGameEvent | null): DisplayDiscardCard[] {
-  if (!event) {
-    return cards;
-  }
-
+function revealLastPlayCards(cards: DisplayDiscardCard[], event: ChallengeResolvedGameEvent) {
   const revealedTurnSeq = event.turnSeq - 1;
   const exactRevealIndexes = cards
     .map((card, index) => ({ card, index }))
@@ -34,7 +31,49 @@ export function revealDiscardCards(cards: DisplayDiscardCard[], event: Challenge
     .slice(-event.revealedCards.length)
     .map(({ index }) => index);
   const revealIndexes = exactRevealIndexes.length === event.revealedCards.length ? exactRevealIndexes : fallbackRevealIndexes;
-  const revealCardByIndex = new Map(revealIndexes.map((cardIndex, revealIndex) => [cardIndex, event.revealedCards[revealIndex]]));
+
+  return new Map(revealIndexes.map((cardIndex, revealIndex) => [cardIndex, event.revealedCards[revealIndex]]));
+}
+
+function revealAllReturnedCards(cards: DisplayDiscardCard[], event: ChallengeResolvedGameEvent, returnedCards: Card[]) {
+  const revealCardByIndex = revealLastPlayCards(cards, event);
+  const usedCardIds = new Set(Array.from(revealCardByIndex.values()).map((card) => card.id));
+  const remainingReturnedCards = returnedCards.filter((card) => !usedCardIds.has(card.id));
+
+  cards.forEach((_, index) => {
+    if (revealCardByIndex.has(index)) {
+      return;
+    }
+
+    const nextCard = remainingReturnedCards.shift();
+
+    if (nextCard) {
+      revealCardByIndex.set(index, nextCard);
+    }
+  });
+
+  return revealCardByIndex;
+}
+
+export function revealDiscardCards({
+  cards,
+  event,
+  returnedCards = [],
+  selfPlayerId,
+}: {
+  cards: DisplayDiscardCard[];
+  event: ChallengeResolvedGameEvent | null;
+  returnedCards?: Card[];
+  selfPlayerId?: string | null;
+}): DisplayDiscardCard[] {
+  if (!event) {
+    return cards;
+  }
+
+  const revealCardByIndex =
+    event.pileTakenByPlayerId === selfPlayerId && returnedCards.length >= cards.length
+      ? revealAllReturnedCards(cards, event, returnedCards)
+      : revealLastPlayCards(cards, event);
 
   return cards.map((card, index) => {
     const revealCard = revealCardByIndex.get(index);
@@ -50,9 +89,52 @@ export function revealDiscardCards(cards: DisplayDiscardCard[], event: Challenge
   });
 }
 
-export function revealReturnFlights(flights: ReturnFlightCard[], event: ChallengeResolvedGameEvent | null): ReturnFlightCard[] {
+export function revealReturnFlights({
+  event,
+  flights,
+  returnedCards = [],
+  selfPlayerId,
+}: {
+  event: ChallengeResolvedGameEvent | null;
+  flights: ReturnFlightCard[];
+  returnedCards?: Card[];
+  selfPlayerId?: string | null;
+}): ReturnFlightCard[] {
   if (!event) {
     return flights;
+  }
+
+  if (event.pileTakenByPlayerId === selfPlayerId && returnedCards.length >= flights.length) {
+    const returnedCardsByIndex = [...returnedCards];
+    const lastPlayRevealByFlightId = new Map<string, Card>();
+    const revealedCards = [...event.revealedCards];
+    const revealedTurnSeq = event.turnSeq - 1;
+
+    flights.forEach((flight) => {
+      const isRevealedFlight = flight.sourceTurnSeq === revealedTurnSeq && flight.sourcePlayedByPlayerId === event.challengedPlayerId;
+
+      if (!isRevealedFlight) {
+        return;
+      }
+
+      const sourceCard = revealedCards.shift();
+
+      if (sourceCard) {
+        lastPlayRevealByFlightId.set(flight.id, sourceCard);
+      }
+    });
+
+    const usedCardIds = new Set(Array.from(lastPlayRevealByFlightId.values()).map((card) => card.id));
+    const remainingReturnedCards = returnedCardsByIndex.filter((card) => !usedCardIds.has(card.id));
+
+    return flights.map((flight) => {
+      const lastPlayRevealCard = lastPlayRevealByFlightId.get(flight.id);
+
+      return {
+        ...flight,
+        revealCard: lastPlayRevealCard ?? remainingReturnedCards.shift(),
+      };
+    });
   }
 
   const revealedCards = [...event.revealedCards];

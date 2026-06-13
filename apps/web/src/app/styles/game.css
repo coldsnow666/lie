@@ -29,6 +29,9 @@
   cursor: pointer;
   transform: translate3d(calc(-50% + var(--hand-card-x, 0px)), var(--hand-card-y, 0px), 0) rotate(var(--hand-card-rotate, 0deg));
   transform-origin: 50% 92%;
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.9, 0.24, 1.08),
+    opacity 120ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -181,35 +184,83 @@
   padding: 0;
 }
 
+.lie-game-action-slot {
+  display: grid;
+  min-height: clamp(2.75rem, 6.2dvh, 3.65rem);
+  place-items: center;
+}
+
+.lie-game-action-slot [data-visible="false"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .lie-table-status-panel {
   position: absolute;
   left: clamp(0.4rem, 2.2vw, 1.1rem);
   top: clamp(0.25rem, 1.3vw, 0.85rem);
   z-index: 75;
   display: grid;
-  min-width: clamp(9rem, 22vw, 14rem);
-  gap: 0.28rem;
+  grid-template-rows: auto auto;
+  min-width: clamp(6.8rem, 16vw, 9.5rem);
+  gap: 0;
   border: 2px solid rgba(246, 226, 160, 0.42);
   background: rgba(13, 27, 26, 0.66);
-  padding: 0.36rem 0.48rem;
+  padding: 0;
   color: #fff6cf;
-  font-size: 0.72rem;
+  font-size: clamp(0.9rem, 1.75vw, 1.22rem);
   font-weight: 900;
   line-height: 1.05;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
 }
 
-.lie-table-status-panel div {
-  display: flex;
+.lie-table-status-row {
+  display: grid;
+  grid-template-rows: auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem;
+  justify-items: center;
+  gap: 0.38rem;
+  min-height: clamp(4.2rem, 8vw, 5.8rem);
+  padding: 0.5rem 0.68rem;
+  border-bottom: 2px solid rgba(246, 226, 160, 0.28);
+  text-align: center;
 }
 
 .lie-table-status-label {
   color: #bfeeb1;
-  font-size: 0.62rem;
+  font-size: clamp(0.76rem, 1.35vw, 0.95rem);
   font-weight: 700;
+}
+
+.lie-table-status-rank {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-items: center;
+  justify-items: center;
+  min-height: clamp(4.2rem, 8vw, 5.8rem);
+  padding: 0.5rem 0.68rem;
+  gap: 0.38rem;
+  text-align: center;
+}
+
+.lie-table-status-count {
+  align-self: center;
+}
+
+.lie-table-status-rank-corner {
+  display: grid;
+  align-self: center;
+  justify-items: center;
+  color: #b33332;
+  font-size: clamp(1.55rem, 3.2vw, 2.3rem);
+  font-weight: 950;
+  line-height: 0.82;
+  text-shadow: none;
+}
+
+.lie-table-status-rank-corner > span:last-child {
+  margin-top: 0.08em;
+  font-size: 1.1em;
 }
 
 .lie-deal-flight-layer {
@@ -271,6 +322,61 @@
   filter: drop-shadow(0 4px 6px rgba(8, 13, 14, 0.2));
 }
 
+.lie-play-flight-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  overflow: visible;
+  pointer-events: none;
+  perspective: 1000px;
+}
+
+.lie-play-flight-shell {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  will-change: left, top, transform, opacity, filter;
+}
+
+.lie-play-flight-flip {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.lie-play-flight-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.lie-play-flight-face > .lie-dom-playing-card,
+.lie-play-flight-face > .lie-card-back-frame {
+  width: 100%;
+  height: 100%;
+}
+
+.lie-play-flight-front {
+  transform: rotateY(0deg);
+}
+
+.lie-play-flight-back {
+  transform: rotateY(180deg);
+}
+
+.lie-play-flight-card {
+  filter: drop-shadow(0 4px 6px rgba(8, 13, 14, 0.22));
+}
+
 .lie-discard-pile {
   position: relative;
   display: grid;
@@ -283,19 +389,19 @@
 
 .lie-table-center-notice {
   position: absolute;
-  left: 50%;
+  right: clamp(0.4rem, 2.2vw, 1.1rem);
   top: clamp(0.3rem, 2vw, 1rem);
   z-index: 92;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  max-width: min(24rem, calc(100vw - 2rem));
-  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  min-width: clamp(7.2rem, 17vw, 10rem);
+  max-width: min(15rem, calc(100vw - 2rem));
   border: 2px solid rgba(247, 240, 220, 0.78);
   background: rgba(13, 27, 26, 0.88);
-  padding: 0.3rem 0.62rem;
+  padding: 0.52rem 0.7rem;
   color: #fff6cf;
-  font-size: clamp(0.72rem, 1.8vw, 0.9rem);
+  font-size: clamp(0.92rem, 2vw, 1.18rem);
   font-weight: 900;
   line-height: 1.12;
   pointer-events: none;
@@ -306,6 +412,7 @@
 
 .lie-table-center-notice strong {
   color: #bff3a8;
+  font-size: 1.12em;
   letter-spacing: 0.08em;
   white-space: nowrap;
 }
@@ -320,18 +427,19 @@
 
 .lie-table-center-notice span {
   color: #d8e3c4;
+  font-size: 0.9em;
   white-space: nowrap;
 }
 
 @keyframes lie-table-center-notice-in {
   0% {
     opacity: 0;
-    transform: translateX(-50%) translateY(-0.45rem) scale(0.96);
+    transform: translateY(-0.45rem) scale(0.96);
   }
 
   100% {
     opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -481,25 +589,41 @@
 }
 
 .lie-declare-rank-modal {
-  max-width: min(56rem, calc(100vw - 2rem));
+  width: fit-content;
+  max-width: calc(100vw - 2rem);
   max-height: calc(100dvh - 2rem);
-  padding: clamp(0.85rem, 2.2vw, 1.35rem);
+  padding: clamp(0.72rem, 1.8vw, 1rem);
+}
+
+.lie-declare-rank-modal > div:first-child {
+  grid-template-columns: 1.8rem minmax(0, 1fr) 1.8rem;
+  gap: 0.45rem;
+}
+
+.lie-declare-rank-modal h2 {
+  font-size: 1rem;
+}
+
+.lie-declare-rank-modal .lie-pixel-button {
+  width: 1.8rem;
+  height: 1.8rem;
+  min-height: 1.8rem;
 }
 
 .lie-declare-rank-grid {
   --declare-card-columns: 5;
-  --declare-card-scale: 1.45;
-  grid-template-columns: repeat(var(--declare-card-columns), calc(49px * var(--declare-card-scale) + 0.65rem));
+  --declare-card-scale: 1.12;
+  grid-template-columns: repeat(var(--declare-card-columns), calc(49px * var(--declare-card-scale) + 0.46rem));
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.56rem;
   overflow: visible;
   padding: 0;
   place-items: center;
 }
 
 .lie-declare-rank-card-button {
-  min-width: calc(49px * var(--declare-card-scale) + 0.65rem);
-  min-height: calc(65px * var(--declare-card-scale) + 0.65rem);
+  min-width: calc(49px * var(--declare-card-scale) + 0.46rem);
+  min-height: calc(65px * var(--declare-card-scale) + 0.46rem);
 }
 
 .lie-declare-rank-card {
@@ -649,6 +773,20 @@
   inset: var(--dom-card-border-size);
   background: #eef4eb;
   clip-path: inherit;
+}
+
+.lie-dom-playing-card[data-corner-only="true"] .lie-dom-playing-card-corner-large {
+  font-size: calc(18px * var(--pixel-card-scale, 2));
+  letter-spacing: 0;
+}
+
+.lie-dom-playing-card[data-corner-only="true"] .lie-dom-playing-card-corner-large > span:first-child {
+  font-size: calc(22px * var(--pixel-card-scale, 2));
+}
+
+.lie-dom-playing-card[data-corner-only="true"] .lie-dom-playing-card-corner-large > span:last-child {
+  margin-top: calc(1px * var(--pixel-card-scale, 2));
+  font-size: calc(24px * var(--pixel-card-scale, 2));
 }
 
 .lie-room-card {

@@ -14,7 +14,10 @@ import { useRouteLoading } from "@/components/loading/RouteLoadingProvider";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelModal from "@/components/ui/PixelModal";
 import PixelPanel from "@/components/ui/PixelPanel";
+import PixelSelect from "@/components/ui/PixelSelect";
 import { clearSession } from "@/lib/auth";
+import { getGameAudioEnabled, saveGameAudioEnabled } from "@/lib/audio-settings";
+import { getBackgroundAnimationEnabled, saveBackgroundAnimationEnabled } from "@/lib/background-settings";
 
 const LOBBY_ROUTE_PUSH_DELAY = 900;
 
@@ -22,7 +25,11 @@ export default function StartScreen() {
   const router = useRouter();
   const routeLoading = useRouteLoading();
   const { status } = useSession();
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [backgroundAnimationChoice, setBackgroundAnimationChoice] = useState<"yes" | "no">(() =>
+    getBackgroundAnimationEnabled() ? "yes" : "no",
+  );
+  const [gameAudioChoice, setGameAudioChoice] = useState<"on" | "off">(() => (getGameAudioEnabled() ? "on" : "off"));
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [enteringLobby, setEnteringLobby] = useState(false);
   const lobbyRouteTimerRef = useRef<number | null>(null);
@@ -86,6 +93,18 @@ export default function StartScreen() {
     setLogoutConfirmOpen(false);
   }
 
+  function openSettings() {
+    setBackgroundAnimationChoice(getBackgroundAnimationEnabled() ? "yes" : "no");
+    setGameAudioChoice(getGameAudioEnabled() ? "on" : "off");
+    setSettingsOpen(true);
+  }
+
+  function saveSettings() {
+    saveBackgroundAnimationEnabled(backgroundAnimationChoice === "yes");
+    saveGameAudioEnabled(gameAudioChoice === "on");
+    setSettingsOpen(false);
+  }
+
   return (
     <main className="relative h-dvh max-h-dvh overflow-hidden text-[#f7f0dc]">
       <div className="relative mx-auto flex h-full min-h-0 max-w-5xl flex-col px-[clamp(0.75rem,3vw,1.25rem)] py-[clamp(0.55rem,2vh,1.1rem)]">
@@ -118,8 +137,7 @@ export default function StartScreen() {
                     {loggedIn ? "进入游戏" : "登录"}
                   </PixelButton>
                   <PixelButton
-                    title={soundEnabled ? "关闭音效" : "开启音效"}
-                    onClick={() => setSoundEnabled((value) => !value)}
+                    onClick={openSettings}
                     disabled={transitioning}
                     variant="ghost"
                     fullWidth
@@ -144,6 +162,41 @@ export default function StartScreen() {
           </div>
         </section>
       </div>
+      {settingsOpen ? (
+        <PixelModal title="设置" onClose={() => setSettingsOpen(false)}>
+          <div className="mt-5 text-left">
+            <label className="block text-sm text-[#e8ddb7]">
+              背景动画
+              <PixelSelect
+                value={backgroundAnimationChoice}
+                onChange={(event) => setBackgroundAnimationChoice(event.target.value === "yes" ? "yes" : "no")}
+                aria-label="是否开启背景动画"
+                className="mt-2"
+                selectClassName="text-base font-bold tracking-[0.12em]"
+              >
+                <option value="yes">是</option>
+                <option value="no">否</option>
+              </PixelSelect>
+            </label>
+            <label className="mt-4 block text-sm text-[#e8ddb7]">
+              音效
+              <PixelSelect
+                value={gameAudioChoice}
+                onChange={(event) => setGameAudioChoice(event.target.value === "on" ? "on" : "off")}
+                aria-label="是否开启游戏音效"
+                className="mt-2"
+                selectClassName="text-base font-bold tracking-[0.12em]"
+              >
+                <option value="on">开启</option>
+                <option value="off">关闭</option>
+              </PixelSelect>
+            </label>
+            <PixelButton onClick={saveSettings} variant="primary" fullWidth className="mt-5 h-12 text-base">
+              保存
+            </PixelButton>
+          </div>
+        </PixelModal>
+      ) : null}
       {logoutConfirmOpen ? (
         <PixelModal title="确认退出" onClose={() => setLogoutConfirmOpen(false)}>
           <div className="mt-5 space-y-5 text-left">

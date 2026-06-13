@@ -9,6 +9,7 @@ import { useEffect, useLayoutEffect, useRef, type CSSProperties } from "react";
 import { gsap } from "gsap";
 import CardBackArt from "@/components/cards/CardBackArt";
 import DomPlayingCard from "@/components/cards/DomPlayingCard";
+import { playGameSound } from "@/lib/game-audio";
 import { DISCARD_RETURN_FLIGHT_SECONDS, DISCARD_RETURN_STAGGER_SECONDS } from "./gameTableConstants";
 import {
   applyCardFlightFrame,
@@ -82,6 +83,7 @@ export default function ReturnFlightLayer({ cards, onCardComplete }: { cards: Re
           progress: 1,
           duration: DISCARD_RETURN_FLIGHT_SECONDS,
           ease: "none",
+          onStart: () => playGameSound("return"),
           onUpdate: () => {
             applyCardFlightFrame({
               arc,

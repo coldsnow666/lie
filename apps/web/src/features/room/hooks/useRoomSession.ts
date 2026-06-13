@@ -120,7 +120,7 @@ export function useRoomSession({
     }
   }, [applyRoomSyncPayload, roomId, syncRoom]);
 
-  const playCards = useCallback(async (declaredRankOverride?: DeclaredRank) => {
+  const playCards = useCallback(async (declaredRankOverride?: DeclaredRank, orderedCardIds?: string[]) => {
     if (!roomId) {
       return;
     }
@@ -137,7 +137,7 @@ export function useRoomSession({
       // 上一手玩家已经出完牌时，主按钮代表“不质疑并确认胜利”，协议层用空 cardIds 表达这个选择。
       await emitWithAck("game:playCards", {
         roomId,
-        cardIds: resolvingPendingWin ? [] : selectedCardIds,
+        cardIds: resolvingPendingWin ? [] : (orderedCardIds ?? selectedCardIds),
         declaredRank: resolvingPendingWin || followingDeclaredRank ? undefined : (declaredRankOverride ?? declaredRank),
       });
       clearSelectedCards();

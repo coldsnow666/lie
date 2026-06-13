@@ -14,7 +14,7 @@ import {
 
 export function getDeclareRankCardLayout() {
   if (typeof window === "undefined") {
-    return { columns: 5, scale: 1.45 };
+    return { columns: 5, scale: 1.12 };
   }
 
   const availableWidth = Math.min(window.innerWidth - DECLARE_RANK_MODAL_CHROME_WIDTH, 896);
@@ -26,7 +26,7 @@ export function getDeclareRankCardLayout() {
 
     return {
       columns,
-      scale: Math.max(0.82, Math.min(2.75, scaleByWidth, scaleByHeight)),
+      scale: Math.max(0.72, Math.min(1.32, scaleByWidth, scaleByHeight)),
     };
   });
 

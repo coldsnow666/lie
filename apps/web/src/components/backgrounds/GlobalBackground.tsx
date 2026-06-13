@@ -8,6 +8,7 @@
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { BACKGROUND_ANIMATION_CHANGE_EVENT, getBackgroundAnimationEnabled } from "@/lib/background-settings";
 
 const Balatro = dynamic(() => import("@/components/backgrounds/Balatro"), {
   ssr: false,
@@ -90,7 +91,7 @@ const backgroundThemes: Record<BackgroundMode, BackgroundTheme> = {
     color2: "#2fd08f",
     color3: "#0b1812",
     spinRotation: -2.1,
-    spinSpeed: 0,
+    spinSpeed: 6.5,
     contrast: 3.1,
     lighting: 0.32,
     spinAmount: 0.22,
@@ -99,7 +100,7 @@ const backgroundThemes: Record<BackgroundMode, BackgroundTheme> = {
     fallbackClassName: "lie-balatro-fallback-forest",
     fallbackActiveClassName: "lie-balatro-fallback-forest-active",
     overlayClassName: "lie-balatro-overlay-forest",
-    animated: false,
+    animated: true,
     shaderEnabled: true,
   },
 };
@@ -122,9 +123,10 @@ export default function GlobalBackground() {
   const [fallbackActive, setFallbackActive] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [backgroundAnimationEnabled, setBackgroundAnimationEnabled] = useState(() => getBackgroundAnimationEnabled());
   const backgroundTheme = backgroundThemes[backgroundMode];
-  const shaderEnabled = backgroundTheme.shaderEnabled && !prefersReducedMotion;
-  const animatedFallback = fallbackActive && backgroundTheme.animated && !prefersReducedMotion;
+  const shaderEnabled = backgroundAnimationEnabled && backgroundTheme.shaderEnabled && !prefersReducedMotion;
+  const animatedFallback = backgroundAnimationEnabled && fallbackActive && backgroundTheme.animated && !prefersReducedMotion;
   const handleWebglReady = useCallback(() => setFallbackActive(false), []);
   const handleWebglFallback = useCallback(() => setFallbackActive(true), []);
 
@@ -141,6 +143,20 @@ export default function GlobalBackground() {
 
     return () => observer.disconnect();
   }, [pathname]);
+
+  useEffect(() => {
+    const syncBackgroundAnimationSetting = () => {
+      setBackgroundAnimationEnabled(getBackgroundAnimationEnabled());
+    };
+
+    window.addEventListener(BACKGROUND_ANIMATION_CHANGE_EVENT, syncBackgroundAnimationSetting);
+    window.addEventListener("storage", syncBackgroundAnimationSetting);
+
+    return () => {
+      window.removeEventListener(BACKGROUND_ANIMATION_CHANGE_EVENT, syncBackgroundAnimationSetting);
+      window.removeEventListener("storage", syncBackgroundAnimationSetting);
+    };
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -177,7 +193,7 @@ export default function GlobalBackground() {
         />
         {shaderEnabled ? (
           <Balatro
-            animated={backgroundTheme.animated}
+            animated={backgroundAnimationEnabled && backgroundTheme.animated}
             dpr={1.05}
             maxFps={30}
             mouseInteraction={false}
@@ -194,7 +210,7 @@ export default function GlobalBackground() {
             pixelFilter={backgroundTheme.pixelFilter}
             spinEase={backgroundTheme.spinEase}
             isRotate={false}
-            paused={!pageVisible}
+            paused={!backgroundAnimationEnabled || !pageVisible}
           />
         ) : null}
         <div className={`absolute inset-0 ${backgroundTheme.overlayClassName}`} />

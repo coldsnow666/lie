@@ -156,6 +156,8 @@ export function useDealAnimation(state: PublicGameState, selfPlayerId?: string |
   const [remainingDeckCount, setRemainingDeckCount] = useState(() => (dealPlan.shouldDeal ? dealPlan.flights.length : 0));
   const completedDealMatchIdRef = useRef<string | null>(null);
   const completedDealFlightIdsRef = useRef(new Set<string>());
+  const pendingCompletedFlightsRef = useRef<DealFlightCard[]>([]);
+  const completionFrameRef = useRef<number | null>(null);
   const dealPlanRef = useRef(dealPlan);
 
   useEffect(() => {
@@ -170,10 +172,13 @@ export function useDealAnimation(state: PublicGameState, selfPlayerId?: string |
       setRemainingDeckCount(0);
       setDealFlights([]);
       setVisibleCardCounts(currentDealPlan.targetCounts);
+      pendingCompletedFlightsRef.current = [];
+      completedDealFlightIdsRef.current.clear();
       return;
     }
 
     setDealing(true);
+    pendingCompletedFlightsRef.current = [];
     completedDealFlightIdsRef.current.clear();
     setVisibleCardCounts(Object.fromEntries(currentDealPlan.players.map((player) => [player.playerId, 0])) as VisibleCardCounts);
 
@@ -189,6 +194,7 @@ export function useDealAnimation(state: PublicGameState, selfPlayerId?: string |
     const endTimer = window.setTimeout(
       () => {
         completedDealMatchIdRef.current = currentDealPlan.matchId;
+        pendingCompletedFlightsRef.current = [];
         completedDealFlightIdsRef.current.clear();
         setVisibleCardCounts(currentDealPlan.targetCounts);
         setRemainingDeckCount(0);
@@ -198,41 +204,71 @@ export function useDealAnimation(state: PublicGameState, selfPlayerId?: string |
       currentDealPlan.flights.length * DEAL_CARD_STAGGER_SECONDS * 1000 + DEAL_CARD_FLIGHT_SECONDS * 1000 + 1800,
     );
 
-    return () => window.clearTimeout(endTimer);
+    return () => {
+      window.clearTimeout(endTimer);
+
+      if (completionFrameRef.current !== null) {
+        window.cancelAnimationFrame(completionFrameRef.current);
+        completionFrameRef.current = null;
+      }
+    };
   }, [dealPlan.key]);
 
-  const completeDealFlight = useCallback((flight: DealFlightCard) => {
-    const currentDealPlan = dealPlanRef.current;
+  const flushCompletedFlights = useCallback(() => {
+    completionFrameRef.current = null;
+    const completedFlights = pendingCompletedFlightsRef.current;
 
-    if (completedDealFlightIdsRef.current.has(flight.id)) {
+    if (!completedFlights.length) {
       return;
     }
 
-    completedDealFlightIdsRef.current.add(flight.id);
-    setVisibleCardCounts((currentCounts) => {
-      const targetCount = currentDealPlan.targetCounts[flight.playerId] ?? Number.POSITIVE_INFINITY;
-      const nextCount = Math.min((currentCounts[flight.playerId] ?? 0) + 1, targetCount);
+    pendingCompletedFlightsRef.current = [];
+    const currentDealPlan = dealPlanRef.current;
 
-      if (currentCounts[flight.playerId] === nextCount) {
-        return currentCounts;
+    setVisibleCardCounts((currentCounts) => {
+      let changed = false;
+      const nextCounts = { ...currentCounts };
+
+      for (const flight of completedFlights) {
+        const targetCount = currentDealPlan.targetCounts[flight.playerId] ?? Number.POSITIVE_INFINITY;
+        const nextCount = Math.min((nextCounts[flight.playerId] ?? 0) + 1, targetCount);
+
+        if (nextCounts[flight.playerId] !== nextCount) {
+          nextCounts[flight.playerId] = nextCount;
+          changed = true;
+        }
       }
 
-      return {
-        ...currentCounts,
-        [flight.playerId]: nextCount,
-      };
+      return changed ? nextCounts : currentCounts;
     });
-    setRemainingDeckCount((currentCount) => Math.max(0, currentCount - 1));
+    setRemainingDeckCount((currentCount) => Math.max(0, currentCount - completedFlights.length));
 
     if (completedDealFlightIdsRef.current.size >= currentDealPlan.flights.length) {
       completedDealMatchIdRef.current = currentDealPlan.matchId;
       completedDealFlightIdsRef.current.clear();
+      pendingCompletedFlightsRef.current = [];
       setVisibleCardCounts(currentDealPlan.targetCounts);
       setRemainingDeckCount(0);
       setDealFlights([]);
       setDealing(false);
     }
   }, []);
+
+  const completeDealFlight = useCallback(
+    (flight: DealFlightCard) => {
+      if (completedDealFlightIdsRef.current.has(flight.id)) {
+        return;
+      }
+
+      completedDealFlightIdsRef.current.add(flight.id);
+      pendingCompletedFlightsRef.current.push(flight);
+
+      if (completionFrameRef.current === null) {
+        completionFrameRef.current = window.requestAnimationFrame(flushCompletedFlights);
+      }
+    },
+    [flushCompletedFlights],
+  );
 
   return {
     completeDealFlight,

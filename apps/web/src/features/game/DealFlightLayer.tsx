@@ -5,12 +5,13 @@
  */
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, type CSSProperties } from "react";
 import { gsap } from "gsap";
 import CardBackArt from "@/components/cards/CardBackArt";
 import DomPlayingCard from "@/components/cards/DomPlayingCard";
+import { playGameSound } from "@/lib/game-audio";
 import { DEAL_CARD_FLIGHT_SECONDS, DEAL_CARD_STAGGER_SECONDS } from "./gameTableConstants";
-import { getDealFlightArc, getDealFlightTargetPose, pulseCardReceiver } from "./gameAnimation";
+import { getDealFlightArc, getDealFlightTargetPose } from "./gameAnimation";
 import type { DealFlightCard } from "./gameTableTypes";
 
 export default function DealFlightLayer({
@@ -19,28 +20,20 @@ export default function DealFlightLayer({
   remainingDeckCount,
 }: {
   flights: DealFlightCard[];
-  onFlightComplete: (flight: DealFlightCard) => void;
+  onFlightComplete?: (flight: DealFlightCard) => void;
   remainingDeckCount: number;
 }) {
   const layerRef = useRef<HTMLDivElement | null>(null);
   const startedFlightIdsRef = useRef(new Set<string>());
-  const completedFlightIdsRef = useRef(new Set<string>());
   const flightTimelinesRef = useRef(new Map<string, gsap.core.Timeline>());
-  const onFlightCompleteRef = useRef(onFlightComplete);
-
-  useEffect(() => {
-    onFlightCompleteRef.current = onFlightComplete;
-  }, [onFlightComplete]);
 
   useLayoutEffect(() => {
     const startedFlightIds = startedFlightIdsRef.current;
-    const completedFlightIds = completedFlightIdsRef.current;
     const flightTimelines = flightTimelinesRef.current;
 
     if (!flights.length || !layerRef.current) {
       if (!flights.length) {
         startedFlightIds.clear();
-        completedFlightIds.clear();
       }
 
       return;
@@ -49,7 +42,7 @@ export default function DealFlightLayer({
     flights.forEach((flight) => {
       const shell = layerRef.current?.querySelector<HTMLElement>(`[data-deal-flight-card-id="${flight.id}"]`);
 
-      if (!shell || !layerRef.current || startedFlightIds.has(flight.id) || completedFlightIds.has(flight.id)) {
+      if (!shell || !layerRef.current || startedFlightIds.has(flight.id)) {
         return;
       }
 
@@ -87,6 +80,7 @@ export default function DealFlightLayer({
           filter: "drop-shadow(0 12px 14px rgba(8, 13, 14, 0.28))",
           duration: DEAL_CARD_FLIGHT_SECONDS * 0.42,
           ease: "power2.out",
+          onStart: () => playGameSound("deal"),
         },
         startDelay,
       );
@@ -118,15 +112,9 @@ export default function DealFlightLayer({
           duration: DEAL_CARD_FLIGHT_SECONDS * 0.18,
           ease: "back.out(1.7)",
           onComplete: () => {
-            if (completedFlightIds.has(flight.id)) {
-              return;
-            }
-
-            completedFlightIds.add(flight.id);
             flightTimelines.delete(flight.id);
             gsap.set(shell, { opacity: 0 });
-            pulseCardReceiver(targetNode);
-            onFlightCompleteRef.current(flight);
+            onFlightComplete?.(flight);
           },
         },
         startDelay + DEAL_CARD_FLIGHT_SECONDS * 0.82,
@@ -137,9 +125,8 @@ export default function DealFlightLayer({
       flightTimelines.forEach((timeline) => timeline.kill());
       flightTimelines.clear();
       startedFlightIds.clear();
-      completedFlightIds.clear();
     };
-  }, [flights]);
+  }, [flights, onFlightComplete]);
 
   if (!flights.length) {
     return null;

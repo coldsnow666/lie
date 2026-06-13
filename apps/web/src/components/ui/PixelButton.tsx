@@ -1,5 +1,5 @@
 /**
- * @Description: 像素风按钮：统一游戏内长条按钮的街机风格、底部压边阴影和按压反馈。
+ * @Description: 像素风按钮：统一游戏内无边框长条按钮的街机风格和按压反馈。
  *
  * @Date 2026-06-12 14:47
  */
@@ -12,15 +12,15 @@ type PixelButtonSize = "sm" | "md" | "lg";
 
 const variantClassMap: Record<PixelButtonVariant, string> = {
   primary:
-    "[--px-button-bg-color:#f39b14] [--px-button-hover-bg-color:#ffab27] [--px-button-border-color:#ffe7a8] [--px-button-shadow-color:#8f5200] text-[#fff9e8]",
+    "[--px-button-bg-color:#f59a0b] [--px-button-hover-bg-color:#ffac1d] [--px-button-top-color:#ffc044] [--px-button-bottom-color:#c96500] [--px-button-shadow-color:#182536] text-[#fff9e8]",
   secondary:
-    "[--px-button-bg-color:#299f8d] [--px-button-hover-bg-color:#31b09d] [--px-button-border-color:#b8fff3] [--px-button-shadow-color:#12594f] text-[#f2fffb]",
+    "[--px-button-bg-color:#279886] [--px-button-hover-bg-color:#32aa96] [--px-button-top-color:#61d7c4] [--px-button-bottom-color:#166458] [--px-button-shadow-color:#182536] text-[#f2fffb]",
   danger:
-    "[--px-button-bg-color:#d95f4d] [--px-button-hover-bg-color:#ea705d] [--px-button-border-color:#ffc2bc] [--px-button-shadow-color:#7e2f22] text-[#fff6f3]",
+    "[--px-button-bg-color:#d95f4d] [--px-button-hover-bg-color:#ec725f] [--px-button-top-color:#ff9a8b] [--px-button-bottom-color:#943426] [--px-button-shadow-color:#182536] text-[#fff6f3]",
   accent:
-    "[--px-button-bg-color:#d48516] [--px-button-hover-bg-color:#e39424] [--px-button-border-color:#d9efff] [--px-button-shadow-color:#8b4d00] text-[#fffaf0]",
+    "[--px-button-bg-color:#d98413] [--px-button-hover-bg-color:#ec9624] [--px-button-top-color:#ffbd43] [--px-button-bottom-color:#9b5500] [--px-button-shadow-color:#182536] text-[#fffaf0]",
   ghost:
-    "[--px-button-bg-color:#243d3d] [--px-button-hover-bg-color:#2b4848] [--px-button-border-color:#f5f1df] [--px-button-shadow-color:#101a1d] text-[#fff8e6]",
+    "[--px-button-bg-color:#2b4644] [--px-button-hover-bg-color:#365452] [--px-button-top-color:#54736f] [--px-button-bottom-color:#172b2a] [--px-button-shadow-color:#182536] text-[#fff8e6]",
 };
 
 const sizeClassMap: Record<PixelButtonSize, string> = {
@@ -38,6 +38,44 @@ type PixelButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   square?: boolean;
 };
 
+function hasTextContent(node: ReactNode): boolean {
+  if (typeof node === "string") {
+    return node.trim().length > 0;
+  }
+
+  if (typeof node === "number") {
+    return true;
+  }
+
+  if (Array.isArray(node)) {
+    return node.some(hasTextContent);
+  }
+
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    return hasTextContent(node.props.children);
+  }
+
+  return false;
+}
+
+function stripIconOnlyNodes(node: ReactNode): ReactNode {
+  if (Array.isArray(node)) {
+    return node.map(stripIconOnlyNodes).filter(Boolean);
+  }
+
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    if (!hasTextContent(node.props.children)) {
+      return null;
+    }
+
+    return cloneElement(node, {
+      children: stripIconOnlyNodes(node.props.children),
+    } as { children: ReactNode });
+  }
+
+  return node;
+}
+
 export default function PixelButton({
   asChild = false,
   children,
@@ -49,10 +87,11 @@ export default function PixelButton({
   type = "button",
   ...props
 }: PixelButtonProps) {
+  const visibleChildren = hasTextContent(children) ? stripIconOnlyNodes(children) : children;
   const pixelButtonClassName = [
-        "lie-pixel-button relative isolate inline-flex cursor-pointer items-center justify-center gap-2 overflow-visible border-0 bg-transparent font-black tracking-[0.08em] transition-all duration-150",
+        "lie-pixel-button relative isolate inline-flex cursor-pointer items-center justify-center gap-2 overflow-visible border-0 bg-transparent font-black tracking-[0.04em] transition-all duration-150",
         "outline-none focus-visible:-translate-y-px focus-visible:ring-2 focus-visible:ring-[#fff6cf]/70",
-        "active:translate-y-[3px] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0",
+        "disabled:cursor-not-allowed disabled:opacity-50",
         sizeClassMap[size],
         variantClassMap[variant],
         square ? "lie-pixel-button-square aspect-square min-w-0 px-0" : "",
@@ -67,7 +106,7 @@ export default function PixelButton({
 
     return cloneElement(child, {
       className: [pixelButtonClassName, child.props.className].filter(Boolean).join(" "),
-      children: <span className="lie-pixel-button-content">{child.props.children}</span>,
+      children: <span className="lie-pixel-button-content">{visibleChildren}</span>,
     } as { children: ReactNode; className: string });
   }
 
@@ -77,7 +116,7 @@ export default function PixelButton({
       className={pixelButtonClassName}
       {...props}
     >
-      <span className="lie-pixel-button-content">{children}</span>
+      <span className="lie-pixel-button-content">{visibleChildren}</span>
     </button>
   );
 }

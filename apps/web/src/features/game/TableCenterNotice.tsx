@@ -9,13 +9,16 @@ import type { ChallengeResolvedGameEvent, GamePlayer } from "./gameTableTypes";
 export function TableStatusPanel({ followRank, state }: { followRank: DeclaredRank | null; state: PublicGameState }) {
   return (
     <aside className="lie-table-status-panel" aria-label="当前牌桌状态">
-      <div>
+      <div className="lie-table-status-row">
         <span className="lie-table-status-label">弃牌区</span>
-        <strong>共 {state.discardPileCount} 张</strong>
+        <strong className="lie-table-status-count">共 {state.discardPileCount} 张</strong>
       </div>
-      <div>
+      <div className="lie-table-status-rank">
         <span className="lie-table-status-label">当前点数</span>
-        <strong>{followRank ?? "待声明"}</strong>
+        <strong className="lie-table-status-rank-corner" aria-label={followRank ? `当前点数 ${followRank}` : "当前点数待声明"}>
+          <span>{followRank ?? "?"}</span>
+          <span aria-hidden>♥</span>
+        </strong>
       </div>
     </aside>
   );

@@ -80,6 +80,7 @@ const pipClassMap: Record<string, string> = {
 
 type DomPlayingCardProps = {
   card?: CardType;
+  cornerOnly?: boolean;
   displayRank?: string;
   joker?: "black" | "red";
   label?: string;
@@ -166,6 +167,7 @@ const pixelCardFaceStyle = {
 
 export default function DomPlayingCard({
   card,
+  cornerOnly = false,
   displayRank,
   joker,
   label: customLabel,
@@ -187,54 +189,61 @@ export default function DomPlayingCard({
     playingCard?.rank === "A"
       ? "text-[length:calc(16px*var(--pixel-card-scale,2))]"
       : "text-[length:calc(9px*var(--pixel-card-scale,2))]";
+  const standardCornerClassName = cornerOnly
+    ? `lie-dom-playing-card-corner-large absolute left-1/2 top-1/2 z-[1] grid -translate-x-1/2 -translate-y-1/2 justify-items-center leading-[0.82] ${toneClassName}`
+    : `absolute left-[8%] top-[8%] z-[1] grid justify-items-center text-[length:calc(6px*var(--pixel-card-scale,2))] leading-none ${toneClassName}`;
+  const jokerCornerClassName = cornerOnly
+    ? `lie-dom-playing-card-corner-large absolute left-1/2 top-1/2 z-[1] grid -translate-x-1/2 -translate-y-1/2 justify-items-center font-black leading-[0.78] ${toneClassName}`
+    : `absolute left-[8%] top-[7%] z-[1] grid justify-items-center text-[length:calc(4.4px*var(--pixel-card-scale,2))] font-black leading-[0.82] ${toneClassName}`;
 
   return (
     <span
       role="img"
       aria-label={label}
+      data-corner-only={cornerOnly ? "true" : undefined}
       className={`lie-dom-playing-card relative block aspect-[49/65] w-[calc(49px*var(--pixel-card-scale,2))] select-none overflow-hidden text-[#17251f] ${className}`}
       style={pixelCardStyle}
     >
       <span aria-hidden className="lie-dom-playing-card-face" style={pixelCardFaceStyle} />
       {playingCard ? (
         <>
-          <span
-            className={`absolute left-[8%] top-[8%] z-[1] grid justify-items-center text-[length:calc(6px*var(--pixel-card-scale,2))] leading-none ${toneClassName}`}
-          >
+          <span className={standardCornerClassName}>
             {customRankLetters
               ? customRankLetters.map((letter, index) => <span key={`top-rank-${letter}-${index}`}>{letter}</span>)
               : <span>{rank}</span>}
             <span>{suit}</span>
           </span>
-          <span
-            className={`absolute bottom-[8%] right-[8%] z-[1] grid rotate-180 justify-items-center text-[length:calc(6px*var(--pixel-card-scale,2))] leading-none ${toneClassName}`}
-          >
-            {customRankLetters
-              ? customRankLetters.map((letter, index) => <span key={`bottom-rank-${letter}-${index}`}>{letter}</span>)
-              : <span>{rank}</span>}
-            <span>{suit}</span>
-          </span>
+          {cornerOnly ? null : (
+            <span
+              className={`absolute bottom-[8%] right-[8%] z-[1] grid rotate-180 justify-items-center text-[length:calc(6px*var(--pixel-card-scale,2))] leading-none ${toneClassName}`}
+            >
+              {customRankLetters
+                ? customRankLetters.map((letter, index) => <span key={`bottom-rank-${letter}-${index}`}>{letter}</span>)
+                : <span>{rank}</span>}
+              <span>{suit}</span>
+            </span>
+          )}
         </>
       ) : (
         <>
-          <span
-            className={`absolute left-[8%] top-[7%] z-[1] grid justify-items-center text-[length:calc(4.4px*var(--pixel-card-scale,2))] font-black leading-[0.82] ${toneClassName}`}
-          >
+          <span className={jokerCornerClassName}>
             {jokerLabelLetters.map((letter) => (
               <span key={`top-${letter}`}>{letter}</span>
             ))}
           </span>
-          <span
-            className={`absolute bottom-[7%] right-[8%] z-[1] grid rotate-180 justify-items-center text-[length:calc(4.4px*var(--pixel-card-scale,2))] font-black leading-[0.82] ${toneClassName}`}
-          >
-            {jokerLabelLetters.map((letter) => (
-              <span key={`bottom-${letter}`}>{letter}</span>
-            ))}
-          </span>
+          {cornerOnly ? null : (
+            <span
+              className={`absolute bottom-[7%] right-[8%] z-[1] grid rotate-180 justify-items-center text-[length:calc(4.4px*var(--pixel-card-scale,2))] font-black leading-[0.82] ${toneClassName}`}
+            >
+              {jokerLabelLetters.map((letter) => (
+                <span key={`bottom-${letter}`}>{letter}</span>
+              ))}
+            </span>
+          )}
         </>
       )}
 
-      {pipLayout ? (
+      {!cornerOnly && pipLayout ? (
         pipLayout.map((slot, index) => (
           <span
             key={`${slot}-${index}`}
@@ -243,7 +252,7 @@ export default function DomPlayingCard({
             {suit}
           </span>
         ))
-      ) : (
+      ) : cornerOnly ? null : (
         <span className="absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2">
           {playingCard ? (
             <CourtCardArt rank={playingCard.rank} label={`${label}中心图案`} className="[--court-card-art-width:28px]" />

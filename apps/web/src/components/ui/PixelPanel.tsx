@@ -1,5 +1,5 @@
 /**
- * @Description: 像素风面板：统一信息卡、侧栏和表单容器的像素圆角单边框质感。
+ * @Description: 像素风面板：统一信息卡、侧栏和表单容器的无描边像素卡片质感。
  *
  * @Date 2026-06-12 14:47
  */
@@ -70,12 +70,21 @@ type PixelPanelProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
   tone?: PixelPanelTone;
   padding?: "sm" | "md" | "lg";
+  bordered?: boolean;
+  roomy?: boolean;
 };
 
 const paddingClassMap = {
-  sm: "p-3",
-  md: "p-4",
-  lg: "p-6",
+  default: {
+    sm: "p-3",
+    md: "p-4",
+    lg: "p-6",
+  },
+  roomy: {
+    sm: "p-4",
+    md: "p-5",
+    lg: "p-7",
+  },
 };
 
 const PixelPanel = forwardRef<HTMLDivElement, PixelPanelProps>(function PixelPanel(
@@ -84,6 +93,8 @@ const PixelPanel = forwardRef<HTMLDivElement, PixelPanelProps>(function PixelPan
     className = "",
     tone = "forest",
     padding = "md",
+    bordered = false,
+    roomy = true,
     style,
     ...props
   },
@@ -98,14 +109,14 @@ const PixelPanel = forwardRef<HTMLDivElement, PixelPanelProps>(function PixelPan
       }}
       className={[
         "lie-pixel-panel relative isolate overflow-hidden text-[color:var(--panel-text)]",
-        paddingClassMap[padding],
+        paddingClassMap[roomy ? "roomy" : "default"][padding],
         className,
       ]
         .filter(Boolean)
         .join(" ")}
       {...props}
     >
-      <span aria-hidden className="lie-pixel-panel-border" />
+      {bordered ? <span aria-hidden className="lie-pixel-panel-border" /> : null}
       {children}
     </div>
   );

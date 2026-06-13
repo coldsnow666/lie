@@ -21,7 +21,7 @@ type PixelModalProps = {
   closeDisabled?: boolean;
 };
 
-export default function PixelModal({ children, title, icon, onClose, className = "", closeDisabled = false }: PixelModalProps) {
+export default function PixelModal({ children, title, onClose, className = "", closeDisabled = false }: PixelModalProps) {
   const titleId = useId();
   const [closing, setClosing] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
@@ -71,15 +71,17 @@ export default function PixelModal({ children, title, icon, onClose, className =
         aria-labelledby={titleId}
         tone="highlight"
         padding="lg"
+        bordered
+        roomy={false}
         className={["lie-pixel-modal-panel w-full max-w-[min(28rem,100%)] shadow-2xl shadow-black/60", className]
           .filter(Boolean)
           .join(" ")}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-2 text-[#fff6cf]">
-            {icon}
-            <h2 id={titleId} className="text-xl font-black">
+        <div className="grid grid-cols-[2.375rem_minmax(0,1fr)_2.375rem] items-start gap-3">
+          <div aria-hidden="true" />
+          <div className="min-w-0 text-center text-[#fff6cf]">
+            <h2 id={titleId} className="truncate text-xl font-black">
               {title}
             </h2>
           </div>
