@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ArrowLeft, Lock, Mail, User, UserPlus } from "lucide-react";
-import { useAuthTransition } from "@/features/auth/AuthTransitionContext";
+import { useAuthTransition } from "@/features/auth";
 import { register } from "@/service/modules/user";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelInput from "@/components/ui/PixelInput";

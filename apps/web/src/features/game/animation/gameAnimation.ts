@@ -5,7 +5,7 @@
  */
 import { gsap } from "gsap";
 import type { Card } from "@lie/shared";
-import type { DealFlightTargetPose } from "./gameTableTypes";
+import type { DealFlightTargetPose } from "../model/gameTableTypes";
 
 export function getDealFlightArc(orderIndex: number, selfCard?: Card) {
   const direction = orderIndex % 2 === 0 ? -1 : 1;
@@ -74,6 +74,7 @@ function getCubicBezierPoint(start: number, controlA: number, controlB: number, 
 
 export function applyCardFlightFrame({
   arc,
+  disableLiftScale = false,
   lockTargetScale = false,
   fadeIn = true,
   progress,
@@ -84,6 +85,7 @@ export function applyCardFlightFrame({
   targetPose,
 }: {
   arc: ReturnType<typeof getDealFlightArc>;
+  disableLiftScale?: boolean;
   fadeIn?: boolean;
   lockTargetScale?: boolean;
   progress: number;
@@ -112,7 +114,7 @@ export function applyCardFlightFrame({
     x,
     y,
     rotate: lerpNumber(startRotate, targetPose.rotate, easedProgress) + liftProgress * arc.settleRotate * 0.45 + wobble * 5.4,
-    scale: lockTargetScale ? 1 : lerpNumber(1, targetPose.scale, easedProgress) + liftProgress * 0.08 + wobble * 0.018,
+    scale: lockTargetScale ? 1 : lerpNumber(1, targetPose.scale, easedProgress) + (disableLiftScale ? 0 : liftProgress * 0.08 + wobble * 0.018),
     opacity: opacityIn * opacityOut,
     filter: `drop-shadow(0 ${shadowLift}px ${shadowLift + 2}px rgba(8, 13, 14, ${0.18 + liftProgress * 0.08}))`,
   });

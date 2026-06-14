@@ -14,6 +14,7 @@ import {
   playRoomCards,
   serializeRoom,
   setReady,
+  skipRoomTurn,
   startGame,
   syncRoomPlayer,
 } from "./room.service";
@@ -200,6 +201,31 @@ export async function playCardsForSocket(
       ...(room.gameState?.winnerPlayerId
         ? ([{ type: "emit-game-finished", roomId: room.id, winnerPlayerId: room.gameState.winnerPlayerId }] satisfies RoomRealtimeEffect[])
         : []),
+    ],
+  };
+}
+
+/**
+ * @Description: Socket 跳过回合入口，广播跳过事件和最新游戏状态。
+ *
+ * @param roomId 房间 ID。
+ * @param user 当前 Socket 用户。
+ * @return 跳过 ack 数据和实时副作用计划。
+ *
+ * @Date 2026-06-14 00:00
+ */
+export async function skipTurnForSocket(
+  roomId: string,
+  user: AuthUser,
+): Promise<RoomSocketCommandResult<{ event: Awaited<ReturnType<typeof skipRoomTurn>>["event"] }>> {
+  const { room, event } = await skipRoomTurn(roomId, user);
+
+  return {
+    data: { event },
+    effects: [
+      { type: "emit-game-updated", roomId: room.id },
+      { type: "emit-lobby-updated" },
+      { type: "emit-game-event", roomId: room.id, event },
     ],
   };
 }

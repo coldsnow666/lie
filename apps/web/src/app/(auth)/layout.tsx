@@ -7,9 +7,8 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AuthTransitionProvider } from "@/features/auth/AuthTransitionContext";
-import { useAuthScreenTransition } from "@/features/auth/hooks/useAuthScreenTransition";
-import BounceCards from "@/features/start/BounceCards";
+import { AuthTransitionProvider, useAuthScreenTransition } from "@/features/auth";
+import { BounceCards } from "@/features/start";
 
 const LOGIN_BACK_SENTINEL_KEY = "__lieLoginBackSentinel";
 

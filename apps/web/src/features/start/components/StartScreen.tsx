@@ -7,9 +7,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { useSession } from "@/features/auth/SessionProvider";
-import BounceCards from "@/features/start/BounceCards";
-import { useStartScreenTransition } from "@/features/start/hooks/useStartScreenTransition";
+import { useSession } from "@/features/auth";
+import { BounceCards, useStartScreenTransition } from "@/features/start";
 import { useRouteLoading } from "@/components/loading/RouteLoadingProvider";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelModal from "@/components/ui/PixelModal";

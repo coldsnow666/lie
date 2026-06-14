@@ -6,23 +6,31 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { DECLARABLE_RANKS, type DeclaredRank } from "@lie/shared";
+import { DECLARABLE_RANKS, isJokerRank, type DeclaredRank } from "@lie/shared";
 import type { PublicGameEvent, PublicGameState } from "@lie/shared";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelModal from "@/components/ui/PixelModal";
 import DomPlayingCard from "@/components/cards/DomPlayingCard";
-import Hand, { groupHandCards } from "./Hand";
+import Hand from "../hand/Hand";
+import { groupHandCards } from "../hand/handLayout";
 import PlayerSeat from "./PlayerSeat";
-import DealFlightLayer from "./DealFlightLayer";
-import DiscardPile, { getScatteredDiscardPose } from "./DiscardPile";
-import PlayFlightLayer, { measurePlayFlightCards } from "./PlayFlightLayer";
-import ReturnFlightLayer from "./ReturnFlightLayer";
+import DealFlightLayer from "../animation/DealFlightLayer";
+import DiscardPile from "../discard/DiscardPile";
+import { getScatteredDiscardPose } from "../discard/discardLayout";
+import PlayFlightLayer, { measurePlayFlightCards } from "../animation/PlayFlightLayer";
+import ReturnFlightLayer from "../animation/ReturnFlightLayer";
 import { TableCenterNotice, TableStatusPanel } from "./TableCenterNotice";
-import { CHALLENGE_REVEAL_HOLD_SECONDS } from "./gameTableConstants";
-import { getDeclareRankCardLayout } from "./declareRankLayout";
-import { getLatestChallengeResolvedEvent, revealDiscardCards, revealReturnFlights } from "./challengeReveal";
-import { getDealHandCards, useDealAnimation } from "./useDealAnimation";
-import type { ChallengeReturnPlan, PlayFlightCard, ReturnFlightCard, ReturnTargetPlan } from "./gameTableTypes";
+import {
+  CHALLENGE_ANNOUNCE_HOLD_SECONDS,
+  CHALLENGE_RESULT_HOLD_SECONDS,
+} from "../model/gameTableConstants";
+import { getDeclareRankCardLayout } from "../model/declareRankLayout";
+import { getLatestChallengeResolvedEvent, revealDiscardCards, revealReturnFlights } from "../discard/challengeReveal";
+import { getDealHandCards, useDealAnimation } from "../animation/useDealAnimation";
+import type { ChallengeReturnPlan, PlayFlightCard, ReturnFlightCard, ReturnTargetPlan } from "../model/gameTableTypes";
+import ChallengeOverlay from "./ChallengeOverlay";
+
+const TURN_COUNTDOWN_SECONDS = 30;
 
 /**
  * @Description: 组合牌桌 UI、发牌动画、弃牌动画和出牌/质疑操作入口。
@@ -37,6 +45,7 @@ import type { ChallengeReturnPlan, PlayFlightCard, ReturnFlightCard, ReturnTarge
  * @param onSetCardSelected 拖选手牌时的定向选中回调。
  * @param onPlayCards 出牌或确认待定胜利回调，可传入与动画一致的出牌顺序。
  * @param onChallenge 质疑回调。
+ * @param onSkipTurn 跳过当前回合回调。
  * @param busy 当前房间操作是否正在提交。
  * @return 游戏牌桌组件。
  *
@@ -53,6 +62,7 @@ export default function GameTable({
   onSetCardSelected,
   onPlayCards,
   onChallenge,
+  onSkipTurn,
   busy,
 }: {
   state: PublicGameState;
@@ -65,6 +75,7 @@ export default function GameTable({
   onSetCardSelected: (cardId: string, selected: boolean) => void;
   onPlayCards: (declaredRank?: DeclaredRank, orderedCardIds?: string[]) => void;
   onChallenge: () => void;
+  onSkipTurn: () => void;
   busy: boolean;
 }) {
   const pendingWinner = state.players.find((player) => player.pendingWin) ?? null;
@@ -83,6 +94,11 @@ export default function GameTable({
   } = useDealAnimation(state, selfPlayerId);
   const [declareModalOpen, setDeclareModalOpen] = useState(false);
   const [declareRankCardLayout, setDeclareRankCardLayout] = useState(() => ({ columns: 5, scale: 1.12 }));
+  const countdownKey = `${state.turnSeq}:${state.turnDeadlineAt ?? "none"}`;
+  const [serverNowState, setServerNowState] = useState(() => ({
+    key: countdownKey,
+    now: Date.now(),
+  }));
   const [returnFlights, setReturnFlights] = useState<ReturnFlightCard[]>([]);
   const [returnTargetPlan, setReturnTargetPlan] = useState<ReturnTargetPlan | null>(null);
   const [playFlightCards, setPlayFlightCards] = useState<PlayFlightCard[]>([]);
@@ -137,9 +153,21 @@ export default function GameTable({
       : returnVisibleSelfHand;
   const returnTargetCardCounts = activeReturnTargetPlan?.returnTargetCardCounts ?? {};
   const visibleDiscardCards = challengeReturnPlan?.displayCards ?? state.discardPileCards;
+  const challengeOverlayEvent = challengeReturnPlan?.challengeEvent ?? null;
+  const challengeOverlayPhase = challengeReturnPlan?.phase ?? "announce";
   const playingOut = playFlightCards.length > 0;
   const playTransitionActive = playingOut || outgoingPlayCardIds.length > 0;
+  const canAutoPlay = Boolean(isSelfTurn && !dealPresentationActive && !followRank && !resolvingPendingWin && state.selfHand.length > 0 && state.status !== "finished");
+  const canSkip = Boolean(isSelfTurn && !dealPresentationActive && (followRank || resolvingPendingWin) && state.status !== "finished");
+  const canSkipTurn = Boolean(canSkip && !resolvingPendingWin);
+  const canConfirmPendingWin = Boolean(canSkip && resolvingPendingWin);
+  const shouldShowCountdown = canAutoPlay || canSkip;
+  const serverNow = serverNowState.now;
+  const turnCountdown = state.turnDeadlineAt
+    ? Math.min(TURN_COUNTDOWN_SECONDS, Math.max(0, Math.ceil((state.turnDeadlineAt - serverNow) / 1000)))
+    : TURN_COUNTDOWN_SECONDS;
   const selfCardBack = state.players.find((player) => player.playerId === selfPlayerId)?.cardBack ?? 0;
+
   const completeReturnFlight = useCallback((cardId: string) => {
     completedReturnFlightIdsRef.current.add(cardId);
 
@@ -167,6 +195,54 @@ export default function GameTable({
   useEffect(() => {
     eventsRef.current = events;
   }, [events]);
+
+  useEffect(() => {
+    if (!shouldShowCountdown || busy || dealPresentationActive || playTransitionActive || challengeReturnPlan || returnFlights.length) {
+      return;
+    }
+
+    if (turnCountdown <= 0) {
+      if (canAutoPlay) {
+        const autoCard = state.selfHand[0];
+        const autoDeclaredRank = isJokerRank(autoCard.rank) ? "A" : autoCard.rank;
+        onDeclaredRankChange(autoDeclaredRank);
+        onPlayCards(autoDeclaredRank, [autoCard.id]);
+        return;
+      }
+
+      if (canConfirmPendingWin) {
+        onPlayCards();
+        return;
+      }
+
+      onSkipTurn();
+      return;
+    }
+
+    const countdownTimer = window.setTimeout(() => {
+      setServerNowState({
+        key: countdownKey,
+        now: Date.now(),
+      });
+    }, 1000);
+
+    return () => window.clearTimeout(countdownTimer);
+  }, [
+    busy,
+    canAutoPlay,
+    canConfirmPendingWin,
+    challengeReturnPlan,
+    dealPresentationActive,
+    onDeclaredRankChange,
+    onPlayCards,
+    onSkipTurn,
+    playTransitionActive,
+    returnFlights.length,
+    shouldShowCountdown,
+    state.selfHand,
+    turnCountdown,
+    countdownKey,
+  ]);
 
   useEffect(() => {
     if (!outgoingPlayCardIds.length) {
@@ -243,9 +319,15 @@ export default function GameTable({
       return;
     }
 
+    const revealEvent = getLatestChallengeResolvedEvent(events, state.turnSeq);
+
+    if (!revealEvent) {
+      return;
+    }
+
     startedReturnTurnSeqRef.current = state.turnSeq;
 
-    const targetPlayerId = state.currentPlayerId;
+    const targetPlayerId = revealEvent.pileTakenByPlayerId;
     const returnToSelf = targetPlayerId === selfPlayerId;
     const previousSelfCardIds = new Set(previousSelfHand.map((card) => card.id));
     const returnedSelfCards = returnToSelf ? state.selfHand.filter((card) => !previousSelfCardIds.has(card.id)) : [];
@@ -289,22 +371,18 @@ export default function GameTable({
       returnTargetSelfCards: returnToSelf ? state.selfHand : [],
       turnSeq: state.turnSeq,
     };
-    const revealEvent = getLatestChallengeResolvedEvent(eventsRef.current, state.turnSeq);
 
     setChallengeReturnPlan({
       batch,
-      challengeResult: revealEvent,
-      displayCards: revealDiscardCards({
-        cards: previousDiscardCards,
-        event: revealEvent,
-        returnedCards: batch.returnRevealSelfCards,
-        selfPlayerId,
-      }),
+      challengeEvent: revealEvent,
+      challengeResult: null,
+      displayCards: previousDiscardCards,
+      phase: "announce",
     });
   }, [
     challengeReturnPlan?.batch.turnSeq,
+    events,
     selfPlayerId,
-    state.currentPlayerId,
     state.discardPileCards,
     state.players,
     state.selfHand,
@@ -312,7 +390,7 @@ export default function GameTable({
   ]);
 
   useEffect(() => {
-    if (!challengeReturnPlan || challengeReturnPlan.challengeResult) {
+    if (!challengeReturnPlan || challengeReturnPlan.phase !== "announce") {
       return;
     }
 
@@ -327,6 +405,7 @@ export default function GameTable({
         current?.batch.turnSeq === revealEvent.turnSeq
           ? {
               ...current,
+              challengeEvent: revealEvent,
               challengeResult: revealEvent,
               displayCards: revealDiscardCards({
                 cards: current.batch.displayDiscardCards,
@@ -334,21 +413,22 @@ export default function GameTable({
                 returnedCards: current.batch.returnRevealSelfCards,
                 selfPlayerId,
               }),
+              phase: "result",
             }
           : current,
       );
-    }, 0);
+    }, CHALLENGE_ANNOUNCE_HOLD_SECONDS * 1000);
 
     return () => window.clearTimeout(revealTimer);
   }, [challengeReturnPlan, events, selfPlayerId]);
 
   useEffect(() => {
-    if (!challengeReturnPlan?.challengeResult) {
+    if (!challengeReturnPlan?.challengeResult || challengeReturnPlan.phase !== "result") {
       return;
     }
 
     const { batch, challengeResult } = challengeReturnPlan;
-    const flightDelay = CHALLENGE_REVEAL_HOLD_SECONDS * 1000;
+    const flightDelay = CHALLENGE_RESULT_HOLD_SECONDS * 1000;
     const startTimer = window.setTimeout(() => {
       processedReturnTurnSeqRef.current = batch.turnSeq;
       setReturnTargetPlan({
@@ -426,6 +506,21 @@ export default function GameTable({
     setDeclareModalOpen(true);
   }
 
+  function handleSkipButtonClick() {
+    if (!canSkip || busy || playTransitionActive || dealPresentationActive) {
+      return;
+    }
+
+    setDeclareModalOpen(false);
+
+    if (canConfirmPendingWin) {
+      onPlayCards();
+      return;
+    }
+
+    onSkipTurn();
+  }
+
   function handleDeclaredRank(rank: DeclaredRank) {
     onDeclaredRankChange(rank);
     setDeclareModalOpen(false);
@@ -458,7 +553,7 @@ export default function GameTable({
           onFlightComplete={completeDealFlight}
           remainingDeckCount={remainingDeckCount}
         />
-        <TableCenterNotice event={activeReturnTargetPlan?.challengeResult ?? null} players={state.players} selfPlayerId={selfPlayerId} state={state} />
+        <TableCenterNotice event={null} players={state.players} selfPlayerId={selfPlayerId} state={state} />
         <DiscardPile
           animateEnter={!challengeReturnPlan && !outgoingPlayCardIds.length}
           cards={visibleDiscardCards}
@@ -474,27 +569,54 @@ export default function GameTable({
           <div
             aria-hidden={!isSelfTurn}
             className="grid justify-items-center gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center"
-            data-visible={isSelfTurn ? "true" : "false"}
+            data-visible={isSelfTurn && !dealPresentationActive ? "true" : "false"}
           >
-            {isSelfTurn ? (
-              <div className={`grid w-full max-w-[22rem] gap-2 sm:w-auto ${canChallenge ? "grid-cols-2 sm:min-w-[20rem]" : "sm:min-w-[10rem]"}`}>
-                <PixelButton
-                  onClick={handlePlayButtonClick}
-                  disabled={busy || playTransitionActive || dealPresentationActive || !canPlay || (!resolvingPendingWin && (selectedCardIds.length < 1 || selectedCardIds.length > 4))}
-                  variant="primary"
-                  className="w-full"
+            {isSelfTurn && !dealPresentationActive ? (
+              <div className="relative flex w-full max-w-[32rem] items-center justify-center whitespace-nowrap">
+                <div
+                  className={`grid w-full min-w-0 shrink gap-2 ${
+                    canChallenge && canSkip && !resolvingPendingWin
+                      ? "max-w-[26rem] grid-cols-3"
+                      : resolvingPendingWin || canSkip
+                        ? "max-w-[18rem] grid-cols-2"
+                        : "max-w-[10rem] grid-cols-1"
+                  }`}
                 >
-                  {resolvingPendingWin ? "不质疑，确认获胜" : followRank ? "跟牌" : "出牌"}
-                </PixelButton>
-                {canChallenge ? (
-                  <PixelButton
-                    onClick={onChallenge}
-                    disabled={busy || playTransitionActive || dealPresentationActive}
-                    variant="ghost"
-                    className="w-full"
-                  >
-                    质疑
-                  </PixelButton>
+                  {!resolvingPendingWin ? (
+                    <PixelButton
+                      onClick={handlePlayButtonClick}
+                      disabled={busy || playTransitionActive || dealPresentationActive || !canPlay || (selectedCardIds.length < 1 || selectedCardIds.length > 4)}
+                      variant="primary"
+                      className="w-full"
+                    >
+                      {followRank ? "跟牌" : "出牌"}
+                    </PixelButton>
+                  ) : null}
+                  {canChallenge ? (
+                    <PixelButton
+                      onClick={onChallenge}
+                      disabled={busy || playTransitionActive || dealPresentationActive}
+                      variant="ghost"
+                      className="w-full"
+                    >
+                      质疑
+                    </PixelButton>
+                  ) : null}
+                  {canSkip ? (
+                    <PixelButton
+                      onClick={handleSkipButtonClick}
+                      disabled={busy || playTransitionActive || dealPresentationActive}
+                      variant="ghost"
+                      className="w-full"
+                    >
+                      跳过
+                    </PixelButton>
+                  ) : null}
+                </div>
+                {shouldShowCountdown ? (
+                  <span className="pointer-events-none absolute right-0 top-0 z-10 -translate-y-1/2 translate-x-1/3 rounded-sm border border-[#f4d57a]/70 bg-[#173332] px-1.5 py-0.5 text-xs font-black leading-none text-[#f4d57a] shadow-[0_2px_0_rgba(0,0,0,0.35)]">
+                    {turnCountdown}s
+                  </span>
                 ) : null}
               </div>
             ) : null}
@@ -540,6 +662,13 @@ export default function GameTable({
           </div>
         </PixelModal>
       ) : null}
+      <ChallengeOverlay
+        event={challengeOverlayEvent}
+        nextPlayerId={state.currentPlayerId}
+        phase={challengeOverlayPhase}
+        players={state.players}
+        selfPlayerId={selfPlayerId}
+      />
     </div>
   );
 }

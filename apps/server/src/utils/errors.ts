@@ -24,6 +24,7 @@ type AppErrorCode =
   | "PLAYER_NOT_IN_ROOM"
   | "ONLY_OWNER_CAN_START"
   | "INVALID_PLAYER_COUNT"
+  | "PLAYERS_NOT_READY"
   | "GAME_NOT_FOUND"
   | "GAME_NOT_PLAYING"
   | "NOT_YOUR_TURN"
@@ -127,6 +128,11 @@ const APP_ERROR_DEFINITIONS: Record<AppErrorCode, AppErrorDefinition> = {
   INVALID_PLAYER_COUNT: {
     apiCode: API_RESPONSE_CODE.UNKNOWN_ERROR,
     publicMessage: "房间人数达到设定上限后才能开始",
+    logLevel: "silent",
+  },
+  PLAYERS_NOT_READY: {
+    apiCode: API_RESPONSE_CODE.UNKNOWN_ERROR,
+    publicMessage: "所有玩家准备后才能开始",
     logLevel: "silent",
   },
   GAME_NOT_FOUND: {

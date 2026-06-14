@@ -7,10 +7,12 @@ import { describe, expect, it } from "vitest";
 import { createDeck, createGameDeck, sortHandCards, type Card } from "./cards";
 import {
   challengeLastPlay,
+  createTurnDeadline,
   createInitialGameState,
   finalizePendingWinner,
   isTruthfulPlay,
   playCards,
+  skipTurn,
   toPublicGameState,
   type Player,
 } from "./rules";
@@ -110,6 +112,23 @@ describe("game rules", () => {
     expect(publicState.lastPlay).not.toHaveProperty("actualCards");
   });
 
+  it("stores the turn deadline in game state so refreshes keep the countdown", () => {
+    const state = stateForTests();
+    const cardIds = state.hands["player-1"].slice(0, 1).map((card) => card.id);
+    const played = playCards(state, "player-1", cardIds, "A");
+    const skipped = skipTurn(played.state, "player-2");
+    const publicState = toPublicGameState(skipped.state, "player-1");
+
+    expect(state.turnDeadlineAt).toBe(30_001);
+    expect(played.state.turnDeadlineAt).toBeGreaterThan(played.state.updatedAt);
+    expect(skipped.state.turnDeadlineAt).toBeGreaterThan(skipped.state.updatedAt);
+    expect(publicState.turnDeadlineAt).toBe(skipped.state.turnDeadlineAt);
+  });
+
+  it("can delay a turn deadline while server-side presentation is still playing", () => {
+    expect(createTurnDeadline(1_000, 4_000)).toBe(35_000);
+  });
+
   it("locks the declared rank for follow plays until a challenge resolves", () => {
     const state = stateForTests();
     const openingCard = state.hands["player-1"][0];
@@ -129,7 +148,8 @@ describe("game rules", () => {
 
     expect(challenged.event.wasTruthful).toBe(false);
     expect(challenged.state.lastPlay).toBeNull();
-    expect(() => playCards(challenged.state, "player-2", [followCard.id])).toThrow("DECLARED_RANK_REQUIRED");
+    expect(challenged.state.currentPlayerId).toBe("player-1");
+    expect(() => playCards(challenged.state, "player-2", [followCard.id], "A")).toThrow("NOT_YOUR_TURN");
   });
 
   it("rejects changing the declared rank while following", () => {
@@ -167,6 +187,32 @@ describe("game rules", () => {
 
     expect(opened.state.currentPlayerId).toBe("player-2");
     expect(() => challengeLastPlay(opened.state, "player-3")).toThrow("NOT_YOUR_TURN");
+  });
+
+  it("skips a follow turn without clearing the locked declared rank", () => {
+    const state = stateForTests();
+    const openingCard = state.hands["player-1"][0];
+    const opened = playCards(state, "player-1", [openingCard.id], "A");
+    const skipped = skipTurn(opened.state, "player-2");
+    const followCard = skipped.state.hands["player-1"][1];
+
+    expect(skipped.event.type).toBe("turn_skipped");
+    expect(skipped.event.actorPlayerId).toBe("player-2");
+    expect(skipped.state.currentPlayerId).toBe("player-1");
+    expect(skipped.state.lastPlay?.declaredRank).toBe("A");
+    expect(playCards(skipped.state, "player-1", [followCard.id]).event.declaredRank).toBe("A");
+  });
+
+  it("does not allow skipping the opening turn", () => {
+    const state = stateForTests();
+
+    expect(() => skipTurn(state, "player-1")).toThrow("CANNOT_SKIP_OPENING_TURN");
+  });
+
+  it("only lets the current player skip", () => {
+    const state = stateForTests();
+
+    expect(() => skipTurn(state, "player-2")).toThrow("NOT_YOUR_TURN");
   });
 
   it("deals eleven-card hands and keeps undealt cards hidden", () => {
@@ -209,7 +255,7 @@ describe("game rules", () => {
     expect(() => playCards(state, "player-1", [opponentCard], "A")).toThrow("CARD_NOT_IN_HAND");
   });
 
-  it("makes the bluffer take the pile when a bluff is challenged", () => {
+  it("makes the bluffer take the pile and lets the challenger continue when a bluff is challenged", () => {
     const state = stateForTests();
     const nonAce = state.hands["player-1"].find((card) => card.rank !== "A");
 
@@ -220,6 +266,20 @@ describe("game rules", () => {
 
     expect(challenged.event.wasTruthful).toBe(false);
     expect(challenged.event.pileTakenByPlayerId).toBe("player-1");
+    expect(challenged.state.discardPile).toHaveLength(0);
+    expect(challenged.state.currentPlayerId).toBe("player-2");
+  });
+
+  it("makes the challenger take the pile and lets the challenged player continue when a truthful play is challenged", () => {
+    const state = stateForTests();
+    const ace: Card = { id: "AS-test-truthful", rank: "A", suit: "S" };
+    state.hands["player-1"] = [ace, ...state.hands["player-1"].filter((card) => card.id !== ace.id)];
+
+    const played = playCards(state, "player-1", [ace.id], "A");
+    const challenged = challengeLastPlay(played.state, "player-2");
+
+    expect(challenged.event.wasTruthful).toBe(true);
+    expect(challenged.event.pileTakenByPlayerId).toBe("player-2");
     expect(challenged.state.discardPile).toHaveLength(0);
     expect(challenged.state.currentPlayerId).toBe("player-1");
   });

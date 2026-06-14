@@ -24,6 +24,12 @@ export type ChallengeResolvedEvent = {
   turnSeq: number;
 };
 
+export type TurnSkippedEvent = {
+  type: "turn_skipped";
+  actorPlayerId: string;
+  turnSeq: number;
+};
+
 export type PlayerConnectionEvent = {
   type: "player_connected" | "player_disconnected";
   playerId: string;
@@ -35,4 +41,4 @@ export type RoomLifecycleEvent = {
   nickname: string;
 };
 
-export type PublicGameEvent = CardsPlayedEvent | ChallengeResolvedEvent | PlayerConnectionEvent | RoomLifecycleEvent;
+export type PublicGameEvent = CardsPlayedEvent | ChallengeResolvedEvent | TurnSkippedEvent | PlayerConnectionEvent | RoomLifecycleEvent;

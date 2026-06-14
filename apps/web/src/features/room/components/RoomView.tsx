@@ -7,14 +7,14 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import AuthGuard from "@/features/auth/AuthGuard";
+import { AuthGuard } from "@/features/auth";
 import AppShell from "@/components/layout/AppShell";
 import { useRouteLoading } from "@/components/loading/RouteLoadingProvider";
 import { showPixelMessage } from "@/components/ui/PixelMessage";
-import GameTable from "@/features/game/GameTable";
+import { GameTable } from "@/features/game";
 import { useBodyScrollLock } from "@/hooks/useScrollLock";
 import WaitingRoomBoard from "./WaitingRoomBoard";
-import { useRoomSession } from "./hooks/useRoomSession";
+import { useRoomSession } from "../hooks/useRoomSession";
 
 export default function RoomView({
   fallbackRoomId,
@@ -29,9 +29,9 @@ export default function RoomView({
   useBodyScrollLock();
 
   const {
-    session: { roomId, room, gameState, events, busy, selfPlayer, isOwner, canStart },
+    session: { roomId, room, gameState, events, busy, selfPlayer, isOwner, canStart, initialSyncFinished },
     selection: { selectedCardIds, setDeclaredRank, toggleCard, setCardSelected },
-    actions: { leave, ready, startGame, playCards, challenge },
+    actions: { leave, ready, startGame, playCards, challenge, skipTurn },
   } = useRoomSession({
     roomCode,
     fallbackRoomId,
@@ -45,10 +45,10 @@ export default function RoomView({
   }, [roomId, routeLoading]);
 
   useEffect(() => {
-    if (room || gameState) {
+    if (initialSyncFinished) {
       routeLoading.complete();
     }
-  }, [gameState, room, routeLoading]);
+  }, [initialSyncFinished, routeLoading]);
 
   useEffect(() => {
     document.body.dataset.lieBackgroundMode = gameState ? "game" : "room";
@@ -85,6 +85,7 @@ export default function RoomView({
               onSetCardSelected={setCardSelected}
               onPlayCards={playCards}
               onChallenge={challenge}
+              onSkipTurn={skipTurn}
               busy={busy}
             />
           </section>

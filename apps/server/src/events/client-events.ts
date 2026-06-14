@@ -12,6 +12,7 @@ export const CLIENT_EVENTS = {
   ROOM_READY: "room:ready",
   GAME_START: "game:start",
   GAME_PLAY_CARDS: "game:playCards",
+  GAME_SKIP_TURN: "game:skipTurn",
   GAME_CHALLENGE: "game:challenge",
   GAME_SYNC: "game:sync",
 } as const;

@@ -6,7 +6,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { SessionProvider } from "@/features/auth/SessionProvider";
+import { SessionProvider } from "@/features/auth";
 import { RouteLoadingProvider } from "@/components/loading/RouteLoadingProvider";
 import { PixelMessageHost } from "@/components/ui/PixelMessage";
 

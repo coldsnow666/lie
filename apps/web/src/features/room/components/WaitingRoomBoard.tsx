@@ -5,7 +5,7 @@
  */
 import { Copy, ScrollText } from "lucide-react";
 import type { PublicGameEvent } from "@lie/shared";
-import { formatGameEvent } from "@/features/game/formatGameEvent";
+import { formatGameEvent } from "@/features/game";
 import PixelButton from "@/components/ui/PixelButton";
 import { type PublicRoom, type PublicRoomPlayer } from "@/service/modules/game";
 import WaitingPlayerCard from "./WaitingPlayerCard";

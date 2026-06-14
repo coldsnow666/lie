@@ -4,7 +4,7 @@
  * @Date 2026-06-12 14:47
  */
 import type { DeclaredRank, PublicGameState } from "@lie/shared";
-import type { ChallengeResolvedGameEvent, GamePlayer } from "./gameTableTypes";
+import type { ChallengeResolvedGameEvent, GamePlayer } from "../model/gameTableTypes";
 
 export function TableStatusPanel({ followRank, state }: { followRank: DeclaredRank | null; state: PublicGameState }) {
   return (

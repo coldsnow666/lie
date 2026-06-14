@@ -83,8 +83,10 @@ export type PendingReturnBatch = {
 
 export type ChallengeReturnPlan = {
   batch: PendingReturnBatch;
+  challengeEvent: ChallengeResolvedGameEvent;
   challengeResult: ChallengeResolvedGameEvent | null;
   displayCards: DisplayDiscardCard[];
+  phase: "announce" | "result";
 };
 
 export type ReturnTargetPlan = {

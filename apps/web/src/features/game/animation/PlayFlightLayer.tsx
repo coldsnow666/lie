@@ -11,8 +11,8 @@ import type { Card } from "@lie/shared";
 import CardBackArt from "@/components/cards/CardBackArt";
 import DomPlayingCard from "@/components/cards/DomPlayingCard";
 import { playGameSound } from "@/lib/game-audio";
-import { getScatteredDiscardPose } from "./DiscardPile";
-import type { PlayFlightCard } from "./gameTableTypes";
+import { getScatteredDiscardPose } from "../discard/discardLayout";
+import type { PlayFlightCard } from "../model/gameTableTypes";
 
 const PLAY_FLIP_SECONDS = 0.28;
 const PLAY_FLIGHT_SECONDS = 0.54;

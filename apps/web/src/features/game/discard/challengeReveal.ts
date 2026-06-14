@@ -5,7 +5,7 @@
  */
 import type { PublicGameEvent } from "@lie/shared";
 import type { Card } from "@lie/shared";
-import type { ChallengeResolvedGameEvent, DisplayDiscardCard, ReturnFlightCard } from "./gameTableTypes";
+import type { ChallengeResolvedGameEvent, DisplayDiscardCard, ReturnFlightCard } from "../model/gameTableTypes";
 
 export function getLatestChallengeResolvedEvent(events: PublicGameEvent[], turnSeq: number) {
   for (let index = events.length - 1; index >= 0; index -= 1) {

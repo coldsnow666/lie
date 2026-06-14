@@ -38,7 +38,8 @@ export default function PlayerSeat({
 }) {
   const cardCount = player.cardCount ?? 0;
   const renderedCardCount = Math.max(cardCount, dealTargetCardCount ?? 0);
-  const visibleBackCount = Math.min(cardCount, MAX_VISIBLE_STACK_CARDS);
+  const placeholderBackCount = typeof player.cardCount === "number" ? 1 : 0;
+  const visibleBackCount = Math.min(Math.max(cardCount, placeholderBackCount), MAX_VISIBLE_STACK_CARDS);
   const visibleBacks = Array.from({ length: visibleBackCount });
   const dealTargets = Array.from({ length: renderedCardCount });
   const returnTargets = Array.from({ length: returnTargetCardCount ?? 0 });

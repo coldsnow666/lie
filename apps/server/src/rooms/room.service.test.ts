@@ -6,7 +6,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import type { AuthUser } from "../auth/token";
 import { prisma } from "../db/prisma";
-import { createRoom, joinRoom, leaveRoom, listPublicRooms, startGame } from "./room.service";
+import { createRoom, joinRoom, leaveRoom, listPublicRooms, setReady, startGame } from "./room.service";
 
 const owner: AuthUser = {
   id: "00000000-0000-0000-0000-000000000001",
@@ -35,7 +35,10 @@ describe("room service", () => {
     });
 
     await joinRoom(room.code, guest);
-    await startGame(room.id, owner);
+    await setReady(room.id, guest, true);
+    const startedRoom = await startGame(room.id, owner);
+
+    expect(startedRoom.gameState?.turnDeadlineAt).toBeGreaterThan((startedRoom.gameState?.updatedAt ?? 0) + 30_000);
 
     await expect(leaveRoom(room.id, guest)).rejects.toThrow("ROOM_IN_GAME");
   });
@@ -48,10 +51,23 @@ describe("room service", () => {
     });
 
     await joinRoom(room.code, guest);
+    await setReady(room.id, guest, true);
     await startGame(room.id, owner);
 
     const rooms = await listPublicRooms();
 
     expect(rooms.some((publicRoom) => publicRoom.id === room.id)).toBe(false);
+  });
+
+  it("requires every player to be ready before starting", async () => {
+    const roomCode = `R${Date.now().toString().slice(-5)}`;
+    const room = await createRoom(owner, {
+      roomCode,
+      maxPlayers: 2,
+    });
+
+    await joinRoom(room.code, guest);
+
+    await expect(startGame(room.id, owner)).rejects.toThrow("PLAYERS_NOT_READY");
   });
 });

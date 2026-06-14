@@ -8,8 +8,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Swords, Users } from "lucide-react";
-import AuthGuard from "@/features/auth/AuthGuard";
-import { useSession } from "@/features/auth/SessionProvider";
+import { AuthGuard, useSession } from "@/features/auth";
 import AppShell from "@/components/layout/AppShell";
 import { useRouteLoading } from "@/components/loading/RouteLoadingProvider";
 import PixelButton from "@/components/ui/PixelButton";
@@ -22,7 +21,7 @@ import { normalizeRoomCode, validateRoomCode } from "@/lib/room-code";
 import { createRoom, joinRoom, type PublicRoom } from "@/service/modules/game";
 import LobbyHeaderActions from "./LobbyHeaderActions";
 import RoomListContent from "./RoomListContent";
-import { useLobbyRooms } from "./hooks/useLobbyRooms";
+import { useLobbyRooms } from "../hooks/useLobbyRooms";
 
 type LobbyModalKind = "create" | "join";
 
@@ -58,10 +57,11 @@ export default function LobbyView() {
 
   async function joinRoomWithCode(nextRoomCode: string, actionKey: string) {
     setPendingAction(actionKey);
-    routeLoading.begin();
+    const loadingOpened = routeLoading.begin();
 
     try {
       const room = await joinRoom({ roomCode: normalizeRoomCode(nextRoomCode) });
+      await loadingOpened;
       enterRoom(room);
     } catch (error) {
       routeLoading.cancel();
@@ -73,10 +73,11 @@ export default function LobbyView() {
 
   async function handleCreateRoom() {
     setPendingAction("create");
-    routeLoading.begin();
+    const loadingOpened = routeLoading.begin();
 
     try {
       const room = await createRoom({ maxPlayers: roomMaxPlayers });
+      await loadingOpened;
       enterRoom(room);
     } catch (error) {
       routeLoading.cancel();

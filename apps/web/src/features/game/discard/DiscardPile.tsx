@@ -9,8 +9,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties } from 
 import { gsap } from "gsap";
 import CardBackArt from "@/components/cards/CardBackArt";
 import DomPlayingCard from "@/components/cards/DomPlayingCard";
-import { DISCARD_CARD_FLIGHT_SECONDS, DISCARD_CARD_STAGGER_SECONDS, DISCARD_POSE_PATTERN } from "./gameTableConstants";
-import type { DiscardGroupMeta, DisplayDiscardCard, GamePlayer, PublicDiscardCard } from "./gameTableTypes";
+import { DISCARD_CARD_FLIGHT_SECONDS, DISCARD_CARD_STAGGER_SECONDS } from "../model/gameTableConstants";
+import type { DiscardGroupMeta, DisplayDiscardCard, GamePlayer, PublicDiscardCard } from "../model/gameTableTypes";
+import { getScatteredDiscardPose } from "./discardLayout";
+
+export { getScatteredDiscardPose } from "./discardLayout";
 
 function getDiscardGroupKey(card: DisplayDiscardCard) {
   return `${card.turnSeq}:${card.playedByPlayerId}`;
@@ -63,17 +66,6 @@ function getDiscardGroupMeta(cards: DisplayDiscardCard[]) {
     groupCount: groupOrder.length,
     metaByCard,
   };
-}
-
-export function getScatteredDiscardPose(index: number) {
-  const pattern = DISCARD_POSE_PATTERN[index % DISCARD_POSE_PATTERN.length];
-  const lap = Math.floor(index / DISCARD_POSE_PATTERN.length);
-  const lapDirection = lap % 2 === 0 ? 1 : -1;
-  const x = pattern.x + lapDirection * Math.min(24, lap * 5);
-  const y = pattern.y + ((lap * 13) % 25) - 12;
-  const rotate = pattern.rotate + lapDirection * Math.min(18, lap * 4);
-
-  return { x, y, rotate };
 }
 
 /**

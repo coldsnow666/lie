@@ -6,12 +6,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import RouteLoadingOverlay from "@/features/start/RouteLoadingOverlay";
+import { RouteLoadingOverlay } from "@/features/start";
 
 type RouteLoadingPhase = "opening" | "waiting" | "closing";
 
 type RouteLoadingContextValue = {
-  begin: () => void;
+  begin: () => Promise<void>;
   complete: () => void;
   cancel: () => void;
 };
@@ -28,6 +28,7 @@ export function RouteLoadingProvider({ children }: { children: ReactNode }) {
   const visibleRef = useRef(false);
   const startedAtRef = useRef(0);
   const timersRef = useRef<number[]>([]);
+  const openingResolversRef = useRef<Array<() => void>>([]);
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((timer) => window.clearTimeout(timer));
@@ -41,6 +42,8 @@ export function RouteLoadingProvider({ children }: { children: ReactNode }) {
 
   const cancel = useCallback(() => {
     clearTimers();
+    openingResolversRef.current.forEach((resolve) => resolve());
+    openingResolversRef.current = [];
     visibleRef.current = false;
     setVisible(false);
     setPhase("opening");
@@ -58,8 +61,14 @@ export function RouteLoadingProvider({ children }: { children: ReactNode }) {
       if (phaseRef.current === "opening") {
         phaseRef.current = "waiting";
         setPhase("waiting");
+        openingResolversRef.current.forEach((resolve) => resolve());
+        openingResolversRef.current = [];
       }
     }, OPENING_DURATION);
+
+    return new Promise<void>((resolve) => {
+      openingResolversRef.current.push(resolve);
+    });
   }, [clearTimers, pushTimer]);
 
   const complete = useCallback(() => {

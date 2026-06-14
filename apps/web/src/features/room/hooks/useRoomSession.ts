@@ -7,12 +7,12 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { DECLARABLE_RANKS, type DeclaredRank } from "@lie/shared";
-import { useSession } from "@/features/auth/SessionProvider";
+import { useSession } from "@/features/auth";
 import { disconnectSocket, emitWithAck } from "@/lib/socket";
 import { showPixelMessage } from "@/components/ui/PixelMessage";
-import { useRoomExitGuard } from "@/features/room/hooks/useRoomExitGuard";
-import { useRoomSyncState } from "@/features/room/hooks/useRoomSyncState";
-import { useSelectedCards } from "@/features/room/hooks/useSelectedCards";
+import { useRoomExitGuard } from "./useRoomExitGuard";
+import { useRoomSyncState } from "./useRoomSyncState";
+import { useSelectedCards } from "./useSelectedCards";
 import {
   leaveRoomByHttp,
   type PublicRoomPlayer,
@@ -44,6 +44,7 @@ export function useRoomSession({
     room,
     gameState,
     events,
+    initialSyncFinished,
     syncRoom,
     applyRoomSyncPayload,
   } = useRoomSyncState({
@@ -63,7 +64,7 @@ export function useRoomSession({
     [room, user],
   );
   const isOwner = Boolean(room?.ownerUserId && room.ownerUserId === user?.id);
-  const canStart = Boolean(isOwner && room && room.players.length === room.maxPlayers && room.status === "waiting");
+  const canStart = Boolean(isOwner && room && room.players.length === room.maxPlayers && room.players.every((player) => player.ready) && room.status === "waiting");
 
   const leave = useCallback(async () => {
     if (!roomId) {
@@ -163,12 +164,29 @@ export function useRoomSession({
     }
   }, [roomId]);
 
+  const skipTurn = useCallback(async () => {
+    if (!roomId) {
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await emitWithAck("game:skipTurn", { roomId });
+      clearSelectedCards();
+    } catch (error) {
+      showPixelMessage(error instanceof Error ? error.message : "跳过失败");
+    } finally {
+      setBusy(false);
+    }
+  }, [clearSelectedCards, roomId]);
+
   return {
     session: {
       roomId,
       room,
       gameState,
       events,
+      initialSyncFinished,
       busy,
       user,
       selfPlayer: selfPlayer as PublicRoomPlayer | null,
@@ -188,6 +206,7 @@ export function useRoomSession({
       startGame,
       playCards,
       challenge,
+      skipTurn,
     },
   };
 }

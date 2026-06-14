@@ -5,9 +5,9 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Card, PublicGameState } from "@lie/shared";
-import { DEAL_CARD_FLIGHT_SECONDS, DEAL_CARD_STAGGER_SECONDS } from "./gameTableConstants";
-import { groupHandCards } from "./Hand";
-import type { DealFlightCard, GamePlayer, VisibleCardCounts } from "./gameTableTypes";
+import { DEAL_CARD_FLIGHT_SECONDS, DEAL_CARD_STAGGER_SECONDS } from "../model/gameTableConstants";
+import { groupHandCards } from "../hand/handLayout";
+import type { DealFlightCard, GamePlayer, VisibleCardCounts } from "../model/gameTableTypes";
 
 function getTargetCardCounts(players: GamePlayer[]) {
   return Object.fromEntries(players.map((player) => [player.playerId, player.cardCount])) as VisibleCardCounts;

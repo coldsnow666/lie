@@ -6,7 +6,7 @@
 "use client";
 
 import { useParams, useSearchParams } from "next/navigation";
-import RoomView from "@/features/room/RoomView";
+import { RoomView } from "@/features/room";
 
 export default function RoomPage() {
   const params = useParams<{ roomCode: string }>();

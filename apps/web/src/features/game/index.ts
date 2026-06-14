@@ -3,9 +3,8 @@
  *
  * @Date 2026-06-12 14:47
  */
-export { default as Card } from "./Card";
-export { default as EventLog } from "./EventLog";
-export { default as GameTable } from "./GameTable";
-export { default as Hand } from "./Hand";
-export { default as PlayerSeat } from "./PlayerSeat";
-export { formatGameEvent } from "./formatGameEvent";
+export { default as Card } from "./hand/Card";
+export { default as GameTable } from "./table/GameTable";
+export { default as Hand } from "./hand/Hand";
+export { default as PlayerSeat } from "./table/PlayerSeat";
+export { formatGameEvent } from "./model/formatGameEvent";

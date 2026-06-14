@@ -11,6 +11,7 @@ import {
   roomIdSchema,
   roomJoinSchema,
   roomReadySchema,
+  skipTurnSchema,
 } from "@lie/shared";
 import { verifyAccessToken, type AuthUser } from "./auth/token";
 import { CLIENT_EVENTS } from "./events/client-events";
@@ -22,6 +23,7 @@ import {
   leaveRoomForSocket,
   playCardsForSocket,
   setReadyForSocket,
+  skipTurnForSocket,
   startGameForSocket,
   subscribeLobbyForSocket,
   syncRoomForSocket,
@@ -307,6 +309,32 @@ export function attachSocketServer(httpServer: HttpServer) {
           roomId: parsed.data.roomId,
           cardCount: parsed.data.cardIds.length,
           declaredRank: parsed.data.declaredRank ?? null,
+        });
+        fail(ack, error);
+      }
+    });
+
+    authedSocket.on(CLIENT_EVENTS.GAME_SKIP_TURN, async (payload, ack?: Ack) => {
+      const parsed = skipTurnSchema.safeParse(payload);
+      if (!parsed.success) {
+        return fail(ack, new Error("VALIDATION_ERROR"));
+      }
+
+      try {
+        const result = await withRoomLock(parsed.data.roomId, () =>
+          skipTurnForSocket(parsed.data.roomId, authedSocket.data.user),
+        );
+        await applyRoomRealtimeEffects({
+          io,
+          socket: authedSocket,
+          effects: result.effects,
+        });
+        ok(ack, result.data);
+      } catch (error) {
+        reportAppError("socket.game.skipTurn", error, {
+          socketId: authedSocket.id,
+          userId: authedSocket.data.user.id,
+          roomId: parsed.data.roomId,
         });
         fail(ack, error);
       }

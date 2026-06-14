@@ -7,7 +7,7 @@
 
 import { useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect } from "react";
-import { useSession } from "@/features/auth/SessionProvider";
+import { useSession } from "@/features/auth";
 import type { StoredUser } from "@/lib/auth";
 
 type AuthGuardProps = PropsWithChildren<{

@@ -3,7 +3,7 @@
  *
  * @Date 2026-06-12 14:47
  */
-import RegisterForm from "@/features/auth/RegisterForm";
+import { RegisterForm } from "@/features/auth";
 
 export default function RegisterPage() {
   return <RegisterForm />;

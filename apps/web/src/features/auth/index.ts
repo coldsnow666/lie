@@ -3,9 +3,9 @@
  *
  * @Date 2026-06-12 14:47
  */
-export { default as AuthGuard } from "./AuthGuard";
-export { AuthTransitionProvider, useAuthTransition } from "./AuthTransitionContext";
-export { default as LoginForm } from "./LoginForm";
-export { default as RegisterForm } from "./RegisterForm";
-export { SessionProvider, useSession } from "./SessionProvider";
+export { default as AuthGuard } from "./guards/AuthGuard";
+export { AuthTransitionProvider, useAuthTransition } from "./context/AuthTransitionContext";
+export { default as LoginForm } from "./components/LoginForm";
+export { default as RegisterForm } from "./components/RegisterForm";
+export { SessionProvider, useSession } from "./providers/SessionProvider";
 export { useAuthScreenTransition } from "./hooks/useAuthScreenTransition";

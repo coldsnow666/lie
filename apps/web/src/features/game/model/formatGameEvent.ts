@@ -36,5 +36,9 @@ export function formatGameEvent(event: PublicGameEvent) {
     return event.wasTruthful ? "质疑失败，质疑者拿走弃牌堆" : "质疑成功，上一手玩家拿走弃牌堆";
   }
 
+  if (event.type === "turn_skipped") {
+    return "玩家跳过本回合";
+  }
+
   return "房间状态已更新";
 }

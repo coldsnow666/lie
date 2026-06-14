@@ -87,7 +87,6 @@ export default function PixelButton({
   type = "button",
   ...props
 }: PixelButtonProps) {
-  const visibleChildren = hasTextContent(children) ? stripIconOnlyNodes(children) : children;
   const pixelButtonClassName = [
         "lie-pixel-button relative isolate inline-flex cursor-pointer items-center justify-center gap-2 overflow-visible border-0 bg-transparent font-black tracking-[0.04em] transition-all duration-150",
         "outline-none focus-visible:-translate-y-px focus-visible:ring-2 focus-visible:ring-[#fff6cf]/70",
@@ -103,12 +102,15 @@ export default function PixelButton({
 
   if (asChild && isValidElement<{ children?: ReactNode; className?: string }>(children)) {
     const child = children as ReactElement<{ children?: ReactNode; className?: string }>;
+    const visibleChildContent = hasTextContent(child.props.children) ? stripIconOnlyNodes(child.props.children) : child.props.children;
 
     return cloneElement(child, {
       className: [pixelButtonClassName, child.props.className].filter(Boolean).join(" "),
-      children: <span className="lie-pixel-button-content">{visibleChildren}</span>,
+      children: <span className="lie-pixel-button-content">{visibleChildContent}</span>,
     } as { children: ReactNode; className: string });
   }
+
+  const visibleChildren = hasTextContent(children) ? stripIconOnlyNodes(children) : children;
 
   return (
     <button

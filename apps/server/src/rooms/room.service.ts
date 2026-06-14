@@ -7,8 +7,10 @@ import crypto from "node:crypto";
 import {
   MAX_PLAYERS,
   MIN_PLAYERS,
+  createTurnDeadline,
   createInitialGameState,
   playCards,
+  skipTurn,
   challengeLastPlay,
   finalizePendingWinner,
   findPendingWinner,
@@ -23,6 +25,8 @@ import { deleteRoom, getRoomByCode, getRoomById, listRooms, saveRoom, type RoomS
 
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const WAITING_ROOM_WITHOUT_SOCKET_GRACE_MS = 60_000;
+const TURN_DEADLINE_INITIAL_DEAL_DELAY_MS = 4_300;
+const TURN_DEADLINE_CHALLENGE_DELAY_MS = 4_900;
 
 function generateRoomCode() {
   return Array.from({ length: 6 }, () => ROOM_CODE_ALPHABET[Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)]).join("");
@@ -468,6 +472,10 @@ export async function startGame(roomId: string, user: AuthUser) {
     throw new Error("INVALID_PLAYER_COUNT");
   }
 
+  if (!room.players.every((player) => player.ready)) {
+    throw new Error("PLAYERS_NOT_READY");
+  }
+
   const matchId = crypto.randomUUID();
   const deckSeed = crypto.randomUUID();
   // 开局时以当前座位快照创建私有游戏状态，后续发牌和真实牌面只保存在服务端。
@@ -478,6 +486,7 @@ export async function startGame(roomId: string, user: AuthUser) {
     players: room.players,
     seed: deckSeed,
   });
+  room.gameState.turnDeadlineAt = createTurnDeadline(Date.now(), TURN_DEADLINE_INITIAL_DEAL_DELAY_MS);
   room.status = "playing";
   room.updatedAt = Date.now();
 
@@ -573,6 +582,37 @@ export async function playRoomCards(roomId: string, user: AuthUser, cardIds: str
 }
 
 /**
+ * @Description: 跳过当前玩家回合，服务端权威推进行动权并清空本轮待质疑状态。
+ *
+ * @param roomId 房间 ID。
+ * @param user 当前登录用户。
+ * @return 更新后的房间和跳过事件。
+ *
+ * @Date 2026-06-14 00:00
+ */
+export async function skipRoomTurn(roomId: string, user: AuthUser) {
+  const room = await getRoomById(roomId);
+
+  if (!room?.gameState) {
+    throw new Error("GAME_NOT_FOUND");
+  }
+
+  const player = findPlayerByUser(room, user.id);
+  if (!player) {
+    throw new Error("PLAYER_NOT_IN_ROOM");
+  }
+
+  const result = skipTurn(room.gameState, player.playerId);
+  room.gameState = result.state;
+  room.events.push(result.event);
+  room.updatedAt = Date.now();
+
+  await saveRoom(room);
+
+  return { room, event: result.event };
+}
+
+/**
  * @Description: 结算当前房间上一手质疑，并把结算事件写入房间事件流。
  *
  * @param roomId 房间 ID。
@@ -595,6 +635,9 @@ export async function challengeRoomLastPlay(roomId: string, user: AuthUser) {
 
   const result = challengeLastPlay(room.gameState, player.playerId);
   room.gameState = result.state;
+  if (room.gameState.status === "playing") {
+    room.gameState.turnDeadlineAt = createTurnDeadline(Date.now(), TURN_DEADLINE_CHALLENGE_DELAY_MS);
+  }
   room.events.push(result.event);
   room.updatedAt = Date.now();
 

@@ -7,7 +7,7 @@
 
 import { useCallback, useRef, useState, type RefObject } from "react";
 import { gsap } from "gsap";
-import { cornerFlights, resolveViewportCornerFlights } from "@/features/start/cardScene";
+import { cornerFlights, resolveViewportCornerFlights } from "@/features/start";
 
 type TransitionTargets = {
   cards: HTMLElement[];

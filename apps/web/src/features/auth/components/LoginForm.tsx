@@ -9,7 +9,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ArrowLeft, Lock, LogIn, Mail } from "lucide-react";
-import { useAuthTransition } from "@/features/auth/AuthTransitionContext";
+import { useAuthTransition } from "@/features/auth";
 import { login } from "@/service/modules/user";
 import PixelButton from "@/components/ui/PixelButton";
 import PixelInput from "@/components/ui/PixelInput";

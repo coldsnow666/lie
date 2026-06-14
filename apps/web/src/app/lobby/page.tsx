@@ -3,7 +3,7 @@
  *
  * @Date 2026-06-12 14:47
  */
-import LobbyView from "@/features/lobby/LobbyView";
+import { LobbyView } from "@/features/lobby";
 
 export default function LobbyPage() {
   return <LobbyView />;

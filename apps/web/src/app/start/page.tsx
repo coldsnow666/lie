@@ -3,7 +3,7 @@
  *
  * @Date 2026-06-12 14:47
  */
-import StartScreen from "@/features/start/StartScreen";
+import { StartScreen } from "@/features/start";
 
 export default function StartPage() {
   return <StartScreen />;

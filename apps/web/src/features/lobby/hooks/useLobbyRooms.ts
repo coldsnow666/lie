@@ -6,7 +6,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSession } from "@/features/auth/SessionProvider";
+import { useSession } from "@/features/auth";
 import { showPixelMessage } from "@/components/ui/PixelMessage";
 import { createSocket, emitWithAck } from "@/lib/socket";
 import { fetchRooms, type PublicRoom } from "@/service/modules/game";

@@ -10,15 +10,14 @@ import { gsap } from "gsap";
 import CardBackArt from "@/components/cards/CardBackArt";
 import DomPlayingCard from "@/components/cards/DomPlayingCard";
 import { playGameSound } from "@/lib/game-audio";
-import { DISCARD_RETURN_FLIGHT_SECONDS, DISCARD_RETURN_STAGGER_SECONDS } from "./gameTableConstants";
+import { DISCARD_RETURN_FLIGHT_SECONDS, DISCARD_RETURN_STAGGER_SECONDS } from "../model/gameTableConstants";
 import {
   applyCardFlightFrame,
   getDealFlightArc,
   getDealFlightTargetPose,
-  pulseCardReceiver,
   syncReturnFlightCardSize,
 } from "./gameAnimation";
-import type { ReturnFlightCard } from "./gameTableTypes";
+import type { ReturnFlightCard } from "../model/gameTableTypes";
 
 export default function ReturnFlightLayer({ cards, onCardComplete }: { cards: ReturnFlightCard[]; onCardComplete: (cardId: string) => void }) {
   const layerRef = useRef<HTMLDivElement | null>(null);
@@ -87,6 +86,7 @@ export default function ReturnFlightLayer({ cards, onCardComplete }: { cards: Re
           onUpdate: () => {
             applyCardFlightFrame({
               arc,
+              disableLiftScale: true,
               fadeIn: false,
               lockTargetScale: true,
               progress: flightState.progress,
@@ -103,7 +103,6 @@ export default function ReturnFlightLayer({ cards, onCardComplete }: { cards: Re
             }
 
             completedCardIdsRef.current.add(card.id);
-            pulseCardReceiver(targetNode);
             gsap.to(shell, {
               opacity: 0,
               scale: 1,

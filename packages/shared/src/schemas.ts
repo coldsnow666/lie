@@ -47,9 +47,12 @@ export const playCardsSchema = roomIdSchema.extend({
   declaredRank: declaredRankSchema.optional(),
 });
 
+export const skipTurnSchema = roomIdSchema;
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RoomCreateInput = z.infer<typeof roomCreateSchema>;
 export type RoomJoinInput = z.infer<typeof roomJoinSchema>;
 export type RoomReadyInput = z.infer<typeof roomReadySchema>;
 export type PlayCardsInput = z.infer<typeof playCardsSchema>;
+export type SkipTurnInput = z.infer<typeof skipTurnSchema>;

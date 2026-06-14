@@ -10,9 +10,9 @@ import { gsap } from "gsap";
 import CardBackArt from "@/components/cards/CardBackArt";
 import DomPlayingCard from "@/components/cards/DomPlayingCard";
 import { playGameSound } from "@/lib/game-audio";
-import { DEAL_CARD_FLIGHT_SECONDS, DEAL_CARD_STAGGER_SECONDS } from "./gameTableConstants";
+import { DEAL_CARD_FLIGHT_SECONDS, DEAL_CARD_STAGGER_SECONDS } from "../model/gameTableConstants";
 import { getDealFlightArc, getDealFlightTargetPose } from "./gameAnimation";
-import type { DealFlightCard } from "./gameTableTypes";
+import type { DealFlightCard } from "../model/gameTableTypes";
 
 export default function DealFlightLayer({
   flights,
@@ -75,7 +75,7 @@ export default function DealFlightLayer({
           x: controlX,
           y: controlY,
           rotate: targetPose.rotate + arc.settleRotate,
-          scale: 1.14,
+          scale: 1.04,
           opacity: 1,
           filter: "drop-shadow(0 12px 14px rgba(8, 13, 14, 0.28))",
           duration: DEAL_CARD_FLIGHT_SECONDS * 0.42,
@@ -88,10 +88,10 @@ export default function DealFlightLayer({
       timeline.to(
         shell,
         {
-          x: targetPose.x + arc.overshootX,
-          y: targetPose.y + arc.overshootY,
-          rotate: targetPose.rotate - arc.settleRotate * 0.35,
-          scale: targetPose.scale * 1.02,
+          x: targetPose.x,
+          y: targetPose.y,
+          rotate: targetPose.rotate,
+          scale: targetPose.scale,
           opacity: targetPose.visible ? 1 : 0,
           filter: "drop-shadow(0 5px 6px rgba(8, 13, 14, 0.22))",
           duration: DEAL_CARD_FLIGHT_SECONDS * 0.4,
@@ -110,7 +110,7 @@ export default function DealFlightLayer({
           opacity: targetPose.visible ? 1 : 0,
           filter: "drop-shadow(0 3px 4px rgba(8, 13, 14, 0.2))",
           duration: DEAL_CARD_FLIGHT_SECONDS * 0.18,
-          ease: "back.out(1.7)",
+          ease: "power1.out",
           onComplete: () => {
             flightTimelines.delete(flight.id);
             gsap.set(shell, { opacity: 0 });

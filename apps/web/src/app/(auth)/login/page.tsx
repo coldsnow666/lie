@@ -3,7 +3,7 @@
  *
  * @Date 2026-06-12 14:47
  */
-import LoginForm from "@/features/auth/LoginForm";
+import { LoginForm } from "@/features/auth";
 
 export default function LoginPage() {
   return <LoginForm />;

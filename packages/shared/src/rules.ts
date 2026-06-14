@@ -5,7 +5,7 @@
  */
 import { MAX_PLAY_CARDS, MAX_PLAYERS, MIN_PLAY_CARDS, MIN_PLAYERS } from "./constants";
 import { createGameDeck, dealFixedHands, getGameDeckConfig, isJokerCard, shuffleDeck, sortHandCards, type Card, type DeclaredRank } from "./cards";
-import type { CardsPlayedEvent, ChallengeResolvedEvent } from "./events";
+import type { CardsPlayedEvent, ChallengeResolvedEvent, TurnSkippedEvent } from "./events";
 
 export type Player = {
   playerId: string;
@@ -41,6 +41,7 @@ export type PrivateGameState = {
   undealtCards: Card[];
   discardPile: DiscardEntry[];
   currentPlayerId: string;
+  turnDeadlineAt: number | null;
   lastPlay: LastPlay | null;
   turnSeq: number;
   winnerPlayerId: string | null;
@@ -65,6 +66,17 @@ export type ChallengeResult = {
   state: PrivateGameState;
   event: ChallengeResolvedEvent;
 };
+
+export type SkipTurnResult = {
+  state: PrivateGameState;
+  event: TurnSkippedEvent;
+};
+
+export const TURN_DURATION_MS = 30_000;
+
+export function createTurnDeadline(now = Date.now(), delayMs = 0) {
+  return now + delayMs + TURN_DURATION_MS;
+}
 
 function updatePlayerPendingWin(players: Player[], pendingPlayerId: string | null) {
   return players.map((player) => ({
@@ -163,6 +175,7 @@ export function finalizePendingWinner(state: PrivateGameState): PrivateGameState
     status: "finished",
     players: updatePlayerPendingWin(state.players, null),
     winnerPlayerId: pendingWinner.playerId,
+    turnDeadlineAt: null,
     updatedAt: Date.now(),
   };
 }
@@ -202,6 +215,7 @@ export function createInitialGameState(params: {
     undealtCards,
     discardPile: [],
     currentPlayerId: players[0].playerId,
+    turnDeadlineAt: createTurnDeadline(now),
     lastPlay: null,
     turnSeq: 1,
     winnerPlayerId: null,
@@ -256,6 +270,7 @@ export function playCards(
 
   const selectedSet = new Set(cardIds);
   const nextHand = hand.filter((card) => !selectedSet.has(card.id));
+  const now = Date.now();
   const turnSeq = state.turnSeq + 1;
   const nextPlayer = getNextPlayer(state.players, actorPlayerId);
   const pendingPlayerId = nextHand.length === 0 ? actorPlayerId : null;
@@ -277,16 +292,17 @@ export function playCards(
       })),
     ],
     currentPlayerId: nextPlayer.playerId,
+    turnDeadlineAt: createTurnDeadline(now),
     lastPlay: {
       playerId: actorPlayerId,
       declaredRank: effectiveDeclaredRank,
       cardCount: selectedCards.length,
       actualCards: selectedCards,
-      timestamp: Date.now(),
+      timestamp: now,
     },
     turnSeq,
     winnerPlayerId: null,
-    updatedAt: Date.now(),
+    updatedAt: now,
   };
 
   return {
@@ -303,7 +319,7 @@ export function playCards(
 }
 
 /**
- * @Description: 结算一次质疑，揭示上一手真实牌面，并把弃牌堆交给失败方继续行动。
+ * @Description: 结算一次质疑，揭示上一手真实牌面，并按质疑结果决定拿牌人与下一行动方。
  *
  * @param state 服务端私有游戏状态。
  * @param challengerPlayerId 发起质疑的玩家 ID。
@@ -337,8 +353,10 @@ export function challengeLastPlay(state: PrivateGameState, challengerPlayerId: s
     (player) => player.playerId === challengedPlayerId && player.pendingWin,
   );
   const wasTruthful = isTruthfulPlay(state.lastPlay.actualCards, state.lastPlay.declaredRank);
-  // MVP 规则：质疑失败者拿走整个弃牌堆，并由拿走牌堆的人继续行动。
+  // 质疑成功时上一手玩家拿牌、质疑者继续；质疑失败时质疑者拿牌、上一手玩家继续。
   const pileTakenByPlayerId = wasTruthful ? challengerPlayerId : challengedPlayerId;
+  const nextPlayerId = wasTruthful ? challengedPlayerId : challengerPlayerId;
+  const now = Date.now();
   const turnSeq = state.turnSeq + 1;
   const pileCards = state.discardPile.map((entry) => entry.card);
   const challengedPlayerWins = wasTruthful && challengedPlayerWasPendingWinner;
@@ -352,11 +370,12 @@ export function challengeLastPlay(state: PrivateGameState, challengerPlayerId: s
       [pileTakenByPlayerId]: [...(state.hands[pileTakenByPlayerId] ?? []), ...pileCards],
     },
     discardPile: [],
-    currentPlayerId: pileTakenByPlayerId,
+    currentPlayerId: nextPlayerId,
+    turnDeadlineAt: challengedPlayerWins ? null : createTurnDeadline(now),
     lastPlay: null,
     turnSeq,
     winnerPlayerId: challengedPlayerWins ? challengedPlayerId : null,
-    updatedAt: Date.now(),
+    updatedAt: now,
   };
 
   return {
@@ -368,6 +387,53 @@ export function challengeLastPlay(state: PrivateGameState, challengerPlayerId: s
       wasTruthful,
       revealedCards: state.lastPlay.actualCards,
       pileTakenByPlayerId,
+      turnSeq,
+    },
+  };
+}
+
+/**
+ * @Description: 跟牌回合跳过当前玩家，并保留本轮声明点数和待质疑状态。
+ *
+ * @param state 服务端私有游戏状态。
+ * @param actorPlayerId 当前行动玩家 ID。
+ * @return 更新后的私有状态和跳过事件。
+ *
+ * @Date 2026-06-14 00:00
+ */
+export function skipTurn(state: PrivateGameState, actorPlayerId: string): SkipTurnResult {
+  if (state.status !== "playing") {
+    throw new Error("GAME_NOT_PLAYING");
+  }
+
+  if (state.currentPlayerId !== actorPlayerId) {
+    throw new Error("NOT_YOUR_TURN");
+  }
+
+  if (!state.players.some((player) => player.playerId === actorPlayerId)) {
+    throw new Error("PLAYER_NOT_IN_GAME");
+  }
+
+  if (!state.lastPlay) {
+    throw new Error("CANNOT_SKIP_OPENING_TURN");
+  }
+
+  const nextPlayer = getNextPlayer(state.players, actorPlayerId);
+  const now = Date.now();
+  const turnSeq = state.turnSeq + 1;
+
+  return {
+    state: {
+      ...state,
+      players: updatePlayerPendingWin(state.players, null),
+      currentPlayerId: nextPlayer.playerId,
+      turnDeadlineAt: createTurnDeadline(now),
+      turnSeq,
+      updatedAt: now,
+    },
+    event: {
+      type: "turn_skipped",
+      actorPlayerId,
       turnSeq,
     },
   };
@@ -416,6 +482,7 @@ export function toPublicGameState(state: PrivateGameState, viewerPlayerId: strin
       cardBack: cardBackByPlayerId.get(entry.playedByPlayerId) ?? 0,
     })),
     currentPlayerId: state.currentPlayerId,
+    turnDeadlineAt: state.turnDeadlineAt ?? null,
     lastPlay,
     turnSeq: state.turnSeq,
     winnerPlayerId: state.winnerPlayerId,

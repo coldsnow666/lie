@@ -43,6 +43,7 @@ export function useRoomSyncState({
   const [room, setRoom] = useState<PublicRoom | null>(null);
   const [gameState, setGameState] = useState<PublicGameState | null>(null);
   const [events, setEvents] = useState<PublicGameEvent[]>([]);
+  const [initialSyncFinished, setInitialSyncFinished] = useState(false);
   const roomId = room?.id ?? fallbackRoomId;
 
   const applyRoomSyncPayload = useCallback(
@@ -86,6 +87,8 @@ export function useRoomSyncState({
       }
 
       showPixelMessage(nextMessage);
+    } finally {
+      setInitialSyncFinished(true);
     }
   }, [applyRoomSyncPayload, roomCode, roomId, userId]);
 
@@ -165,6 +168,7 @@ export function useRoomSyncState({
     room,
     gameState,
     events,
+    initialSyncFinished,
     syncRoom,
     applyRoomSyncPayload,
   };

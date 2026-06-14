@@ -9,7 +9,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import DomPlayingCard from "@/components/cards/DomPlayingCard";
-import { cardTransform, cornerFlights, defaultCards, resolveViewportCornerFlights, type BounceCard, type Suit } from "./cardScene";
+import { cardTransform, cornerFlights, defaultCards, resolveViewportCornerFlights, type BounceCard, type Suit } from "../scene/cardScene";
 
 type BounceCardsProps = {
   className?: string;

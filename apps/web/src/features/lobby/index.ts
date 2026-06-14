@@ -3,7 +3,7 @@
  *
  * @Date 2026-06-12 14:47
  */
-export { default as LobbyView } from "./LobbyView";
-export { default as LobbyHeaderActions } from "./LobbyHeaderActions";
-export { default as RoomListContent } from "./RoomListContent";
+export { default as LobbyView } from "./components/LobbyView";
+export { default as LobbyHeaderActions } from "./components/LobbyHeaderActions";
+export { default as RoomListContent } from "./components/RoomListContent";
 export { useLobbyRooms } from "./hooks/useLobbyRooms";

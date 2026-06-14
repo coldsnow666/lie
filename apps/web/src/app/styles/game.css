@@ -431,6 +431,92 @@
   white-space: nowrap;
 }
 
+.lie-challenge-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 240;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  overflow: hidden;
+  background: rgba(4, 9, 9, 0.68);
+  padding: clamp(1rem, 4vw, 2rem);
+  pointer-events: none;
+  animation: lie-challenge-overlay-in 180ms ease-out both;
+}
+
+.lie-challenge-overlay-panel {
+  display: grid;
+  justify-items: center;
+  gap: clamp(0.38rem, 1vw, 0.55rem);
+  width: min(24rem, calc(100vw - 2rem));
+  border: 2px solid rgba(247, 240, 220, 0.82);
+  background: rgba(13, 27, 26, 0.93);
+  padding: clamp(0.78rem, 2.2vw, 1.2rem) clamp(0.9rem, 2.6vw, 1.45rem);
+  color: #fff6cf;
+  font-weight: 900;
+  line-height: 1.18;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.38);
+  box-shadow:
+    0 0 0 2px rgba(13, 27, 26, 0.72),
+    0 12px 0 rgba(0, 0, 0, 0.22);
+}
+
+.lie-challenge-overlay-panel strong {
+  color: #f1cf78;
+  font-size: clamp(1.18rem, 4.8vw, 2.1rem);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.lie-challenge-overlay[data-phase="result"] .lie-challenge-overlay-panel strong {
+  color: #bff3a8;
+}
+
+.lie-challenge-overlay-panel span {
+  color: #d8e3c4;
+  font-size: clamp(0.88rem, 3.2vw, 1.18rem);
+  overflow-wrap: anywhere;
+}
+
+.lie-challenge-overlay-panel .lie-challenge-overlay-highlight {
+  display: inline-block;
+  margin: 0 0.08em;
+  color: #f4d57a;
+  font: inherit;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.42),
+    0 0 12px rgba(244, 213, 122, 0.34);
+}
+
+.lie-challenge-overlay-panel .lie-challenge-overlay-highlight[data-tone="result"] {
+  color: #bff3a8;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.42),
+    0 0 12px rgba(191, 243, 168, 0.36);
+}
+
+.lie-challenge-overlay-panel .lie-challenge-overlay-highlight[data-tone="action"] {
+  color: #fff6cf;
+  text-decoration: underline;
+  text-decoration-color: rgba(244, 213, 122, 0.7);
+  text-decoration-thickness: 0.14em;
+  text-underline-offset: 0.16em;
+}
+
+@keyframes lie-challenge-overlay-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes lie-table-center-notice-in {
   0% {
     opacity: 0;
